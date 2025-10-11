@@ -98,3 +98,28 @@ Created manually using SQL by administrator
 * Clean architecture
 * pgx
 * Docker,Dockerfile
+
+---
+
+* Use S3 Bucket for photos storage to be more scallable on size
+* Don't implement rollback mechanism
+
+---
+
+* Tree
+  * Select root 
+  * Tree/list memebers view
+  * Search box (with filters)
+  * Memebers show box (fields to show when on tree/list view)
+* Members CRUD members (admin)
+  * Search box (with filters)
+  * Create/Update member
+  * Member Info
+  * Member change history (only visable to super_admin)
+* Users - RUD users (admin)
+  * Search box (with filters)
+  * Change role / deactivate
+  * See user info (with scores + scores history)
+  * Recent changes made by him (only visable to super_admin)
+* None page
+  * User created but admin didn't give him access to the website yet

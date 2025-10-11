@@ -21,10 +21,10 @@ ALTER TABLE roles
 -- Insert default roles
 INSERT INTO roles (name)
 VALUES 
-    ('none'),
-    ('guest'),
-    ('admin'),
-    ('super_admin');
+    (100, 'none'),
+    (200, 'guest'),
+    (300, 'admin'),
+    (400, 'super_admin');
 
 -- =============================
 -- Users
@@ -41,8 +41,9 @@ CREATE TABLE users (
 
 ALTER TABLE users
     ADD CONSTRAINT pk_users PRIMARY KEY (user_id),
-    ADD CONSTRAINT uq_users_email UNIQUE (email),
     ADD CONSTRAINT fk_users_role FOREIGN KEY (role_id) REFERENCES roles(role_id);
+
+CREATE INDEX idx_users_email ON users(email)
 
 -- =============================
 -- User Sessions
@@ -59,7 +60,8 @@ ALTER TABLE user_sessions
     ADD CONSTRAINT pk_user_sessions PRIMARY KEY (session_id),
     ADD CONSTRAINT fk_user_sessions_user FOREIGN KEY (user_id) REFERENCES users(user_id);
 
-ALTER TABLE user_session CREATE INDEX idx_user_sessions_user_id ON (user_id)
+CREATE INDEX idx_user_sessions_user_id ON user_session(user_id);
+CREATE INDEX idx_user_sessions_user_id_session_id ON user_session(user_id,session_id);
 
 -- =============================
 -- Members (Family Tree)
@@ -68,15 +70,15 @@ CREATE TABLE members (
     member_id SERIAL,
     arabic_name VARCHAR(255) NOT NULL,
     english_name VARCHAR(255) NOT NULL,
-    gender CHAR(1) NOT NULL,               -- 'M', 'F' or 'N'
-    picture BYTEA,
+    gender CHAR(1) NOT NULL,               -- 'M', 'F', 'N'
+    picture TEXT,
     date_of_birth DATE,
     date_of_death DATE,
     father_id INT,
     mother_id INT,
     nicknames TEXT[],
     profession VARCHAR(255),
-    revision INT DEFAULT 1,                  -- Current version
+    version INT NOT NULL DEFAULT 0
     deleted_at TIMESTAMP                    -- Soft delete timestamp
 );
 
@@ -84,6 +86,9 @@ ALTER TABLE members
     ADD CONSTRAINT pk_members PRIMARY KEY (member_id),
     ADD CONSTRAINT fk_members_father FOREIGN KEY (father_id) REFERENCES members(member_id),
     ADD CONSTRAINT fk_members_mother FOREIGN KEY (mother_id) REFERENCES members(member_id);
+
+CREATE INDEX idx_members_father_id ON  members(father_id)
+CREATE INDEX idx_members_mother_id ON  members(mother_id)
 
 -- =============================
 -- Members Marriages (Many-to-Many)
@@ -107,11 +112,11 @@ CREATE TABLE members_history (
     history_id SERIAL,
     member_id INT NOT NULL,
     user_id INT NOT NULL,
-    revision INT NOT NULL DEFAULT 0,       -- Used for rollback reference
     changed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     change_type VARCHAR(50) NOT NULL,      -- e.g. INSERT, UPDATE, DELETE, ADD_SPOUSE, REMOVE_SPOUSE
     old_values JSONB,
-    new_values JSONB
+    new_values JSONB,
+    member_version INT NOT NULL DEFAULT 0
 );
 
 ALTER TABLE members_history
@@ -135,8 +140,9 @@ ALTER TABLE user_scores
     ADD CONSTRAINT fk_user_scores_user FOREIGN KEY (user_id) REFERENCES users(user_id),
     ADD CONSTRAINT fk_user_scores_member FOREIGN KEY (member_id) REFERENCES members(member_id);
 
-ALTER TABLE user_scores CREATE INDEX idx_user_scores_user_id (user_id);
-ALTER TABLE user_scores CREATE INDEX idx_user_scores_member_id (member_id);
+CREATE INDEX idx_user_scores_user_id ON user_scores(user_id);
+CREATE INDEX idx_user_scores_member_id ON user_scores(member_id);
+CREATE INDEX idx_user_scores_user_id_member_id_field_name ON user_scores(user_id, member_id, field_name);
 
 -- =============================
 -- User Role History (Grant/Revoke Tracking)

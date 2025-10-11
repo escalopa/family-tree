@@ -19,12 +19,6 @@ services:
       timeout: 5s
       retries: 5
 
-  db-migrate:
-    image: dekuyo/migrate-go:latest
-    volumes:
-      - ./migrations:/migrations
-    command: [ "-dir", "/migrations", "-dsn", "postgres://postgres:postgres@db:5432/family_tree_devp?sslmode=disable" ]  
-
 volumes:
   postgres_data:
     driver: local
