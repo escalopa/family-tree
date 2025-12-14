@@ -43,7 +43,7 @@ oauth:
     #     - "email"
     #     - "public_profile"
 
-  redirect_base_url: "http://localhost:8080"
+  redirect_base_url: "http://localhost:5173"
 
 s3:
   endpoint: "https://storage.yandexcloud.net"

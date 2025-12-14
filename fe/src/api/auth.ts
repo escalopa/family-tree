@@ -21,6 +21,18 @@ export const authApi = {
     return authApi.getAuthURL('google');
   },
 
+  /**
+   * Handle OAuth callback by sending the authorization code to the backend
+   * @param provider - The OAuth provider (e.g., 'google', 'facebook', 'github')
+   * @param code - The authorization code from the OAuth provider
+   */
+  handleCallback: async (provider: OAuthProvider, code: string): Promise<{ user: any }> => {
+    const response = await apiClient.get<ApiResponse<{ user: any }>>(
+      `/auth/${provider}/callback?code=${code}`
+    );
+    return response.data.data!;
+  },
+
   logout: async (): Promise<void> => {
     await apiClient.post('/api/auth/logout');
   },

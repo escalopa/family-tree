@@ -6,6 +6,7 @@ import { theme } from './theme/theme';
 import { ProtectedRoute } from './components/common/ProtectedRoute';
 import { LoginPage } from './pages/LoginPage';
 import { NonePage } from './pages/NonePage';
+import { OAuthCallbackPage } from './pages/OAuthCallbackPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { TreePage } from './pages/TreePage';
 import { MembersPage } from './pages/MembersPage';
@@ -31,6 +32,7 @@ function App() {
           <Routes>
             <Route path="/login" element={<LoginPage />} />
             <Route path="/none" element={<NonePage />} />
+            <Route path="/auth/:provider/callback" element={<OAuthCallbackPage />} />
 
             <Route
               path="/"

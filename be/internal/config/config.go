@@ -2,8 +2,8 @@ package config
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
-	"reflect"
 	"strings"
 	"time"
 
@@ -11,64 +11,64 @@ import (
 )
 
 type Config struct {
-	Server   ServerConfig   `yaml:"server"`
-	Database DatabaseConfig `yaml:"database"`
-	OAuth    OAuthConfig    `yaml:"oauth"`
-	JWT      JWTConfig      `yaml:"jwt"`
-	S3       S3Config       `yaml:"s3"`
+	Server   ServerConfig   `mapstructure:"server"`
+	Database DatabaseConfig `mapstructure:"database"`
+	OAuth    OAuthConfig    `mapstructure:"oauth"`
+	JWT      JWTConfig      `mapstructure:"jwt"`
+	S3       S3Config       `mapstructure:"s3"`
 }
 
 type ServerConfig struct {
-	Port           string       `yaml:"port" env:"SERVER_PORT"`
-	Mode           string       `yaml:"mode" env:"GIN_MODE"`
-	LogLevel       string       `yaml:"log_level" env:"LOG_LEVEL"`
-	AllowedOrigins []string     `yaml:"allowed_origins"`
-	Cookie         CookieConfig `yaml:"cookie"`
+	Port           string       `mapstructure:"port" env:"SERVER_PORT"`
+	Mode           string       `mapstructure:"mode" env:"GIN_MODE"`
+	LogLevel       string       `mapstructure:"log_level" env:"LOG_LEVEL"`
+	AllowedOrigins []string     `mapstructure:"allowed_origins" env:"ALLOWED_ORIGINS"`
+	Cookie         CookieConfig `mapstructure:"cookie"`
 }
 
 type CookieConfig struct {
-	AccessTokenMaxAge  int    `yaml:"access_token_max_age" env:"COOKIE_ACCESS_TOKEN_MAX_AGE"`
-	RefreshTokenMaxAge int    `yaml:"refresh_token_max_age" env:"COOKIE_REFRESH_TOKEN_MAX_AGE"`
-	SessionIDMaxAge    int    `yaml:"session_id_max_age" env:"COOKIE_SESSION_ID_MAX_AGE"`
-	Path               string `yaml:"path" env:"COOKIE_PATH"`
-	Domain             string `yaml:"domain" env:"COOKIE_DOMAIN"`
-	Secure             bool   `yaml:"secure" env:"COOKIE_SECURE"`
-	HttpOnly           bool   `yaml:"http_only" env:"COOKIE_HTTP_ONLY"`
+	AccessTokenMaxAge  int    `mapstructure:"access_token_max_age" env:"COOKIE_ACCESS_TOKEN_MAX_AGE"`
+	RefreshTokenMaxAge int    `mapstructure:"refresh_token_max_age" env:"COOKIE_REFRESH_TOKEN_MAX_AGE"`
+	SessionIDMaxAge    int    `mapstructure:"session_id_max_age" env:"COOKIE_SESSION_ID_MAX_AGE"`
+	Path               string `mapstructure:"path" env:"COOKIE_PATH"`
+	Domain             string `mapstructure:"domain" env:"COOKIE_DOMAIN"`
+	Secure             bool   `mapstructure:"secure" env:"COOKIE_SECURE"`
+	HttpOnly           bool   `mapstructure:"http_only" env:"COOKIE_HTTP_ONLY"`
 }
 
 type DatabaseConfig struct {
-	Host     string `yaml:"host" env:"DB_HOST"`
-	Port     string `yaml:"port" env:"DB_PORT"`
-	User     string `yaml:"user" env:"DB_USER"`
-	Password string `yaml:"password" env:"DB_PASSWORD"`
-	Name     string `yaml:"name" env:"DB_NAME"`
-	SSLMode  string `yaml:"sslmode" env:"DB_SSLMODE"`
+	Host     string `mapstructure:"host" env:"DB_HOST"`
+	Port     string `mapstructure:"port" env:"DB_PORT"`
+	User     string `mapstructure:"user" env:"DB_USER"`
+	Password string `mapstructure:"password" env:"DB_PASSWORD"`
+	Name     string `mapstructure:"name" env:"DB_NAME"`
+	SSLMode  string `mapstructure:"sslmode" env:"DB_SSLMODE"`
 }
 
 type OAuthConfig struct {
-	Providers       map[string]OAuthProviderConfig `yaml:"providers"`
-	RedirectBaseURL string                         `yaml:"redirect_base_url" env:"OAUTH_REDIRECT_BASE_URL"`
+	Providers       map[string]OAuthProviderConfig `mapstructure:"providers"`
+	RedirectBaseURL string                         `mapstructure:"redirect_base_url" env:"OAUTH_REDIRECT_BASE_URL"`
 }
 
 type OAuthProviderConfig struct {
-	ClientID     string   `yaml:"client_id" env:"CLIENT_ID"`
-	ClientSecret string   `yaml:"client_secret" env:"CLIENT_SECRET"`
-	Scopes       []string `yaml:"scopes"`
-	UserInfoURL  string   `yaml:"user_info_url" env:"USER_INFO_URL"`
+	ClientID     string   `mapstructure:"client_id" env:"CLIENT_ID"`
+	ClientSecret string   `mapstructure:"client_secret" env:"CLIENT_SECRET"`
+	Scopes       []string `mapstructure:"scopes"`
+	UserInfoURL  string   `mapstructure:"user_info_url" env:"USER_INFO_URL"`
 }
 
 type JWTConfig struct {
-	Secret        string        `yaml:"secret" env:"JWT_SECRET"`
-	AccessExpiry  time.Duration `yaml:"access_expiry" env:"JWT_ACCESS_EXPIRY"`
-	RefreshExpiry time.Duration `yaml:"refresh_expiry" env:"JWT_REFRESH_EXPIRY"`
+	Secret        string        `mapstructure:"secret" env:"JWT_SECRET"`
+	AccessExpiry  time.Duration `mapstructure:"access_expiry" env:"JWT_ACCESS_EXPIRY"`
+	RefreshExpiry time.Duration `mapstructure:"refresh_expiry" env:"JWT_REFRESH_EXPIRY"`
 }
 
 type S3Config struct {
-	Endpoint  string `yaml:"endpoint" env:"S3_ENDPOINT"`
-	Region    string `yaml:"region" env:"S3_REGION"`
-	Bucket    string `yaml:"bucket" env:"S3_BUCKET"`
-	AccessKey string `yaml:"access_key" env:"S3_ACCESS_KEY"`
-	SecretKey string `yaml:"secret_key" env:"S3_SECRET_KEY"`
+	Endpoint  string `mapstructure:"endpoint" env:"S3_ENDPOINT"`
+	Region    string `mapstructure:"region" env:"S3_REGION"`
+	Bucket    string `mapstructure:"bucket" env:"S3_BUCKET"`
+	AccessKey string `mapstructure:"access_key" env:"S3_ACCESS_KEY"`
+	SecretKey string `mapstructure:"secret_key" env:"S3_SECRET_KEY"`
 }
 
 const (
@@ -86,8 +86,8 @@ func Load() (*Config, error) {
 	viper.SetConfigType("yaml")
 	viper.AddConfigPath(configPath)
 
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	viper.AutomaticEnv()
-	bindEnvFromTags(reflect.TypeOf(Config{}), "")
 
 	if err := viper.ReadInConfig(); err != nil {
 		return nil, fmt.Errorf("read config file: %w", err)
@@ -98,34 +98,9 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("unmarshal config: %w", err)
 	}
 
+	slog.Info("Config", "cfg", cfg)
+
 	return &cfg, nil
-}
-
-func bindEnvFromTags(t reflect.Type, prefix string) {
-	for i := 0; i < t.NumField(); i++ {
-		field := t.Field(i)
-
-		yamlTag := field.Tag.Get("yaml")
-		envTag := field.Tag.Get("env")
-
-		if yamlTag == "" || yamlTag == "-" {
-			continue
-		}
-
-		yamlKey := strings.Split(yamlTag, ",")[0]
-		fullKey := yamlKey
-		if prefix != "" {
-			fullKey = prefix + "." + yamlKey
-		}
-
-		if envTag != "" {
-			viper.BindEnv(fullKey, envTag)
-		}
-
-		if field.Type.Kind() == reflect.Struct {
-			bindEnvFromTags(field.Type, fullKey)
-		}
-	}
 }
 
 func (c *DatabaseConfig) ConnectionString() string {
