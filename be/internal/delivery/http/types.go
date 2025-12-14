@@ -2,12 +2,9 @@ package http
 
 import "github.com/gin-gonic/gin"
 
-// Handler interfaces used by the HTTP router
-
 type AuthHandler interface {
 	GetAuthURL(c *gin.Context)
 	HandleCallback(c *gin.Context)
-	RefreshToken(c *gin.Context)
 	Logout(c *gin.Context)
 	LogoutAll(c *gin.Context)
 }
@@ -43,8 +40,6 @@ type TreeHandler interface {
 	GetTree(c *gin.Context)
 	GetRelation(c *gin.Context)
 }
-
-// AuthMiddleware interface used by the HTTP router
 
 type AuthMiddleware interface {
 	Authenticate() gin.HandlerFunc

@@ -27,7 +27,7 @@ func (uc *treeUseCase) GetTree(ctx context.Context, rootID *int, userRole int) (
 	// Get all members
 	members, err := uc.memberRepo.GetAll(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get members: %w", err)
+		return nil, fmt.Errorf("get members: %w", err)
 	}
 
 	if len(members) == 0 {
@@ -37,7 +37,7 @@ func (uc *treeUseCase) GetTree(ctx context.Context, rootID *int, userRole int) (
 	// Get spouse relationships
 	spouseMap, err := uc.spouseRepo.GetAllSpouses(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get spouses: %w", err)
+		return nil, fmt.Errorf("get spouses: %w", err)
 	}
 
 	// Create member map
@@ -66,13 +66,13 @@ func (uc *treeUseCase) GetListView(ctx context.Context, rootID *int, userRole in
 	// Get all members
 	members, err := uc.memberRepo.GetAll(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get members: %w", err)
+		return nil, fmt.Errorf("get members: %w", err)
 	}
 
 	// Get spouse relationships
 	spouseMap, err := uc.spouseRepo.GetAllSpouses(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get spouses: %w", err)
+		return nil, fmt.Errorf("get spouses: %w", err)
 	}
 
 	// Convert to MemberWithComputed
@@ -114,7 +114,7 @@ func (uc *treeUseCase) GetRelationPath(ctx context.Context, member1ID, member2ID
 	// Get all members
 	members, err := uc.memberRepo.GetAll(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get members: %w", err)
+		return nil, fmt.Errorf("get members: %w", err)
 	}
 
 	// Create member map

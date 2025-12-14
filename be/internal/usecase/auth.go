@@ -85,12 +85,12 @@ func (uc *authUseCase) HandleCallback(ctx context.Context, provider, code string
 	// Generate tokens
 	accessToken, err := uc.tokenMgr.GenerateAccessToken(user.UserID, user.Email, user.RoleID, sessionID)
 	if err != nil {
-		return nil, nil, domain.NewInternalError("failed to generate access token", err)
+		return nil, nil, domain.NewInternalError("generate access token", err)
 	}
 
 	refreshToken, err := uc.tokenMgr.GenerateRefreshToken(user.UserID, sessionID)
 	if err != nil {
-		return nil, nil, domain.NewInternalError("failed to generate refresh token", err)
+		return nil, nil, domain.NewInternalError("generate refresh token", err)
 	}
 
 	tokens := &domain.AuthTokens{
@@ -130,7 +130,7 @@ func (uc *authUseCase) RefreshTokens(ctx context.Context, refreshToken string) (
 	// Generate new access token
 	accessToken, err := uc.tokenMgr.GenerateAccessToken(user.UserID, user.Email, user.RoleID, claims.SessionID)
 	if err != nil {
-		return nil, domain.NewInternalError("failed to generate access token", err)
+		return nil, domain.NewInternalError("generate access token", err)
 	}
 
 	tokens := &domain.AuthTokens{

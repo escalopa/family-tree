@@ -8,7 +8,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// HandleError maps domain errors to HTTP responses
 func HandleError(c *gin.Context, err error) {
 	var domainErr *domain.DomainError
 	if errors.As(err, &domainErr) {
@@ -19,7 +18,6 @@ func HandleError(c *gin.Context, err error) {
 		return
 	}
 
-	// Fallback for non-domain errors
 	c.JSON(http.StatusInternalServerError, gin.H{
 		"success": false,
 		"error":   "Internal server error",

@@ -6,37 +6,30 @@ import (
 	"net/http"
 )
 
-// Domain errors for consistent error handling
 type ErrorCode string
 
 const (
-	// Authentication errors
 	ErrCodeUnauthorized      ErrorCode = "UNAUTHORIZED"
 	ErrCodeInvalidToken      ErrorCode = "INVALID_TOKEN"
 	ErrCodeSessionExpired    ErrorCode = "SESSION_EXPIRED"
 	ErrCodeInvalidOAuthState ErrorCode = "INVALID_OAUTH_STATE"
 
-	// Authorization errors
 	ErrCodeForbidden               ErrorCode = "FORBIDDEN"
 	ErrCodeInsufficientPermissions ErrorCode = "INSUFFICIENT_PERMISSIONS"
 
-	// Resource errors
 	ErrCodeNotFound      ErrorCode = "NOT_FOUND"
 	ErrCodeAlreadyExists ErrorCode = "ALREADY_EXISTS"
 	ErrCodeConflict      ErrorCode = "CONFLICT"
 
-	// Validation errors
 	ErrCodeInvalidInput    ErrorCode = "INVALID_INPUT"
 	ErrCodeVersionConflict ErrorCode = "VERSION_CONFLICT"
 	ErrCodeInvalidDate     ErrorCode = "INVALID_DATE"
 
-	// Internal errors
 	ErrCodeInternal        ErrorCode = "INTERNAL_ERROR"
 	ErrCodeDatabaseError   ErrorCode = "DATABASE_ERROR"
 	ErrCodeExternalService ErrorCode = "EXTERNAL_SERVICE_ERROR"
 )
 
-// Sentinel errors for errors.Is comparison
 var (
 	ErrUnauthorized      = errors.New("unauthorized")
 	ErrForbidden         = errors.New("forbidden")
@@ -68,7 +61,6 @@ func (e *DomainError) Unwrap() error {
 	return e.Err
 }
 
-// HTTPStatusCode returns the HTTP status code for this domain error
 func (e *DomainError) HTTPStatusCode() int {
 	switch e.Code {
 	case ErrCodeUnauthorized, ErrCodeInvalidToken, ErrCodeSessionExpired:
@@ -92,7 +84,6 @@ func (e *DomainError) HTTPStatusCode() int {
 	}
 }
 
-// Is implements errors.Is comparison
 func (e *DomainError) Is(target error) bool {
 	switch e.Code {
 	case ErrCodeUnauthorized, ErrCodeInvalidToken, ErrCodeSessionExpired:
@@ -121,7 +112,6 @@ func (e *DomainError) Is(target error) bool {
 	return false
 }
 
-// Error constructors
 func NewUnauthorizedError(message string, err error) *DomainError {
 	return &DomainError{Code: ErrCodeUnauthorized, Message: message, Err: err}
 }

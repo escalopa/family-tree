@@ -36,7 +36,7 @@ func NewMemberUseCase(
 func (uc *memberUseCase) CreateMember(ctx context.Context, member *domain.Member, userID int) error {
 	// Create member
 	if err := uc.memberRepo.Create(ctx, member); err != nil {
-		return fmt.Errorf("failed to create member: %w", err)
+		return fmt.Errorf("create member: %w", err)
 	}
 
 	// Record history
@@ -50,12 +50,12 @@ func (uc *memberUseCase) CreateMember(ctx context.Context, member *domain.Member
 		MemberVersion: member.Version,
 	}
 	if err := uc.historyRepo.Create(ctx, history); err != nil {
-		return fmt.Errorf("failed to record history: %w", err)
+		return fmt.Errorf("record history: %w", err)
 	}
 
 	// Calculate and record scores
 	if err := uc.calculateAndRecordScores(ctx, member, userID); err != nil {
-		return fmt.Errorf("failed to record scores: %w", err)
+		return fmt.Errorf("record scores: %w", err)
 	}
 
 	return nil
@@ -65,12 +65,12 @@ func (uc *memberUseCase) UpdateMember(ctx context.Context, member *domain.Member
 	// Get old member
 	oldMember, err := uc.memberRepo.GetByID(ctx, member.MemberID)
 	if err != nil {
-		return fmt.Errorf("failed to get old member: %w", err)
+		return fmt.Errorf("get old member: %w", err)
 	}
 
 	// Update member
 	if err := uc.memberRepo.Update(ctx, member, expectedVersion); err != nil {
-		return fmt.Errorf("failed to update member: %w", err)
+		return fmt.Errorf("update member: %w", err)
 	}
 
 	// Record history
@@ -85,12 +85,12 @@ func (uc *memberUseCase) UpdateMember(ctx context.Context, member *domain.Member
 		MemberVersion: member.Version,
 	}
 	if err := uc.historyRepo.Create(ctx, history); err != nil {
-		return fmt.Errorf("failed to record history: %w", err)
+		return fmt.Errorf("record history: %w", err)
 	}
 
 	// Update scores
 	if err := uc.updateScores(ctx, oldMember, member, userID); err != nil {
-		return fmt.Errorf("failed to update scores: %w", err)
+		return fmt.Errorf("update scores: %w", err)
 	}
 
 	return nil
@@ -100,12 +100,12 @@ func (uc *memberUseCase) DeleteMember(ctx context.Context, memberID, userID int)
 	// Get old member
 	oldMember, err := uc.memberRepo.GetByID(ctx, memberID)
 	if err != nil {
-		return fmt.Errorf("failed to get member: %w", err)
+		return fmt.Errorf("get member: %w", err)
 	}
 
 	// Soft delete
 	if err := uc.memberRepo.SoftDelete(ctx, memberID); err != nil {
-		return fmt.Errorf("failed to delete member: %w", err)
+		return fmt.Errorf("delete member: %w", err)
 	}
 
 	// Record history
@@ -119,7 +119,7 @@ func (uc *memberUseCase) DeleteMember(ctx context.Context, memberID, userID int)
 		MemberVersion: oldMember.Version + 1,
 	}
 	if err := uc.historyRepo.Create(ctx, history); err != nil {
-		return fmt.Errorf("failed to record history: %w", err)
+		return fmt.Errorf("record history: %w", err)
 	}
 
 	return nil
@@ -147,20 +147,20 @@ func (uc *memberUseCase) UploadPicture(ctx context.Context, memberID int, data [
 	// Upload to S3
 	url, err := uc.s3Client.UploadImage(ctx, data, filename)
 	if err != nil {
-		return "", fmt.Errorf("failed to upload image: %w", err)
+		return "", fmt.Errorf("upload image: %w", err)
 	}
 
 	// Get old member to delete old picture if exists
 	oldMember, err := uc.memberRepo.GetByID(ctx, memberID)
 	if err != nil {
-		return "", fmt.Errorf("failed to get member: %w", err)
+		return "", fmt.Errorf("get member: %w", err)
 	}
 
 	// Update member picture
 	if err := uc.memberRepo.UpdatePicture(ctx, memberID, url); err != nil {
 		// Rollback: delete uploaded image
 		_ = uc.s3Client.DeleteImage(ctx, url)
-		return "", fmt.Errorf("failed to update member picture: %w", err)
+		return "", fmt.Errorf("update member picture: %w", err)
 	}
 
 	// Delete old picture from S3 if exists
@@ -186,13 +186,13 @@ func (uc *memberUseCase) UploadPicture(ctx context.Context, memberID int, data [
 func (uc *memberUseCase) DeletePicture(ctx context.Context, memberID int) error {
 	member, err := uc.memberRepo.GetByID(ctx, memberID)
 	if err != nil {
-		return fmt.Errorf("failed to get member: %w", err)
+		return fmt.Errorf("get member: %w", err)
 	}
 
 	if member.Picture != nil && *member.Picture != "" {
 		// Delete from S3
 		if err := uc.s3Client.DeleteImage(ctx, *member.Picture); err != nil {
-			return fmt.Errorf("failed to delete image: %w", err)
+			return fmt.Errorf("delete image: %w", err)
 		}
 	}
 

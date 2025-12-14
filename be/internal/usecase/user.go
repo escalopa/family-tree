@@ -44,12 +44,12 @@ func (uc *userUseCase) UpdateUserRole(ctx context.Context, userID, newRoleID, ch
 	// Get current user
 	user, err := uc.userRepo.GetByID(ctx, userID)
 	if err != nil {
-		return fmt.Errorf("failed to get user: %w", err)
+		return fmt.Errorf("get user: %w", err)
 	}
 
 	// Update role
 	if err := uc.userRepo.UpdateRole(ctx, userID, newRoleID); err != nil {
-		return fmt.Errorf("failed to update role: %w", err)
+		return fmt.Errorf("update role: %w", err)
 	}
 
 	// Note: Role history tracking could be implemented here if needed

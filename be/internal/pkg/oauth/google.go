@@ -73,13 +73,13 @@ func (g *GoogleProvider) GetUserInfo(ctx context.Context, token *oauth2.Token) (
 	data, err := io.ReadAll(resp.Body)
 	if err != nil {
 		slog.Error("GoogleProvider.GetUserInfo: read response body", "error", err)
-		return nil, domain.NewInternalError("failed to read response", err)
+		return nil, domain.NewInternalError("read response", err)
 	}
 
 	var googleInfo googleUserInfo
 	if err := json.Unmarshal(data, &googleInfo); err != nil {
 		slog.Error("GoogleProvider.GetUserInfo: unmarshal response", "error", err)
-		return nil, domain.NewInternalError("failed to parse response", err)
+		return nil, domain.NewInternalError("parse response", err)
 	}
 
 	return &domain.OAuthUserInfo{

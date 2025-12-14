@@ -4,11 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/escalopa/family-tree/internal/domain"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/lib/pq"
 )
 
 type MemberRepository struct {
@@ -223,21 +223,14 @@ func (r *MemberRepository) GetByIDs(ctx context.Context, memberIDs []int) ([]*do
 		return []*domain.Member{}, nil
 	}
 
-	placeholders := make([]string, len(memberIDs))
-	args := make([]interface{}, len(memberIDs))
-	for i, id := range memberIDs {
-		placeholders[i] = fmt.Sprintf("$%d", i+1)
-		args[i] = id
-	}
-
-	query := fmt.Sprintf(`
+	query := `
 		SELECT member_id, arabic_name, english_name, gender, picture, date_of_birth, date_of_death,
 		       father_id, mother_id, nicknames, profession, version, deleted_at
 		FROM members
-		WHERE member_id IN (%s) AND deleted_at IS NULL
-	`, strings.Join(placeholders, ","))
+		WHERE member_id IN ($1) AND deleted_at IS NULL
+	`
 
-	rows, err := r.db.Query(ctx, query, args...)
+	rows, err := r.db.Query(ctx, query, pq.Array(memberIDs))
 	if err != nil {
 		return nil, domain.NewDatabaseError(err)
 	}

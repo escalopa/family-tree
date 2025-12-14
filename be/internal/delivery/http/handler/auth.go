@@ -10,14 +10,17 @@ import (
 )
 
 type authHandler struct {
-	authUseCase AuthUseCase
+	authUseCase   AuthUseCase
+	cookieManager CookieManager
 }
 
-func NewAuthHandler(authUseCase AuthUseCase) *authHandler {
-	return &authHandler{authUseCase: authUseCase}
+func NewAuthHandler(authUseCase AuthUseCase, cookieManager CookieManager) *authHandler {
+	return &authHandler{
+		authUseCase:   authUseCase,
+		cookieManager: cookieManager,
+	}
 }
 
-// GetAuthURL returns the OAuth authorization URL for any provider
 func (h *authHandler) GetAuthURL(c *gin.Context) {
 	provider := c.Param("provider")
 	state := c.Query("state")
@@ -37,7 +40,6 @@ func (h *authHandler) GetAuthURL(c *gin.Context) {
 	})
 }
 
-// HandleCallback handles the OAuth callback for any provider
 func (h *authHandler) HandleCallback(c *gin.Context) {
 	provider := c.Param("provider")
 	code := c.Query("code")
@@ -53,10 +55,7 @@ func (h *authHandler) HandleCallback(c *gin.Context) {
 		return
 	}
 
-	// Set cookies
-	c.SetCookie("auth_token", tokens.AccessToken, 3600, "/", "", false, true)
-	c.SetCookie("refresh_token", tokens.RefreshToken, 7*24*3600, "/", "", false, true)
-	c.SetCookie("session_id", tokens.SessionID, 7*24*3600, "/", "", false, true)
+	h.cookieManager.SetAuthCookies(c, tokens.AccessToken, tokens.RefreshToken, tokens.SessionID)
 
 	response := dto.AuthResponse{}
 	response.User.UserID = user.UserID
@@ -67,26 +66,6 @@ func (h *authHandler) HandleCallback(c *gin.Context) {
 	response.User.IsActive = user.IsActive
 
 	c.JSON(http.StatusOK, dto.Response{Success: true, Data: response})
-}
-
-func (h *authHandler) RefreshToken(c *gin.Context) {
-	var req dto.RefreshTokenRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, dto.Response{Success: false, Error: err.Error()})
-		return
-	}
-
-	tokens, err := h.authUseCase.RefreshTokens(c.Request.Context(), req.RefreshToken)
-	if err != nil {
-		httpErrors.HandleError(c, err)
-		return
-	}
-
-	// Set new cookies
-	c.SetCookie("auth_token", tokens.AccessToken, 3600, "/", "", false, true)
-	c.SetCookie("refresh_token", tokens.RefreshToken, 7*24*3600, "/", "", false, true)
-
-	c.JSON(http.StatusOK, dto.Response{Success: true, Data: "tokens refreshed"})
 }
 
 func (h *authHandler) Logout(c *gin.Context) {
@@ -101,10 +80,7 @@ func (h *authHandler) Logout(c *gin.Context) {
 		return
 	}
 
-	// Clear cookies
-	c.SetCookie("auth_token", "", -1, "/", "", false, true)
-	c.SetCookie("refresh_token", "", -1, "/", "", false, true)
-	c.SetCookie("session_id", "", -1, "/", "", false, true)
+	h.cookieManager.ClearAuthCookies(c)
 
 	c.JSON(http.StatusOK, dto.Response{Success: true, Data: "logged out"})
 }
@@ -121,10 +97,7 @@ func (h *authHandler) LogoutAll(c *gin.Context) {
 		return
 	}
 
-	// Clear cookies
-	c.SetCookie("auth_token", "", -1, "/", "", false, true)
-	c.SetCookie("refresh_token", "", -1, "/", "", false, true)
-	c.SetCookie("session_id", "", -1, "/", "", false, true)
+	h.cookieManager.ClearAuthCookies(c)
 
 	c.JSON(http.StatusOK, dto.Response{Success: true, Data: "logged out from all devices"})
 }

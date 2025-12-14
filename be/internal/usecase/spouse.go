@@ -43,7 +43,7 @@ func (uc *spouseUseCase) AddSpouse(ctx context.Context, spouse *domain.Spouse, u
 
 	// Create spouse relationship
 	if err := uc.spouseRepo.Create(ctx, spouse); err != nil {
-		return fmt.Errorf("failed to create spouse relationship: %w", err)
+		return fmt.Errorf("create spouse relationship: %w", err)
 	}
 
 	// Record history for both members
@@ -104,12 +104,12 @@ func (uc *spouseUseCase) UpdateSpouse(ctx context.Context, spouse *domain.Spouse
 	// Get old values
 	oldSpouse, err := uc.spouseRepo.Get(ctx, spouse.Member1ID, spouse.Member2ID)
 	if err != nil {
-		return fmt.Errorf("failed to get spouse relationship: %w", err)
+		return fmt.Errorf("get spouse relationship: %w", err)
 	}
 
 	// Update spouse relationship
 	if err := uc.spouseRepo.Update(ctx, spouse); err != nil {
-		return fmt.Errorf("failed to update spouse relationship: %w", err)
+		return fmt.Errorf("update spouse relationship: %w", err)
 	}
 
 	// Record history
@@ -142,12 +142,12 @@ func (uc *spouseUseCase) RemoveSpouse(ctx context.Context, member1ID, member2ID,
 	// Get old values for history
 	oldSpouse, err := uc.spouseRepo.Get(ctx, member1ID, member2ID)
 	if err != nil {
-		return fmt.Errorf("failed to get spouse relationship: %w", err)
+		return fmt.Errorf("get spouse relationship: %w", err)
 	}
 
 	// Delete spouse relationship
 	if err := uc.spouseRepo.Delete(ctx, member1ID, member2ID); err != nil {
-		return fmt.Errorf("failed to delete spouse relationship: %w", err)
+		return fmt.Errorf("delete spouse relationship: %w", err)
 	}
 
 	// Record history

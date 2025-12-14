@@ -40,7 +40,7 @@ func NewS3Client(ctx context.Context, endpoint, region, accessKey, secretKey, bu
 	)
 	if err != nil {
 		slog.Error("S3Client.NewS3Client: load AWS config", "error", err)
-		return nil, domain.NewInternalError("failed to initialize S3 client", err)
+		return nil, domain.NewInternalError("initialize S3 client", err)
 	}
 
 	// Use the modern approach with service-specific options
@@ -122,7 +122,7 @@ func (s *S3Client) GetImage(ctx context.Context, key string) ([]byte, error) {
 	var buf bytes.Buffer
 	if _, err := buf.ReadFrom(result.Body); err != nil {
 		slog.Error("S3Client.GetImage: read response body", "error", err, "key", key)
-		return nil, domain.NewInternalError("failed to read image data", err)
+		return nil, domain.NewInternalError("read image data", err)
 	}
 
 	return buf.Bytes(), nil

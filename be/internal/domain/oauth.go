@@ -1,6 +1,5 @@
 package domain
 
-// OAuthUserInfo represents user information from OAuth provider
 type OAuthUserInfo struct {
 	ID            string
 	Email         string
@@ -11,4 +10,3 @@ type OAuthUserInfo struct {
 	Picture       string
 	Locale        string
 }
-

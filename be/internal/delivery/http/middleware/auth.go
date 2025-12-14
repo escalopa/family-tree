@@ -7,39 +7,37 @@ import (
 )
 
 type authMiddleware struct {
-	tokenMgr    TokenManager
-	authUseCase AuthUseCase
+	tokenMgr      TokenManager
+	authUseCase   AuthUseCase
+	cookieManager CookieManager
 }
 
-func NewAuthMiddleware(tokenMgr TokenManager, authUseCase AuthUseCase) *authMiddleware {
+func NewAuthMiddleware(tokenMgr TokenManager, authUseCase AuthUseCase, cookieManager CookieManager) *authMiddleware {
 	return &authMiddleware{
-		tokenMgr:    tokenMgr,
-		authUseCase: authUseCase,
+		tokenMgr:      tokenMgr,
+		authUseCase:   authUseCase,
+		cookieManager: cookieManager,
 	}
 }
 
 func (m *authMiddleware) Authenticate() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// Get access token from cookie
-		accessToken, err := c.Cookie("auth_token")
+		accessToken, err := m.cookieManager.GetAccessToken(c)
 		if err != nil {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "missing auth token"})
 			c.Abort()
 			return
 		}
 
-		// Validate token
 		claims, err := m.tokenMgr.ValidateToken(accessToken)
 		if err != nil {
-			// Try to refresh token
-			refreshToken, err := c.Cookie("refresh_token")
+			refreshToken, err := m.cookieManager.GetRefreshToken(c)
 			if err != nil {
 				c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid or expired token"})
 				c.Abort()
 				return
 			}
 
-			// Refresh tokens
 			tokens, err := m.authUseCase.RefreshTokens(c.Request.Context(), refreshToken)
 			if err != nil {
 				c.JSON(http.StatusUnauthorized, gin.H{"error": "failed to refresh token"})
@@ -47,11 +45,8 @@ func (m *authMiddleware) Authenticate() gin.HandlerFunc {
 				return
 			}
 
-			// Set new cookies
-			c.SetCookie("auth_token", tokens.AccessToken, 3600, "/", "", false, true)
-			c.SetCookie("refresh_token", tokens.RefreshToken, 7*24*3600, "/", "", false, true)
+			m.cookieManager.SetTokenCookies(c, tokens.AccessToken, tokens.RefreshToken)
 
-			// Validate new token
 			claims, err = m.tokenMgr.ValidateToken(tokens.AccessToken)
 			if err != nil {
 				c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid token after refresh"})
@@ -60,7 +55,6 @@ func (m *authMiddleware) Authenticate() gin.HandlerFunc {
 			}
 		}
 
-		// Validate session
 		_, err = m.authUseCase.ValidateSession(c.Request.Context(), claims.SessionID)
 		if err != nil {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid session"})
@@ -68,7 +62,6 @@ func (m *authMiddleware) Authenticate() gin.HandlerFunc {
 			return
 		}
 
-		// Set user info in context
 		c.Set("user_id", claims.UserID)
 		c.Set("user_email", claims.Email)
 		c.Set("user_role", claims.RoleID)

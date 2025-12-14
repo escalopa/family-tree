@@ -18,7 +18,6 @@ func NewOAuthManager(cfg *config.OAuthConfig) *OAuthManager {
 		providers: make(map[string]OAuthProvider),
 	}
 
-	// Iterate through all configured providers and initialize them using factory functions
 	for providerName, providerCfg := range cfg.Providers {
 		factory, exists := ProviderFactories[providerName]
 		if !exists {
@@ -59,14 +58,12 @@ func (m *OAuthManager) GetUserInfo(ctx context.Context, providerName, code strin
 		return nil, err
 	}
 
-	// Exchange code for token (exchange happens in client implementation)
 	token, err := provider.Exchange(ctx, code)
 	if err != nil {
 		slog.Error("OAuthManager.GetUserInfo: exchange code for token", "provider", providerName, "error", err)
 		return nil, err
 	}
 
-	// Get user info
 	userInfo, err := provider.GetUserInfo(ctx, token)
 	if err != nil {
 		slog.Error("OAuthManager.GetUserInfo: get user info from provider", "provider", providerName, "error", err)

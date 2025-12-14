@@ -6,7 +6,8 @@ import (
 
 	"github.com/escalopa/family-tree/internal/config"
 	"github.com/escalopa/family-tree/internal/db"
-	httpDelivery "github.com/escalopa/family-tree/internal/delivery/http"
+	"github.com/escalopa/family-tree/internal/delivery/http"
+	"github.com/escalopa/family-tree/internal/delivery/http/cookie"
 	"github.com/escalopa/family-tree/internal/delivery/http/handler"
 	"github.com/escalopa/family-tree/internal/delivery/http/middleware"
 	"github.com/escalopa/family-tree/internal/pkg/oauth"
@@ -19,19 +20,15 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-// App holds all application dependencies
 type App struct {
 	cfg    *config.Config
 	pool   *pgxpool.Pool
 	engine *gin.Engine
 }
 
-// NewApp creates and initializes a new application
 func NewApp(cfg *config.Config) (*App, error) {
-	// Set Gin mode
 	gin.SetMode(cfg.Server.Mode)
 
-	// Initialize database
 	ctx := context.Background()
 	pool, err := db.NewPool(ctx, &cfg.Database)
 	if err != nil {
@@ -40,7 +37,6 @@ func NewApp(cfg *config.Config) (*App, error) {
 
 	slog.Info("App.NewApp: database connected")
 
-	// Initialize S3 client
 	s3Client, err := s3.NewS3Client(
 		ctx,
 		cfg.S3.Endpoint,
@@ -54,7 +50,6 @@ func NewApp(cfg *config.Config) (*App, error) {
 		return nil, err
 	}
 
-	// Initialize repositories
 	userRepo := repository.NewUserRepository(pool)
 	sessionRepo := repository.NewSessionRepository(pool)
 	memberRepo := repository.NewMemberRepository(pool)
@@ -64,35 +59,31 @@ func NewApp(cfg *config.Config) (*App, error) {
 	roleRepo := repository.NewRoleRepository(pool)
 	_ = roleRepo // May be used later
 
-	// Initialize OAuth
 	oauthManager := oauth.NewOAuthManager(&cfg.OAuth)
 
-	// Initialize token manager
 	tokenMgr := token.NewManager(
 		cfg.JWT.Secret,
 		cfg.JWT.AccessExpiry,
 		cfg.JWT.RefreshExpiry,
 	)
 
-	// Initialize use cases
+	cookieManager := cookie.NewManager(&cfg.Server.Cookie)
+
 	authUseCase := usecase.NewAuthUseCase(userRepo, sessionRepo, oauthManager, tokenMgr)
 	userUseCase := usecase.NewUserUseCase(userRepo, scoreRepo, historyRepo)
 	memberUseCase := usecase.NewMemberUseCase(memberRepo, spouseRepo, historyRepo, scoreRepo, s3Client)
 	spouseUseCase := usecase.NewSpouseUseCase(spouseRepo, memberRepo, historyRepo, scoreRepo)
 	treeUseCase := usecase.NewTreeUseCase(memberRepo, spouseRepo)
 
-	// Initialize handlers
-	authHandler := handler.NewAuthHandler(authUseCase)
+	authHandler := handler.NewAuthHandler(authUseCase, cookieManager)
 	userHandler := handler.NewUserHandler(userUseCase)
 	memberHandler := handler.NewMemberHandler(memberUseCase)
 	spouseHandler := handler.NewSpouseHandler(spouseUseCase)
 	treeHandler := handler.NewTreeHandler(treeUseCase)
 
-	// Initialize middleware
-	authMiddleware := middleware.NewAuthMiddleware(tokenMgr, authUseCase)
+	authMiddleware := middleware.NewAuthMiddleware(tokenMgr, authUseCase, cookieManager)
 
-	// Initialize router
-	router := httpDelivery.NewRouter(
+	router := http.NewRouter(
 		authHandler,
 		userHandler,
 		memberHandler,
@@ -101,7 +92,6 @@ func NewApp(cfg *config.Config) (*App, error) {
 		authMiddleware,
 	)
 
-	// Setup Gin engine
 	engine := gin.Default()
 	router.Setup(engine)
 
@@ -112,7 +102,6 @@ func NewApp(cfg *config.Config) (*App, error) {
 	}, nil
 }
 
-// Close closes all application resources
 func (a *App) Close() {
 	if a.pool != nil {
 		a.pool.Close()

@@ -16,7 +16,7 @@ func init() {
 	validate.RegisterValidation("date_order", validateDateOrder)
 }
 
-func Validate(data interface{}) error {
+func Validate(data any) error {
 	return validate.Struct(data)
 }
 
@@ -37,6 +37,3 @@ func ValidateDateOrder(start, end *time.Time) bool {
 	}
 	return !end.Before(*start)
 }
-
-
-

@@ -6,7 +6,6 @@ import (
 	"github.com/escalopa/family-tree/internal/domain"
 )
 
-// Repository interfaces used by use cases
 type UserRepository interface {
 	Create(ctx context.Context, user *domain.User) error
 	GetByID(ctx context.Context, userID int) (*domain.User, error)

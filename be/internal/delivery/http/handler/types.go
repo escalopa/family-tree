@@ -3,10 +3,19 @@ package handler
 import (
 	"context"
 
+	"github.com/escalopa/family-tree/internal/delivery/http/cookie"
 	"github.com/escalopa/family-tree/internal/domain"
 )
 
-// Use case interfaces used by HTTP handlers
+type CookieManager interface {
+	SetAuthCookies(c cookie.Context, accessToken, refreshToken, sessionID string)
+	SetTokenCookies(c cookie.Context, accessToken, refreshToken string)
+	ClearAuthCookies(c cookie.Context)
+	GetAccessToken(c cookie.Context) (string, error)
+	GetRefreshToken(c cookie.Context) (string, error)
+	GetSessionID(c cookie.Context) (string, error)
+}
+
 type AuthUseCase interface {
 	GetAuthURL(provider, state string) (string, error)
 	HandleCallback(ctx context.Context, provider, code string) (*domain.User, *domain.AuthTokens, error)

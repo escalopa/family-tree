@@ -15,7 +15,3 @@ type AuthResponse struct {
 		IsActive bool    `json:"is_active"`
 	} `json:"user"`
 }
-
-type RefreshTokenRequest struct {
-	RefreshToken string `json:"refresh_token" binding:"required"`
-}

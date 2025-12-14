@@ -6,7 +6,6 @@ import (
 	"strings"
 )
 
-// Setup initializes the global slog logger with the specified log level
 func Setup(logLevel string) {
 	level := parseLogLevel(logLevel)
 
@@ -18,7 +17,6 @@ func Setup(logLevel string) {
 	slog.SetDefault(logger)
 }
 
-// parseLogLevel converts a string log level to slog.Level
 func parseLogLevel(level string) slog.Level {
 	switch strings.ToLower(level) {
 	case "debug":
