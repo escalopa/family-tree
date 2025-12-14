@@ -1,13 +1,30 @@
-# Build stage
-FROM node:20-alpine AS builder
+# Dependencies stage
+FROM node:20-alpine AS dependencies
 
 WORKDIR /app
 
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
+# Install all dependencies (including dev dependencies)
 RUN npm install
+
+# Development stage - for hot reload
+FROM node:20-alpine AS development
+
+WORKDIR /app
+
+# Copy dependencies from previous stage
+COPY --from=dependencies /app/node_modules ./node_modules
+
+# Copy package files
+COPY package*.json ./
+
+# Source code will be mounted as volume
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
+
+# Build stage
+FROM dependencies AS builder
 
 # Copy source code
 COPY . .
@@ -16,7 +33,7 @@ COPY . .
 RUN npm run build
 
 # Production stage
-FROM nginx:alpine
+FROM nginx:alpine AS production
 
 # Copy built files from builder stage
 COPY --from=builder /app/dist /usr/share/nginx/html

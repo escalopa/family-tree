@@ -30,36 +30,38 @@ services:
     build:
       context: ./be
       dockerfile: Dockerfile
-      target: development
+      target: production
     container_name: backend
     ports:
       - "8080:8080"
     environment:
-      - CONFIG_PATH=/app
+      - CONFIG_PATH=/root
     depends_on:
       postgres:
         condition: service_healthy
       migrate:
         condition: service_completed_successfully
     volumes:
-      - ./be:/app
-      - /app/tmp
-      - ./be/config.yaml:/app/config.yaml
-      - ./be/.air.toml:/app/.air.toml
+      - ./be/config.yaml:/root/config.yaml
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
 
   frontend:
     build:
       context: ./fe
       dockerfile: Dockerfile
-      target: development
+      target: production
     container_name: frontend
     ports:
-      - "3000:5173"
-    environment:
-      - NODE_ENV=development
-    volumes:
-      - ./fe:/app
-      - /app/node_modules
+      - "3000:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
 
 volumes:
   postgres_data:

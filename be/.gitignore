@@ -12,6 +12,10 @@ main
 # Output of the go coverage tool
 *.out
 
+# Air (hot reload) artifacts
+tmp/
+build-errors.log
+
 # Go workspace file
 go.work
 
