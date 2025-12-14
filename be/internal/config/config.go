@@ -5,7 +5,7 @@ import (
 	"os"
 	"time"
 
-	"gopkg.in/yaml.v3"
+	"github.com/spf13/viper"
 )
 
 type Config struct {
@@ -17,8 +17,9 @@ type Config struct {
 }
 
 type ServerConfig struct {
-	Port string `yaml:"port"`
-	Mode string `yaml:"mode"`
+	Port     string `yaml:"port"`
+	Mode     string `yaml:"mode"`
+	LogLevel string `yaml:"log_level"`
 }
 
 type DatabaseConfig struct {
@@ -55,98 +56,67 @@ type S3Config struct {
 	SecretKey string `yaml:"secret_key"`
 }
 
-func Load(configPath string) (*Config, error) {
+func Load() (*Config, error) {
+	// Get config path from environment variable
+	configPath := os.Getenv("CONFIG_PATH")
+	if configPath == "" {
+		configPath = "." // Default to current directory
+	}
+
+	// Set config name and type
+	viper.SetConfigName("config")
+	viper.SetConfigType("yaml")
+	viper.AddConfigPath(configPath)
+
+	// Enable automatic environment variable override
+	viper.AutomaticEnv()
+
+	// Bind environment variables to config keys
+	bindEnvVariables()
+
 	// Read config file
-	data, err := os.ReadFile(configPath)
-	if err != nil {
+	if err := viper.ReadInConfig(); err != nil {
 		return nil, fmt.Errorf("failed to read config file: %w", err)
 	}
 
 	var cfg Config
-	if err := yaml.Unmarshal(data, &cfg); err != nil {
-		return nil, fmt.Errorf("failed to parse config file: %w", err)
+	if err := viper.Unmarshal(&cfg); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal config: %w", err)
 	}
-
-	// Override with environment variables
-	overrideWithEnv(&cfg)
 
 	return &cfg, nil
 }
 
-func overrideWithEnv(cfg *Config) {
+func bindEnvVariables() {
 	// Server
-	if v := os.Getenv("SERVER_PORT"); v != "" {
-		cfg.Server.Port = v
-	}
-	if v := os.Getenv("GIN_MODE"); v != "" {
-		cfg.Server.Mode = v
-	}
+	viper.BindEnv("server.port", "SERVER_PORT")
+	viper.BindEnv("server.mode", "GIN_MODE")
+	viper.BindEnv("server.log_level", "LOG_LEVEL")
 
 	// Database
-	if v := os.Getenv("DB_HOST"); v != "" {
-		cfg.Database.Host = v
-	}
-	if v := os.Getenv("DB_PORT"); v != "" {
-		cfg.Database.Port = v
-	}
-	if v := os.Getenv("DB_USER"); v != "" {
-		cfg.Database.User = v
-	}
-	if v := os.Getenv("DB_PASSWORD"); v != "" {
-		cfg.Database.Password = v
-	}
-	if v := os.Getenv("DB_NAME"); v != "" {
-		cfg.Database.Name = v
-	}
-	if v := os.Getenv("DB_SSLMODE"); v != "" {
-		cfg.Database.SSLMode = v
-	}
+	viper.BindEnv("database.host", "DB_HOST")
+	viper.BindEnv("database.port", "DB_PORT")
+	viper.BindEnv("database.user", "DB_USER")
+	viper.BindEnv("database.password", "DB_PASSWORD")
+	viper.BindEnv("database.name", "DB_NAME")
+	viper.BindEnv("database.sslmode", "DB_SSLMODE")
 
 	// JWT
-	if v := os.Getenv("JWT_SECRET"); v != "" {
-		cfg.JWT.Secret = v
-	}
-	if v := os.Getenv("JWT_ACCESS_EXPIRY"); v != "" {
-		cfg.JWT.AccessExpiry = v
-	}
-	if v := os.Getenv("JWT_REFRESH_EXPIRY"); v != "" {
-		cfg.JWT.RefreshExpiry = v
-	}
+	viper.BindEnv("jwt.secret", "JWT_SECRET")
+	viper.BindEnv("jwt.access_expiry", "JWT_ACCESS_EXPIRY")
+	viper.BindEnv("jwt.refresh_expiry", "JWT_REFRESH_EXPIRY")
 
-	// OAuth - Google
-	if v := os.Getenv("GOOGLE_CLIENT_ID"); v != "" {
-		if cfg.OAuth.Providers == nil {
-			cfg.OAuth.Providers = make(map[string]OAuthProviderConfig)
-		}
-		google := cfg.OAuth.Providers["google"]
-		google.ClientID = v
-		cfg.OAuth.Providers["google"] = google
-	}
-	if v := os.Getenv("GOOGLE_CLIENT_SECRET"); v != "" {
-		google := cfg.OAuth.Providers["google"]
-		google.ClientSecret = v
-		cfg.OAuth.Providers["google"] = google
-	}
-	if v := os.Getenv("OAUTH_REDIRECT_BASE_URL"); v != "" {
-		cfg.OAuth.RedirectBaseURL = v
-	}
+	// OAuth
+	viper.BindEnv("oauth.providers.google.client_id", "GOOGLE_CLIENT_ID")
+	viper.BindEnv("oauth.providers.google.client_secret", "GOOGLE_CLIENT_SECRET")
+	viper.BindEnv("oauth.redirect_base_url", "OAUTH_REDIRECT_BASE_URL")
 
 	// S3
-	if v := os.Getenv("S3_ENDPOINT"); v != "" {
-		cfg.S3.Endpoint = v
-	}
-	if v := os.Getenv("S3_REGION"); v != "" {
-		cfg.S3.Region = v
-	}
-	if v := os.Getenv("S3_BUCKET"); v != "" {
-		cfg.S3.Bucket = v
-	}
-	if v := os.Getenv("S3_ACCESS_KEY"); v != "" {
-		cfg.S3.AccessKey = v
-	}
-	if v := os.Getenv("S3_SECRET_KEY"); v != "" {
-		cfg.S3.SecretKey = v
-	}
+	viper.BindEnv("s3.endpoint", "S3_ENDPOINT")
+	viper.BindEnv("s3.region", "S3_REGION")
+	viper.BindEnv("s3.bucket", "S3_BUCKET")
+	viper.BindEnv("s3.access_key", "S3_ACCESS_KEY")
+	viper.BindEnv("s3.secret_key", "S3_SECRET_KEY")
 }
 
 func (c *DatabaseConfig) ConnectionString() string {
@@ -156,12 +126,12 @@ func (c *DatabaseConfig) ConnectionString() string {
 	)
 }
 
-func (c *JWTConfig) ParseAccessExpiry() (time.Duration, error) {
-	return time.ParseDuration(c.AccessExpiry)
+func (c *JWTConfig) ParseAccessExpiry() time.Duration {
+	return c.AccessExpiry
 }
 
-func (c *JWTConfig) ParseRefreshExpiry() (time.Duration, error) {
-	return time.ParseDuration(c.RefreshExpiry)
+func (c *JWTConfig) ParseRefreshExpiry() time.Duration {
+	return c.RefreshExpiry
 }
 
 func (c *OAuthConfig) GetRedirectURL(provider string) string {

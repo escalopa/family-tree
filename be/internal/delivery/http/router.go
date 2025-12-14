@@ -42,11 +42,11 @@ func (r *Router) Setup(engine *gin.Engine) {
 		c.JSON(200, gin.H{"status": "ok"})
 	})
 
-	// Public routes
+	// Public routes - Dynamic OAuth routes for any provider
 	auth := engine.Group("/auth")
 	{
-		auth.GET("/google", r.authHandler.GetGoogleAuthURL)
-		auth.GET("/google/callback", r.authHandler.HandleGoogleCallback)
+		auth.GET("/:provider", r.authHandler.GetAuthURL)
+		auth.GET("/:provider/callback", r.authHandler.HandleCallback)
 	}
 
 	// Protected routes

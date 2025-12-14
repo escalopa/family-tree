@@ -12,21 +12,35 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./migrations:/docker-entrypoint-initdb.d
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U familytree"]
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - family-tree-network
+
+  migrate:
+    image: dekuyo/migrate-go:latest
+    container_name: family-tree-migrate
+    volumes:
+      - ./be/migrations:/migrations
+    command: ["-dir", "/migrations", "-dsn", "postgres://familytree:secret@postgres:5432/familytree?sslmode=disable"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - family-tree-network
 
   backend:
     build:
-      context: .
+      context: ./be
       dockerfile: Dockerfile
     container_name: family-tree-api
     ports:
       - "8080:8080"
     environment:
+      - CONFIG_PATH=/root
       - DB_HOST=postgres
       - DB_PORT=5432
       - DB_USER=familytree
@@ -38,10 +52,26 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    env_file:
-      - .env
+      migrate:
+        condition: service_completed_successfully
+    networks:
+      - family-tree-network
+
+  frontend:
+    build:
+      context: ./fe
+      dockerfile: Dockerfile
+    container_name: family-tree-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - family-tree-network
 
 volumes:
   postgres_data:
 
-
+networks:
+  family-tree-network:
+    driver: bridge

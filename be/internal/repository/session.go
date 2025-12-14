@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/escalopa/family-tree/internal/domain"
@@ -23,7 +24,10 @@ func (r *SessionRepository) Create(ctx context.Context, session *domain.Session)
 		VALUES ($1, $2, $3, $4, $5)
 	`
 	_, err := r.db.Exec(ctx, query, session.SessionID, session.UserID, session.IssuedAt, session.ExpiresAt, session.Revoked)
-	return err
+	if err != nil {
+		return domain.NewDatabaseError(err)
+	}
+	return nil
 }
 
 func (r *SessionRepository) GetByID(ctx context.Context, sessionID string) (*domain.Session, error) {
@@ -36,28 +40,38 @@ func (r *SessionRepository) GetByID(ctx context.Context, sessionID string) (*dom
 	err := r.db.QueryRow(ctx, query, sessionID).Scan(
 		&session.SessionID, &session.UserID, &session.IssuedAt, &session.ExpiresAt, &session.Revoked,
 	)
-	if err == pgx.ErrNoRows {
+	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
 	}
-	return session, err
+	if err != nil {
+		return nil, domain.NewDatabaseError(err)
+	}
+	return session, nil
 }
 
 func (r *SessionRepository) Revoke(ctx context.Context, sessionID string) error {
 	query := `UPDATE user_sessions SET revoked = true WHERE session_id = $1`
 	_, err := r.db.Exec(ctx, query, sessionID)
-	return err
+	if err != nil {
+		return domain.NewDatabaseError(err)
+	}
+	return nil
 }
 
 func (r *SessionRepository) RevokeAllByUser(ctx context.Context, userID int) error {
 	query := `UPDATE user_sessions SET revoked = true WHERE user_id = $1 AND revoked = false`
 	_, err := r.db.Exec(ctx, query, userID)
-	return err
+	if err != nil {
+		return domain.NewDatabaseError(err)
+	}
+	return nil
 }
 
 func (r *SessionRepository) CleanExpired(ctx context.Context) error {
 	query := `DELETE FROM user_sessions WHERE expires_at < $1`
 	_, err := r.db.Exec(ctx, query, time.Now())
-	return err
+	if err != nil {
+		return domain.NewDatabaseError(err)
+	}
+	return nil
 }
-
-

@@ -3,6 +3,7 @@ package domain
 import (
 	"errors"
 	"fmt"
+	"net/http"
 )
 
 // Domain errors for consistent error handling
@@ -65,6 +66,30 @@ func (e *DomainError) Error() string {
 
 func (e *DomainError) Unwrap() error {
 	return e.Err
+}
+
+// HTTPStatusCode returns the HTTP status code for this domain error
+func (e *DomainError) HTTPStatusCode() int {
+	switch e.Code {
+	case ErrCodeUnauthorized, ErrCodeInvalidToken, ErrCodeSessionExpired:
+		return http.StatusUnauthorized
+	case ErrCodeInvalidOAuthState:
+		return http.StatusBadRequest
+	case ErrCodeForbidden, ErrCodeInsufficientPermissions:
+		return http.StatusForbidden
+	case ErrCodeNotFound:
+		return http.StatusNotFound
+	case ErrCodeAlreadyExists, ErrCodeConflict, ErrCodeVersionConflict:
+		return http.StatusConflict
+	case ErrCodeInvalidInput, ErrCodeInvalidDate:
+		return http.StatusBadRequest
+	case ErrCodeDatabaseError, ErrCodeInternal:
+		return http.StatusInternalServerError
+	case ErrCodeExternalService:
+		return http.StatusServiceUnavailable
+	default:
+		return http.StatusInternalServerError
+	}
 }
 
 // Is implements errors.Is comparison
@@ -140,5 +165,3 @@ func NewExternalServiceError(service string, err error) *DomainError {
 func NewInvalidOAuthStateError() *DomainError {
 	return &DomainError{Code: ErrCodeInvalidOAuthState, Message: "invalid or expired OAuth state"}
 }
-
-

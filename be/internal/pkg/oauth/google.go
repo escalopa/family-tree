@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 
 	"github.com/escalopa/family-tree/internal/domain"
 	"golang.org/x/oauth2"
@@ -27,8 +27,8 @@ type googleUserInfo struct {
 	Locale        string `json:"locale"`
 }
 
-func NewGoogleProvider(clientID, clientSecret, redirectURL string, scopes []string) *GoogleProvider {
-	config := &oauth2.Config{
+func NewGoogleProvider(clientID, clientSecret, redirectURL string, scopes []string) OAuthProvider {
+	oauthConfig := &oauth2.Config{
 		ClientID:     clientID,
 		ClientSecret: clientSecret,
 		RedirectURL:  redirectURL,
@@ -36,11 +36,11 @@ func NewGoogleProvider(clientID, clientSecret, redirectURL string, scopes []stri
 		Endpoint:     google.Endpoint,
 	}
 
-	return &GoogleProvider{config: config}
+	return &GoogleProvider{config: oauthConfig}
 }
 
 func (g *GoogleProvider) GetProviderName() string {
-	return "google"
+	return ProviderGoogle
 }
 
 func (g *GoogleProvider) GetAuthURL(state string) string {
@@ -50,39 +50,39 @@ func (g *GoogleProvider) GetAuthURL(state string) string {
 func (g *GoogleProvider) Exchange(ctx context.Context, code string) (*oauth2.Token, error) {
 	token, err := g.config.Exchange(ctx, code)
 	if err != nil {
-		log.Printf("Google OAuth exchange failed: %v", err)
+		slog.Error("GoogleProvider.Exchange: exchange code for token", "error", err)
 		return nil, domain.NewExternalServiceError("Google OAuth", err)
 	}
 	return token, nil
 }
 
-func (g *GoogleProvider) GetUserInfo(ctx context.Context, token *oauth2.Token) (*UserInfo, error) {
+func (g *GoogleProvider) GetUserInfo(ctx context.Context, token *oauth2.Token) (*domain.OAuthUserInfo, error) {
 	client := g.config.Client(ctx, token)
 	resp, err := client.Get("https://www.googleapis.com/oauth2/v2/userinfo")
 	if err != nil {
-		log.Printf("Failed to get user info from Google: %v", err)
+		slog.Error("GoogleProvider.GetUserInfo: get user info from API", "error", err)
 		return nil, domain.NewExternalServiceError("Google API", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		log.Printf("Google API returned status code %d", resp.StatusCode)
+		slog.Error("GoogleProvider.GetUserInfo: non-200 status code", "status_code", resp.StatusCode)
 		return nil, domain.NewExternalServiceError("Google API", fmt.Errorf("status code %d", resp.StatusCode))
 	}
 
 	data, err := io.ReadAll(resp.Body)
 	if err != nil {
-		log.Printf("Failed to read Google API response: %v", err)
+		slog.Error("GoogleProvider.GetUserInfo: read response body", "error", err)
 		return nil, domain.NewInternalError("failed to read response", err)
 	}
 
 	var googleInfo googleUserInfo
 	if err := json.Unmarshal(data, &googleInfo); err != nil {
-		log.Printf("Failed to unmarshal Google user info: %v", err)
+		slog.Error("GoogleProvider.GetUserInfo: unmarshal response", "error", err)
 		return nil, domain.NewInternalError("failed to parse response", err)
 	}
 
-	return &UserInfo{
+	return &domain.OAuthUserInfo{
 		ID:            googleInfo.ID,
 		Email:         googleInfo.Email,
 		VerifiedEmail: googleInfo.VerifiedEmail,

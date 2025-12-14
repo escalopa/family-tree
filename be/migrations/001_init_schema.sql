@@ -178,3 +178,4 @@ CREATE INDEX idx_user_role_history_user_id ON user_role_history(user_id);
 CREATE INDEX idx_user_role_history_changed_by ON user_role_history(changed_by);
 
 
+

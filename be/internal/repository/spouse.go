@@ -2,7 +2,7 @@ package repository
 
 import (
 	"context"
-	"fmt"
+	"errors"
 
 	"github.com/escalopa/family-tree/internal/domain"
 	"github.com/jackc/pgx/v5"
@@ -23,7 +23,10 @@ func (r *SpouseRepository) Create(ctx context.Context, spouse *domain.Spouse) er
 		VALUES ($1, $2, $3, $4)
 	`
 	_, err := r.db.Exec(ctx, query, spouse.Member1ID, spouse.Member2ID, spouse.MarriageDate, spouse.DivorceDate)
-	return err
+	if err != nil {
+		return domain.NewDatabaseError(err)
+	}
+	return nil
 }
 
 func (r *SpouseRepository) Get(ctx context.Context, member1ID, member2ID int) (*domain.Spouse, error) {
@@ -36,10 +39,13 @@ func (r *SpouseRepository) Get(ctx context.Context, member1ID, member2ID int) (*
 	err := r.db.QueryRow(ctx, query, member1ID, member2ID).Scan(
 		&spouse.Member1ID, &spouse.Member2ID, &spouse.MarriageDate, &spouse.DivorceDate,
 	)
-	if err == pgx.ErrNoRows {
-		return nil, fmt.Errorf("spouse relationship not found")
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, domain.NewNotFoundError("spouse relationship")
 	}
-	return spouse, err
+	if err != nil {
+		return nil, domain.NewDatabaseError(err)
+	}
+	return spouse, nil
 }
 
 func (r *SpouseRepository) Update(ctx context.Context, spouse *domain.Spouse) error {
@@ -50,10 +56,10 @@ func (r *SpouseRepository) Update(ctx context.Context, spouse *domain.Spouse) er
 	`
 	result, err := r.db.Exec(ctx, query, spouse.MarriageDate, spouse.DivorceDate, spouse.Member1ID, spouse.Member2ID)
 	if err != nil {
-		return err
+		return domain.NewDatabaseError(err)
 	}
 	if result.RowsAffected() == 0 {
-		return fmt.Errorf("spouse relationship not found")
+		return domain.NewNotFoundError("spouse relationship")
 	}
 	return nil
 }
@@ -65,10 +71,10 @@ func (r *SpouseRepository) Delete(ctx context.Context, member1ID, member2ID int)
 	`
 	result, err := r.db.Exec(ctx, query, member1ID, member2ID)
 	if err != nil {
-		return err
+		return domain.NewDatabaseError(err)
 	}
 	if result.RowsAffected() == 0 {
-		return fmt.Errorf("spouse relationship not found")
+		return domain.NewNotFoundError("spouse relationship")
 	}
 	return nil
 }
@@ -85,7 +91,7 @@ func (r *SpouseRepository) GetSpousesByMemberID(ctx context.Context, memberID in
 	`
 	rows, err := r.db.Query(ctx, query, memberID)
 	if err != nil {
-		return nil, err
+		return nil, domain.NewDatabaseError(err)
 	}
 	defer rows.Close()
 
@@ -93,18 +99,21 @@ func (r *SpouseRepository) GetSpousesByMemberID(ctx context.Context, memberID in
 	for rows.Next() {
 		var spouseID int
 		if err := rows.Scan(&spouseID); err != nil {
-			return nil, err
+			return nil, domain.NewDatabaseError(err)
 		}
 		spouseIDs = append(spouseIDs, spouseID)
 	}
-	return spouseIDs, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, domain.NewDatabaseError(err)
+	}
+	return spouseIDs, nil
 }
 
 func (r *SpouseRepository) GetAllSpouses(ctx context.Context) (map[int][]int, error) {
 	query := `SELECT member1_id, member2_id FROM members_spouse`
 	rows, err := r.db.Query(ctx, query)
 	if err != nil {
-		return nil, err
+		return nil, domain.NewDatabaseError(err)
 	}
 	defer rows.Close()
 
@@ -112,12 +121,13 @@ func (r *SpouseRepository) GetAllSpouses(ctx context.Context) (map[int][]int, er
 	for rows.Next() {
 		var member1ID, member2ID int
 		if err := rows.Scan(&member1ID, &member2ID); err != nil {
-			return nil, err
+			return nil, domain.NewDatabaseError(err)
 		}
 		spouseMap[member1ID] = append(spouseMap[member1ID], member2ID)
 		spouseMap[member2ID] = append(spouseMap[member2ID], member1ID)
 	}
-	return spouseMap, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, domain.NewDatabaseError(err)
+	}
+	return spouseMap, nil
 }
-
-

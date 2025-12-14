@@ -2,7 +2,6 @@ package repository
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/escalopa/family-tree/internal/domain"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -22,10 +21,14 @@ func (r *HistoryRepository) Create(ctx context.Context, history *domain.History)
 		VALUES ($1, $2, $3, $4, $5, $6)
 		RETURNING history_id, changed_at
 	`
-	return r.db.QueryRow(ctx, query,
+	err := r.db.QueryRow(ctx, query,
 		history.MemberID, history.UserID, history.ChangeType,
 		history.OldValues, history.NewValues, history.MemberVersion,
 	).Scan(&history.HistoryID, &history.ChangedAt)
+	if err != nil {
+		return domain.NewDatabaseError(err)
+	}
+	return nil
 }
 
 func (r *HistoryRepository) GetByMemberID(ctx context.Context, memberID int, cursor *string, limit int) ([]*domain.HistoryWithUser, *string, error) {
@@ -35,27 +38,14 @@ func (r *HistoryRepository) GetByMemberID(ctx context.Context, memberID int, cur
 		FROM members_history h
 		JOIN users u ON h.user_id = u.user_id
 		WHERE h.member_id = $1
+		  AND (($2::timestamp IS NULL) OR h.changed_at < $2)
+		ORDER BY h.changed_at DESC
+		LIMIT $3
 	`
-	var args []interface{}
-	args = append(args, memberID)
-	argCount := 2
 
-	// Apply cursor-based pagination (using changed_at as cursor)
-	if cursor != nil && *cursor != "" {
-		query += fmt.Sprintf(" AND h.changed_at < $%d", argCount)
-		args = append(args, *cursor)
-		argCount++
-	}
-
-	query += " ORDER BY h.changed_at DESC"
-
-	// Fetch one extra to determine if there's a next page
-	query += fmt.Sprintf(" LIMIT $%d", argCount)
-	args = append(args, limit+1)
-
-	rows, err := r.db.Query(ctx, query, args...)
+	rows, err := r.db.Query(ctx, query, memberID, cursor, limit+1)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, domain.NewDatabaseError(err)
 	}
 	defer rows.Close()
 
@@ -67,13 +57,13 @@ func (r *HistoryRepository) GetByMemberID(ctx context.Context, memberID int, cur
 			&h.OldValues, &h.NewValues, &h.MemberVersion, &h.UserFullName, &h.UserEmail,
 		)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, domain.NewDatabaseError(err)
 		}
 		histories = append(histories, h)
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, nil, err
+		return nil, nil, domain.NewDatabaseError(err)
 	}
 
 	// Determine next cursor
@@ -95,27 +85,14 @@ func (r *HistoryRepository) GetByUserID(ctx context.Context, userID int, cursor 
 		FROM members_history h
 		JOIN users u ON h.user_id = u.user_id
 		WHERE h.user_id = $1
+		  AND (($2::timestamp IS NULL) OR h.changed_at < $2)
+		ORDER BY h.changed_at DESC
+		LIMIT $3
 	`
-	var args []interface{}
-	args = append(args, userID)
-	argCount := 2
 
-	// Apply cursor-based pagination (using changed_at as cursor)
-	if cursor != nil && *cursor != "" {
-		query += fmt.Sprintf(" AND h.changed_at < $%d", argCount)
-		args = append(args, *cursor)
-		argCount++
-	}
-
-	query += " ORDER BY h.changed_at DESC"
-
-	// Fetch one extra to determine if there's a next page
-	query += fmt.Sprintf(" LIMIT $%d", argCount)
-	args = append(args, limit+1)
-
-	rows, err := r.db.Query(ctx, query, args...)
+	rows, err := r.db.Query(ctx, query, userID, cursor, limit+1)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, domain.NewDatabaseError(err)
 	}
 	defer rows.Close()
 
@@ -127,13 +104,13 @@ func (r *HistoryRepository) GetByUserID(ctx context.Context, userID int, cursor 
 			&h.OldValues, &h.NewValues, &h.MemberVersion, &h.UserFullName, &h.UserEmail,
 		)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, domain.NewDatabaseError(err)
 		}
 		histories = append(histories, h)
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, nil, err
+		return nil, nil, domain.NewDatabaseError(err)
 	}
 
 	// Determine next cursor

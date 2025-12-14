@@ -2,7 +2,8 @@ package repository
 
 import (
 	"context"
-	"log"
+	"errors"
+	"log/slog"
 
 	"github.com/escalopa/family-tree/internal/domain"
 	"github.com/jackc/pgx/v5"
@@ -24,7 +25,7 @@ func (r *OAuthStateRepository) Create(ctx context.Context, state *domain.OAuthSt
 	`
 	_, err := r.db.Exec(ctx, query, state.State, state.Provider, state.CreatedAt, state.ExpiresAt, state.Used)
 	if err != nil {
-		log.Printf("Error creating OAuth state: %v", err)
+		slog.Error("OAuthStateRepository.Create: insert OAuth state", "error", err)
 		return domain.NewDatabaseError(err)
 	}
 	return nil
@@ -40,11 +41,11 @@ func (r *OAuthStateRepository) Get(ctx context.Context, stateStr string) (*domai
 	err := r.db.QueryRow(ctx, query, stateStr).Scan(
 		&state.State, &state.Provider, &state.CreatedAt, &state.ExpiresAt, &state.Used,
 	)
-	if err == pgx.ErrNoRows {
+	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, domain.NewInvalidOAuthStateError()
 	}
 	if err != nil {
-		log.Printf("Error getting OAuth state: %v", err)
+		slog.Error("OAuthStateRepository.Get: query OAuth state", "error", err)
 		return nil, domain.NewDatabaseError(err)
 	}
 	return state, nil
@@ -54,7 +55,7 @@ func (r *OAuthStateRepository) MarkUsed(ctx context.Context, stateStr string) er
 	query := `UPDATE oauth_states SET used = true WHERE state = $1`
 	_, err := r.db.Exec(ctx, query, stateStr)
 	if err != nil {
-		log.Printf("Error marking OAuth state as used: %v", err)
+		slog.Error("OAuthStateRepository.MarkUsed: update OAuth state", "error", err)
 		return domain.NewDatabaseError(err)
 	}
 	return nil
@@ -64,10 +65,8 @@ func (r *OAuthStateRepository) CleanExpired(ctx context.Context) error {
 	query := `DELETE FROM oauth_states WHERE expires_at < NOW() OR used = true`
 	_, err := r.db.Exec(ctx, query)
 	if err != nil {
-		log.Printf("Error cleaning expired OAuth states: %v", err)
+		slog.Error("OAuthStateRepository.CleanExpired: delete expired states", "error", err)
 		return domain.NewDatabaseError(err)
 	}
 	return nil
 }
-
-

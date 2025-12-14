@@ -40,5 +40,3 @@ func (r *RoleRepository) GetAll(ctx context.Context) ([]*domain.Role, error) {
 	}
 	return roles, rows.Err()
 }
-
-

@@ -5,8 +5,8 @@ import "github.com/gin-gonic/gin"
 // Handler interfaces used by the HTTP router
 
 type AuthHandler interface {
-	GetGoogleAuthURL(c *gin.Context)
-	HandleGoogleCallback(c *gin.Context)
+	GetAuthURL(c *gin.Context)
+	HandleCallback(c *gin.Context)
 	RefreshToken(c *gin.Context)
 	Logout(c *gin.Context)
 	LogoutAll(c *gin.Context)

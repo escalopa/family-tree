@@ -3,6 +3,7 @@ package handler
 import (
 	"net/http"
 
+	httpErrors "github.com/escalopa/family-tree/internal/delivery/http"
 	"github.com/escalopa/family-tree/internal/delivery/http/dto"
 	"github.com/escalopa/family-tree/internal/delivery/http/middleware"
 	"github.com/gin-gonic/gin"
@@ -16,29 +17,39 @@ func NewAuthHandler(authUseCase AuthUseCase) *authHandler {
 	return &authHandler{authUseCase: authUseCase}
 }
 
-func (h *authHandler) GetGoogleAuthURL(c *gin.Context) {
-	url, err := h.authUseCase.GetAuthURL("google")
+// GetAuthURL returns the OAuth authorization URL for any provider
+func (h *authHandler) GetAuthURL(c *gin.Context) {
+	provider := c.Param("provider")
+	state := c.Query("state")
+
+	url, err := h.authUseCase.GetAuthURL(provider, state)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, dto.Response{Success: false, Error: err.Error()})
+		httpErrors.HandleError(c, err)
 		return
 	}
+
 	c.JSON(http.StatusOK, dto.Response{
 		Success: true,
-		Data:    dto.GoogleAuthURLResponse{URL: url},
+		Data: dto.AuthURLResponse{
+			URL:      url,
+			Provider: provider,
+		},
 	})
 }
 
-func (h *authHandler) HandleGoogleCallback(c *gin.Context) {
+// HandleCallback handles the OAuth callback for any provider
+func (h *authHandler) HandleCallback(c *gin.Context) {
+	provider := c.Param("provider")
 	code := c.Query("code")
+
 	if code == "" {
 		c.JSON(http.StatusBadRequest, dto.Response{Success: false, Error: "missing code"})
 		return
 	}
 
-	state := c.Query("state")
-	user, tokens, err := h.authUseCase.HandleCallback(c.Request.Context(), "google", code, state)
+	user, tokens, err := h.authUseCase.HandleCallback(c.Request.Context(), provider, code)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, dto.Response{Success: false, Error: err.Error()})
+		httpErrors.HandleError(c, err)
 		return
 	}
 
@@ -67,7 +78,7 @@ func (h *authHandler) RefreshToken(c *gin.Context) {
 
 	tokens, err := h.authUseCase.RefreshTokens(c.Request.Context(), req.RefreshToken)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, dto.Response{Success: false, Error: err.Error()})
+		httpErrors.HandleError(c, err)
 		return
 	}
 
@@ -86,7 +97,7 @@ func (h *authHandler) Logout(c *gin.Context) {
 	}
 
 	if err := h.authUseCase.Logout(c.Request.Context(), sessionID); err != nil {
-		c.JSON(http.StatusInternalServerError, dto.Response{Success: false, Error: err.Error()})
+		httpErrors.HandleError(c, err)
 		return
 	}
 
@@ -106,7 +117,7 @@ func (h *authHandler) LogoutAll(c *gin.Context) {
 	}
 
 	if err := h.authUseCase.LogoutAll(c.Request.Context(), userID); err != nil {
-		c.JSON(http.StatusInternalServerError, dto.Response{Success: false, Error: err.Error()})
+		httpErrors.HandleError(c, err)
 		return
 	}
 

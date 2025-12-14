@@ -85,3 +85,9 @@ type S3Client interface {
 	DeleteImage(ctx context.Context, key string) error
 	GetImage(ctx context.Context, key string) ([]byte, error)
 }
+
+type OAuthManager interface {
+	GetAuthURL(providerName, state string) (string, error)
+	GetUserInfo(ctx context.Context, providerName, code string) (*domain.OAuthUserInfo, error)
+	GetSupportedProviders() []string
+}

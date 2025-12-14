@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/escalopa/family-tree/internal/domain"
@@ -23,8 +24,12 @@ func (r *UserRepository) Create(ctx context.Context, user *domain.User) error {
 		VALUES ($1, $2, $3, $4, $5)
 		RETURNING user_id, created_at
 	`
-	return r.db.QueryRow(ctx, query, user.FullName, user.Email, user.Avatar, user.RoleID, user.IsActive).
+	err := r.db.QueryRow(ctx, query, user.FullName, user.Email, user.Avatar, user.RoleID, user.IsActive).
 		Scan(&user.UserID, &user.CreatedAt)
+	if err != nil {
+		return domain.NewDatabaseError(err)
+	}
+	return nil
 }
 
 func (r *UserRepository) GetByID(ctx context.Context, userID int) (*domain.User, error) {
@@ -38,10 +43,13 @@ func (r *UserRepository) GetByID(ctx context.Context, userID int) (*domain.User,
 		&user.UserID, &user.FullName, &user.Email, &user.Avatar,
 		&user.RoleID, &user.IsActive, &user.CreatedAt,
 	)
-	if err == pgx.ErrNoRows {
-		return nil, fmt.Errorf("user not found")
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, domain.NewNotFoundError("user")
 	}
-	return user, err
+	if err != nil {
+		return nil, domain.NewDatabaseError(err)
+	}
+	return user, nil
 }
 
 func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*domain.User, error) {
@@ -55,10 +63,13 @@ func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*domain.
 		&user.UserID, &user.FullName, &user.Email, &user.Avatar,
 		&user.RoleID, &user.IsActive, &user.CreatedAt,
 	)
-	if err == pgx.ErrNoRows {
+	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
 	}
-	return user, err
+	if err != nil {
+		return nil, domain.NewDatabaseError(err)
+	}
+	return user, nil
 }
 
 func (r *UserRepository) Update(ctx context.Context, user *domain.User) error {
@@ -68,45 +79,47 @@ func (r *UserRepository) Update(ctx context.Context, user *domain.User) error {
 		WHERE user_id = $5
 	`
 	_, err := r.db.Exec(ctx, query, user.FullName, user.Avatar, user.RoleID, user.IsActive, user.UserID)
-	return err
+	if err != nil {
+		return domain.NewDatabaseError(err)
+	}
+	return nil
 }
 
 func (r *UserRepository) UpdateRole(ctx context.Context, userID, roleID int) error {
 	query := `UPDATE users SET role_id = $1 WHERE user_id = $2`
 	_, err := r.db.Exec(ctx, query, roleID, userID)
-	return err
+	if err != nil {
+		return domain.NewDatabaseError(err)
+	}
+	return nil
 }
 
 func (r *UserRepository) UpdateActive(ctx context.Context, userID int, isActive bool) error {
 	query := `UPDATE users SET is_active = $1 WHERE user_id = $2`
 	_, err := r.db.Exec(ctx, query, isActive, userID)
-	return err
+	if err != nil {
+		return domain.NewDatabaseError(err)
+	}
+	return nil
 }
 
 func (r *UserRepository) List(ctx context.Context, cursor *string, limit int) ([]*domain.User, *string, error) {
 	query := `
 		SELECT user_id, full_name, email, avatar, role_id, is_active, created_at
 		FROM users
+		WHERE (($1::text IS NULL) OR user_id > $1::int)
+		ORDER BY user_id
+		LIMIT $2
 	`
-	var args []interface{}
-	argCount := 1
 
-	// Apply cursor-based pagination
+	var cursorValue *string
 	if cursor != nil && *cursor != "" {
-		query += fmt.Sprintf(" WHERE user_id > $%d", argCount)
-		args = append(args, *cursor)
-		argCount++
+		cursorValue = cursor
 	}
 
-	query += " ORDER BY user_id"
-
-	// Fetch one extra to determine if there's a next page
-	query += fmt.Sprintf(" LIMIT $%d", argCount)
-	args = append(args, limit+1)
-
-	rows, err := r.db.Query(ctx, query, args...)
+	rows, err := r.db.Query(ctx, query, cursorValue, limit+1)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, domain.NewDatabaseError(err)
 	}
 	defer rows.Close()
 
@@ -118,13 +131,13 @@ func (r *UserRepository) List(ctx context.Context, cursor *string, limit int) ([
 			&user.RoleID, &user.IsActive, &user.CreatedAt,
 		)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, domain.NewDatabaseError(err)
 		}
 		users = append(users, user)
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, nil, err
+		return nil, nil, domain.NewDatabaseError(err)
 	}
 
 	// Determine next cursor
@@ -153,10 +166,11 @@ func (r *UserRepository) GetWithScore(ctx context.Context, userID int) (*domain.
 		&user.UserID, &user.FullName, &user.Email, &user.Avatar,
 		&user.RoleID, &user.IsActive, &user.CreatedAt, &user.TotalScore,
 	)
-	if err == pgx.ErrNoRows {
-		return nil, fmt.Errorf("user not found")
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, domain.NewNotFoundError("user")
 	}
-	return user, err
+	if err != nil {
+		return nil, domain.NewDatabaseError(err)
+	}
+	return user, nil
 }
-
-

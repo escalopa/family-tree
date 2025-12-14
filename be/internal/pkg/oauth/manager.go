@@ -3,11 +3,10 @@ package oauth
 import (
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
 
 	"github.com/escalopa/family-tree/internal/config"
 	"github.com/escalopa/family-tree/internal/domain"
-	"golang.org/x/oauth2"
 )
 
 type OAuthManager struct {
@@ -19,20 +18,20 @@ func NewOAuthManager(cfg *config.OAuthConfig) *OAuthManager {
 		providers: make(map[string]OAuthProvider),
 	}
 
-	if googleCfg, ok := cfg.Providers["google"]; ok {
-		manager.providers["google"] = NewGoogleProvider(
-			googleCfg.ClientID,
-			googleCfg.ClientSecret,
-			cfg.GetRedirectURL("google"),
-			googleCfg.Scopes,
-		)
-		log.Printf("Initialized Google OAuth provider")
-	}
+	// Iterate through all configured providers and initialize them using factory functions
+	for providerName, providerCfg := range cfg.Providers {
+		factory, exists := ProviderFactories[providerName]
+		if !exists {
+			slog.Warn("OAuthManager.NewOAuthManager: provider factory not found", "provider", providerName)
+			continue
+		}
 
-	// Add more providers here as needed
-	// if facebookCfg, ok := cfg.Providers["facebook"]; ok {
-	//     manager.providers["facebook"] = NewFacebookProvider(...)
-	// }
+		redirectURL := cfg.GetRedirectURL(providerName)
+		provider := factory(providerCfg.ClientID, providerCfg.ClientSecret, redirectURL, providerCfg.Scopes)
+		manager.providers[providerName] = provider
+
+		slog.Info("OAuthManager.NewOAuthManager: initialized provider", "provider", providerName)
+	}
 
 	return manager
 }
@@ -40,7 +39,7 @@ func NewOAuthManager(cfg *config.OAuthConfig) *OAuthManager {
 func (m *OAuthManager) GetProvider(providerName string) (OAuthProvider, error) {
 	provider, ok := m.providers[providerName]
 	if !ok {
-		log.Printf("OAuth provider not found: %s", providerName)
+		slog.Warn("OAuthManager.GetProvider: provider not found", "provider", providerName)
 		return nil, domain.NewValidationError(fmt.Sprintf("OAuth provider '%s' not supported", providerName))
 	}
 	return provider, nil
@@ -54,27 +53,27 @@ func (m *OAuthManager) GetAuthURL(providerName, state string) (string, error) {
 	return provider.GetAuthURL(state), nil
 }
 
-func (m *OAuthManager) HandleCallback(ctx context.Context, providerName, code string) (*oauth2.Token, *UserInfo, error) {
+func (m *OAuthManager) GetUserInfo(ctx context.Context, providerName, code string) (*domain.OAuthUserInfo, error) {
 	provider, err := m.GetProvider(providerName)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	// Exchange code for token
+	// Exchange code for token (exchange happens in client implementation)
 	token, err := provider.Exchange(ctx, code)
 	if err != nil {
-		log.Printf("OAuth exchange failed for provider %s: %v", providerName, err)
-		return nil, nil, err
+		slog.Error("OAuthManager.GetUserInfo: exchange code for token", "provider", providerName, "error", err)
+		return nil, err
 	}
 
 	// Get user info
 	userInfo, err := provider.GetUserInfo(ctx, token)
 	if err != nil {
-		log.Printf("Failed to get user info from %s: %v", providerName, err)
-		return nil, nil, err
+		slog.Error("OAuthManager.GetUserInfo: get user info from provider", "provider", providerName, "error", err)
+		return nil, err
 	}
 
-	return token, userInfo, nil
+	return userInfo, nil
 }
 
 func (m *OAuthManager) GetSupportedProviders() []string {

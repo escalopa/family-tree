@@ -2,75 +2,50 @@ package usecase
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/escalopa/family-tree/internal/domain"
-	"github.com/escalopa/family-tree/internal/pkg/oauth"
 	"github.com/google/uuid"
 )
 
 type authUseCase struct {
 	userRepo    UserRepository
 	sessionRepo SessionRepository
-	googleOAuth oauth.OAuthProvider
+	oauthMgr    OAuthManager
 	tokenMgr    TokenManager
 }
 
 func NewAuthUseCase(
 	userRepo UserRepository,
 	sessionRepo SessionRepository,
-	googleOAuth oauth.OAuthProvider,
+	oauthMgr OAuthManager,
 	tokenMgr TokenManager,
 ) *authUseCase {
 	return &authUseCase{
 		userRepo:    userRepo,
 		sessionRepo: sessionRepo,
-		googleOAuth: googleOAuth,
+		oauthMgr:    oauthMgr,
 		tokenMgr:    tokenMgr,
 	}
 }
 
 // GetAuthURL returns the OAuth URL for the specified provider
-func (uc *authUseCase) GetAuthURL(provider string) (string, error) {
-	// For now, only Google is supported
-	if provider != "google" {
-		return "", fmt.Errorf("unsupported OAuth provider: %s", provider)
-	}
-	return uc.googleOAuth.GetAuthURL(""), nil
+func (uc *authUseCase) GetAuthURL(provider, state string) (string, error) {
+	return uc.oauthMgr.GetAuthURL(provider, state)
 }
 
 // HandleCallback handles OAuth callback for any provider
-func (uc *authUseCase) HandleCallback(ctx context.Context, provider, code, state string) (*domain.User, *domain.AuthTokens, error) {
-	// For now, only Google is supported
-	if provider != "google" {
-		return nil, nil, fmt.Errorf("unsupported OAuth provider: %s", provider)
-	}
-	return uc.handleGoogleCallback(ctx, code)
-}
-
-// Legacy method for backwards compatibility
-func (uc *authUseCase) GetGoogleAuthURL(state string) string {
-	return uc.googleOAuth.GetAuthURL(state)
-}
-
-func (uc *authUseCase) handleGoogleCallback(ctx context.Context, code string) (*domain.User, *domain.AuthTokens, error) {
-	// Exchange code for token
-	oauthToken, err := uc.googleOAuth.Exchange(ctx, code)
+func (uc *authUseCase) HandleCallback(ctx context.Context, provider, code string) (*domain.User, *domain.AuthTokens, error) {
+	// Get user info from OAuth provider (exchange happens in the provider implementation)
+	userInfo, err := uc.oauthMgr.GetUserInfo(ctx, provider, code)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to exchange code: %w", err)
-	}
-
-	// Get user info
-	userInfo, err := uc.googleOAuth.GetUserInfo(ctx, oauthToken)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to get user info: %w", err)
+		return nil, nil, domain.NewExternalServiceError("OAuth", err)
 	}
 
 	// Check if user exists
 	user, err := uc.userRepo.GetByEmail(ctx, userInfo.Email)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to get user: %w", err)
+		return nil, nil, err
 	}
 
 	if user == nil {
@@ -83,14 +58,14 @@ func (uc *authUseCase) handleGoogleCallback(ctx context.Context, code string) (*
 			IsActive: false, // Needs admin approval
 		}
 		if err := uc.userRepo.Create(ctx, user); err != nil {
-			return nil, nil, fmt.Errorf("failed to create user: %w", err)
+			return nil, nil, err
 		}
 	} else {
 		// Update existing user info from OAuth
 		user.FullName = userInfo.Name
 		user.Avatar = &userInfo.Picture
 		if err := uc.userRepo.Update(ctx, user); err != nil {
-			return nil, nil, fmt.Errorf("failed to update user: %w", err)
+			return nil, nil, err
 		}
 	}
 
@@ -104,18 +79,18 @@ func (uc *authUseCase) handleGoogleCallback(ctx context.Context, code string) (*
 		Revoked:   false,
 	}
 	if err := uc.sessionRepo.Create(ctx, session); err != nil {
-		return nil, nil, fmt.Errorf("failed to create session: %w", err)
+		return nil, nil, err
 	}
 
 	// Generate tokens
 	accessToken, err := uc.tokenMgr.GenerateAccessToken(user.UserID, user.Email, user.RoleID, sessionID)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to generate access token: %w", err)
+		return nil, nil, domain.NewInternalError("failed to generate access token", err)
 	}
 
 	refreshToken, err := uc.tokenMgr.GenerateRefreshToken(user.UserID, sessionID)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to generate refresh token: %w", err)
+		return nil, nil, domain.NewInternalError("failed to generate refresh token", err)
 	}
 
 	tokens := &domain.AuthTokens{
@@ -131,31 +106,31 @@ func (uc *authUseCase) RefreshTokens(ctx context.Context, refreshToken string) (
 	// Validate refresh token
 	claims, err := uc.tokenMgr.ValidateToken(refreshToken)
 	if err != nil {
-		return nil, fmt.Errorf("invalid refresh token: %w", err)
+		return nil, domain.NewUnauthorizedError("invalid refresh token", err)
 	}
 
 	// Check session
 	session, err := uc.sessionRepo.GetByID(ctx, claims.SessionID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get session: %w", err)
+		return nil, err
 	}
 	if session == nil || session.Revoked || session.ExpiresAt.Before(time.Now()) {
-		return nil, fmt.Errorf("session expired or revoked")
+		return nil, domain.NewUnauthorizedError("session expired or revoked", nil)
 	}
 
 	// Get user
 	user, err := uc.userRepo.GetByID(ctx, claims.UserID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get user: %w", err)
+		return nil, err
 	}
 	if !user.IsActive {
-		return nil, fmt.Errorf("user is not active")
+		return nil, domain.NewForbiddenError("user is not active")
 	}
 
 	// Generate new access token
 	accessToken, err := uc.tokenMgr.GenerateAccessToken(user.UserID, user.Email, user.RoleID, claims.SessionID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to generate access token: %w", err)
+		return nil, domain.NewInternalError("failed to generate access token", err)
 	}
 
 	tokens := &domain.AuthTokens{
@@ -181,7 +156,7 @@ func (uc *authUseCase) ValidateSession(ctx context.Context, sessionID string) (*
 		return nil, err
 	}
 	if session == nil || session.Revoked || session.ExpiresAt.Before(time.Now()) {
-		return nil, fmt.Errorf("session invalid or expired")
+		return nil, domain.NewUnauthorizedError("session invalid or expired", nil)
 	}
 	return session, nil
 }

@@ -1,6 +1,7 @@
 server:
   port: "8080"
   mode: "debug" # debug, release
+  log_level: "info" # debug, info, warn, error
 
 database:
   host: "localhost"
@@ -39,5 +40,3 @@ s3:
   bucket: "family-tree-images"
   access_key: "your-yandex-access-key"
   secret_key: "your-yandex-secret-key"
-
-

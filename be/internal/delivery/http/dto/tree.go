@@ -14,5 +14,3 @@ type TreeNodeResponse struct {
 	Member   MemberResponse      `json:"member"`
 	Children []*TreeNodeResponse `json:"children,omitempty"`
 }
-
-

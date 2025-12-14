@@ -1,5 +1,5 @@
 # Build stage
-FROM golang:1.21-alpine AS builder
+FROM golang:1.25-alpine AS builder
 
 WORKDIR /app
 
@@ -26,11 +26,9 @@ WORKDIR /root/
 # Copy binary from builder
 COPY --from=builder /app/main .
 
-# Copy migrations
-COPY --from=builder /app/migrations ./migrations
+# Copy config file
+COPY --from=builder /app/config.yaml ./config.yaml
 
 EXPOSE 8080
 
 CMD ["./main"]
-
-

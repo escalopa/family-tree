@@ -2,7 +2,6 @@ package repository
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/escalopa/family-tree/internal/domain"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -22,9 +21,13 @@ func (r *ScoreRepository) Create(ctx context.Context, score *domain.Score) error
 		VALUES ($1, $2, $3, $4, $5)
 		RETURNING created_at
 	`
-	return r.db.QueryRow(ctx, query,
+	err := r.db.QueryRow(ctx, query,
 		score.UserID, score.MemberID, score.FieldName, score.Points, score.MemberVersion,
 	).Scan(&score.CreatedAt)
+	if err != nil {
+		return domain.NewDatabaseError(err)
+	}
+	return nil
 }
 
 func (r *ScoreRepository) GetByUserID(ctx context.Context, userID int, cursor *string, limit int) ([]*domain.ScoreHistory, *string, error) {
@@ -34,27 +37,19 @@ func (r *ScoreRepository) GetByUserID(ctx context.Context, userID int, cursor *s
 		FROM user_scores us
 		JOIN members m ON us.member_id = m.member_id
 		WHERE us.user_id = $1
+		  AND (($2::timestamp IS NULL) OR us.created_at < $2)
+		ORDER BY us.created_at DESC
+		LIMIT $3
 	`
-	var args []interface{}
-	args = append(args, userID)
-	argCount := 2
 
-	// Apply cursor-based pagination (using created_at as cursor)
+	var cursorValue *string
 	if cursor != nil && *cursor != "" {
-		query += fmt.Sprintf(" AND us.created_at < $%d", argCount)
-		args = append(args, *cursor)
-		argCount++
+		cursorValue = cursor
 	}
 
-	query += " ORDER BY us.created_at DESC"
-
-	// Fetch one extra to determine if there's a next page
-	query += fmt.Sprintf(" LIMIT $%d", argCount)
-	args = append(args, limit+1)
-
-	rows, err := r.db.Query(ctx, query, args...)
+	rows, err := r.db.Query(ctx, query, userID, cursorValue, limit+1)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, domain.NewDatabaseError(err)
 	}
 	defer rows.Close()
 
@@ -66,13 +61,13 @@ func (r *ScoreRepository) GetByUserID(ctx context.Context, userID int, cursor *s
 			&s.MemberArabicName, &s.MemberEnglishName,
 		)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, domain.NewDatabaseError(err)
 		}
 		scores = append(scores, s)
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, nil, err
+		return nil, nil, domain.NewDatabaseError(err)
 	}
 
 	// Determine next cursor
@@ -100,7 +95,7 @@ func (r *ScoreRepository) GetLeaderboard(ctx context.Context, limit int) ([]*dom
 	`
 	rows, err := r.db.Query(ctx, query, limit)
 	if err != nil {
-		return nil, err
+		return nil, domain.NewDatabaseError(err)
 	}
 	defer rows.Close()
 
@@ -109,23 +104,32 @@ func (r *ScoreRepository) GetLeaderboard(ctx context.Context, limit int) ([]*dom
 		s := &domain.UserScore{}
 		err := rows.Scan(&s.UserID, &s.FullName, &s.Avatar, &s.TotalScore, &s.Rank)
 		if err != nil {
-			return nil, err
+			return nil, domain.NewDatabaseError(err)
 		}
 		leaderboard = append(leaderboard, s)
 	}
-	return leaderboard, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, domain.NewDatabaseError(err)
+	}
+	return leaderboard, nil
 }
 
 func (r *ScoreRepository) GetTotalByUserID(ctx context.Context, userID int) (int, error) {
 	query := `SELECT COALESCE(SUM(points), 0) FROM user_scores WHERE user_id = $1`
 	var total int
 	err := r.db.QueryRow(ctx, query, userID).Scan(&total)
-	return total, err
+	if err != nil {
+		return 0, domain.NewDatabaseError(err)
+	}
+	return total, nil
 }
 
 // DeleteByMemberAndField removes scores for a specific member field (used when updating)
 func (r *ScoreRepository) DeleteByMemberAndField(ctx context.Context, memberID int, fieldName string, memberVersion int) error {
 	query := `DELETE FROM user_scores WHERE member_id = $1 AND field_name = $2 AND member_version = $3`
 	_, err := r.db.Exec(ctx, query, memberID, fieldName, memberVersion)
-	return err
+	if err != nil {
+		return domain.NewDatabaseError(err)
+	}
+	return nil
 }

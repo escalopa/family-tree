@@ -8,8 +8,8 @@ import (
 
 // Use case interfaces used by HTTP handlers
 type AuthUseCase interface {
-	GetAuthURL(provider string) (string, error)
-	HandleCallback(ctx context.Context, provider, code, state string) (*domain.User, *domain.AuthTokens, error)
+	GetAuthURL(provider, state string) (string, error)
+	HandleCallback(ctx context.Context, provider, code string) (*domain.User, *domain.AuthTokens, error)
 	RefreshTokens(ctx context.Context, refreshToken string) (*domain.AuthTokens, error)
 	Logout(ctx context.Context, sessionID string) error
 	LogoutAll(ctx context.Context, userID int) error
