@@ -1,51 +1,103 @@
 package middleware
 
 import (
-	"context"
+	"net/http"
 
-	"github.com/escalopa/family-tree-api/internal/pkg/token"
 	"github.com/gin-gonic/gin"
 )
 
-// Define local interfaces rather than importing concrete repos
-type SessionRepo interface {
-	// subset used by middleware
-	DeleteExpired(ctx context.Context) error
-}
-
-type UserRepo interface{}
-
-type TokenManager interface {
-	ValidateAuthToken(tokenString string) (*token.Claims, error)
-	ValidateRefreshToken(tokenString string) (*token.Claims, error)
-}
-
-type AuthMiddleware struct {
+type authMiddleware struct {
 	tokenMgr    TokenManager
-	sessionRepo SessionRepo
-	userRepo    UserRepo
+	authUseCase AuthUseCase
 }
 
-func NewAuthMiddleware(
-	tokenMgr TokenManager,
-	sessionRepo SessionRepo,
-	userRepo UserRepo,
-) *AuthMiddleware {
-	return &AuthMiddleware{
+func NewAuthMiddleware(tokenMgr TokenManager, authUseCase AuthUseCase) *authMiddleware {
+	return &authMiddleware{
 		tokenMgr:    tokenMgr,
-		sessionRepo: sessionRepo,
-		userRepo:    userRepo,
+		authUseCase: authUseCase,
 	}
 }
 
-func (m *AuthMiddleware) Authenticate() gin.HandlerFunc {
+func (m *authMiddleware) Authenticate() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// TODO: Implementation
-		// 1. Get auth_token from cookie
-		// 2. Validate token
-		// 3. If expired, try refresh_token
-		// 4. Get session and user
-		// 5. Set user in context
+		// Get access token from cookie
+		accessToken, err := c.Cookie("auth_token")
+		if err != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "missing auth token"})
+			c.Abort()
+			return
+		}
+
+		// Validate token
+		claims, err := m.tokenMgr.ValidateToken(accessToken)
+		if err != nil {
+			// Try to refresh token
+			refreshToken, err := c.Cookie("refresh_token")
+			if err != nil {
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid or expired token"})
+				c.Abort()
+				return
+			}
+
+			// Refresh tokens
+			tokens, err := m.authUseCase.RefreshTokens(c.Request.Context(), refreshToken)
+			if err != nil {
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "failed to refresh token"})
+				c.Abort()
+				return
+			}
+
+			// Set new cookies
+			c.SetCookie("auth_token", tokens.AccessToken, 3600, "/", "", false, true)
+			c.SetCookie("refresh_token", tokens.RefreshToken, 7*24*3600, "/", "", false, true)
+
+			// Validate new token
+			claims, err = m.tokenMgr.ValidateToken(tokens.AccessToken)
+			if err != nil {
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid token after refresh"})
+				c.Abort()
+				return
+			}
+		}
+
+		// Validate session
+		_, err = m.authUseCase.ValidateSession(c.Request.Context(), claims.SessionID)
+		if err != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid session"})
+			c.Abort()
+			return
+		}
+
+		// Set user info in context
+		c.Set("user_id", claims.UserID)
+		c.Set("user_email", claims.Email)
+		c.Set("user_role", claims.RoleID)
+		c.Set("session_id", claims.SessionID)
+
 		c.Next()
 	}
+}
+
+func GetUserID(c *gin.Context) int {
+	userID, exists := c.Get("user_id")
+	if !exists {
+		return 0
+	}
+	return userID.(int)
+}
+
+func GetUserRole(c *gin.Context) int {
+	roleID, exists := c.Get("user_role")
+	if !exists {
+		return 0
+	}
+	return roleID.(int)
+}
+
+func GetSessionID(c *gin.Context) string {
+	sessionID, exists := c.Get("session_id")
+	if !exists {
+		return ""
+	}
+	return sessionID.(string)
 }

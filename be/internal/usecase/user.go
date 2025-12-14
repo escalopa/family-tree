@@ -2,82 +2,84 @@ package usecase
 
 import (
 	"context"
+	"fmt"
 
-	"github.com/escalopa/family-tree-api/internal/domain"
+	"github.com/escalopa/family-tree/internal/domain"
 )
 
-type UserUseCase interface {
-	GetByID(ctx context.Context, userID int) (*domain.UserProfile, error)
-	GetCurrentUser(ctx context.Context, userID int) (*domain.UserProfile, error)
-	List(ctx context.Context) ([]*domain.UserWithRole, error)
-	UpdateRole(ctx context.Context, targetUserID, newRoleID, actorUserID int) error
-	UpdateActiveStatus(ctx context.Context, targetUserID int, isActive bool) error
-	AdminLogout(ctx context.Context, targetUserID int) error
-}
-
-// Local interfaces (subset) for the repositories used here
-type UserRepo interface {
-	GetByID(ctx context.Context, userID int) (*domain.UserWithRole, error)
-	GetByEmail(ctx context.Context, email string) (*domain.UserWithRole, error)
-	Update(ctx context.Context, user *domain.User) error
-	UpdateRole(ctx context.Context, userID, newRoleID int) error
-	UpdateActiveStatus(ctx context.Context, userID int, isActive bool) error
-	List(ctx context.Context) ([]*domain.UserWithRole, error)
-	GetTotalScore(ctx context.Context, userID int) (int, error)
-}
-
-type ScoreRepo interface {
-	GetByUserID(ctx context.Context, userID int) ([]*domain.UserScoreWithDetails, error)
-}
-
-type SessionRepo interface {
-	DeleteAllByUserID(ctx context.Context, userID int) error
-}
-
 type userUseCase struct {
-	userRepo    UserRepo
-	scoreRepo   ScoreRepo
-	sessionRepo SessionRepo
+	userRepo    UserRepository
+	scoreRepo   ScoreRepository
+	historyRepo HistoryRepository
 }
 
 func NewUserUseCase(
-	userRepo UserRepo,
-	scoreRepo ScoreRepo,
-	sessionRepo SessionRepo,
-) UserUseCase {
+	userRepo UserRepository,
+	scoreRepo ScoreRepository,
+	historyRepo HistoryRepository,
+) *userUseCase {
 	return &userUseCase{
 		userRepo:    userRepo,
 		scoreRepo:   scoreRepo,
-		sessionRepo: sessionRepo,
+		historyRepo: historyRepo,
 	}
 }
 
-func (uc *userUseCase) GetByID(ctx context.Context, userID int) (*domain.UserProfile, error) {
-	// TODO: Implementation
-	return nil, nil
+func (uc *userUseCase) GetUserByID(ctx context.Context, userID int) (*domain.User, error) {
+	return uc.userRepo.GetByID(ctx, userID)
 }
 
-func (uc *userUseCase) GetCurrentUser(ctx context.Context, userID int) (*domain.UserProfile, error) {
-	// TODO: Implementation
-	return nil, nil
+func (uc *userUseCase) GetUserWithScore(ctx context.Context, userID int) (*domain.UserWithScore, error) {
+	return uc.userRepo.GetWithScore(ctx, userID)
 }
 
-func (uc *userUseCase) List(ctx context.Context) ([]*domain.UserWithRole, error) {
-	// TODO: Implementation
-	return nil, nil
+func (uc *userUseCase) ListUsers(ctx context.Context, cursor *string, limit int) ([]*domain.User, *string, error) {
+	if limit <= 0 {
+		limit = 20
+	}
+	return uc.userRepo.List(ctx, cursor, limit)
 }
 
-func (uc *userUseCase) UpdateRole(ctx context.Context, targetUserID, newRoleID, actorUserID int) error {
-	// TODO: Implementation
+func (uc *userUseCase) UpdateUserRole(ctx context.Context, userID, newRoleID, changedBy int) error {
+	// Get current user
+	user, err := uc.userRepo.GetByID(ctx, userID)
+	if err != nil {
+		return fmt.Errorf("failed to get user: %w", err)
+	}
+
+	// Update role
+	if err := uc.userRepo.UpdateRole(ctx, userID, newRoleID); err != nil {
+		return fmt.Errorf("failed to update role: %w", err)
+	}
+
+	// Note: Role history tracking could be implemented here if needed
+	_ = user
+	_ = changedBy
+
 	return nil
 }
 
-func (uc *userUseCase) UpdateActiveStatus(ctx context.Context, targetUserID int, isActive bool) error {
-	// TODO: Implementation
-	return nil
+func (uc *userUseCase) UpdateUserActive(ctx context.Context, userID int, isActive bool) error {
+	return uc.userRepo.UpdateActive(ctx, userID, isActive)
 }
 
-func (uc *userUseCase) AdminLogout(ctx context.Context, targetUserID int) error {
-	// TODO: Implementation
-	return nil
+func (uc *userUseCase) GetLeaderboard(ctx context.Context, limit int) ([]*domain.UserScore, error) {
+	if limit <= 0 {
+		limit = 10
+	}
+	return uc.scoreRepo.GetLeaderboard(ctx, limit)
+}
+
+func (uc *userUseCase) GetScoreHistory(ctx context.Context, userID int, cursor *string, limit int) ([]*domain.ScoreHistory, *string, error) {
+	if limit <= 0 {
+		limit = 20
+	}
+	return uc.scoreRepo.GetByUserID(ctx, userID, cursor, limit)
+}
+
+func (uc *userUseCase) GetUserChanges(ctx context.Context, userID int, cursor *string, limit int) ([]*domain.HistoryWithUser, *string, error) {
+	if limit <= 0 {
+		limit = 20
+	}
+	return uc.historyRepo.GetByUserID(ctx, userID, cursor, limit)
 }

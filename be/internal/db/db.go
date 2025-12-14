@@ -2,30 +2,28 @@ package db
 
 import (
 	"context"
+	"fmt"
 
-	"github.com/jackc/pgx/v5"
+	"github.com/escalopa/family-tree/internal/config"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-type DB struct {
-	conn *pgx.Conn
-}
-
-func NewDB(ctx context.Context, url string) (*DB, error) {
-	conn, err := pgx.Connect(ctx, url)
+func NewPool(ctx context.Context, cfg *config.DatabaseConfig) (*pgxpool.Pool, error) {
+	poolConfig, err := pgxpool.ParseConfig(cfg.ConnectionString())
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to parse config: %w", err)
 	}
-	err = conn.Ping(ctx)
+
+	pool, err := pgxpool.NewWithConfig(ctx, poolConfig)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to create connection pool: %w", err)
 	}
-	return &DB{conn: conn}, nil
+
+	if err := pool.Ping(ctx); err != nil {
+		return nil, fmt.Errorf("unable to ping database: %w", err)
+	}
+
+	return pool, nil
 }
 
-func (db *DB) Conn() *pgx.Conn {
-	return db.conn
-}
 
-func (db *DB) Close(ctx context.Context) error {
-	return db.conn.Close(ctx)
-}

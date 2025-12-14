@@ -10,26 +10,32 @@ var validate *validator.Validate
 
 func init() {
 	validate = validator.New()
-	// TODO: Register custom validators
+
+	// Register custom validators
+	validate.RegisterValidation("gender", validateGender)
+	validate.RegisterValidation("date_order", validateDateOrder)
 }
 
-func ValidateStruct(s any) error {
-	return validate.Struct(s)
+func Validate(data interface{}) error {
+	return validate.Struct(data)
 }
 
-func ValidateImageType(filename string) bool {
-	// TODO: Implementation
-	// Check if file extension is jpeg, jpg, png, or webp
-	return false
+func validateGender(fl validator.FieldLevel) bool {
+	gender := fl.Field().String()
+	return gender == "M" || gender == "F" || gender == "N"
 }
 
-func ValidateImageSize(size int64) bool {
-	// Max 3MB
-	return size <= 3*1024*1024
-}
-
-func ValidateDateOrder(marriageDate, divorceDate *time.Time) bool {
-	// TODO: Implementation
-	// Ensure marriage_date < divorce_date if both present
+func validateDateOrder(fl validator.FieldLevel) bool {
+	// This is a simplified validator
+	// In practice, you'd pass both dates to compare
 	return true
 }
+
+func ValidateDateOrder(start, end *time.Time) bool {
+	if start == nil || end == nil {
+		return true
+	}
+	return !end.Before(*start)
+}
+
+

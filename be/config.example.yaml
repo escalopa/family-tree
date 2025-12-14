@@ -1,0 +1,43 @@
+server:
+  port: "8080"
+  mode: "debug" # debug, release
+
+database:
+  host: "localhost"
+  port: "5432"
+  user: "familytree"
+  password: "secret"
+  name: "familytree"
+  sslmode: "disable"
+
+jwt:
+  secret: "your-super-secret-key-change-in-production"
+  access_expiry: "15m"
+  refresh_expiry: "168h" # 7 days
+
+oauth:
+  providers:
+    google:
+      client_id: "your-google-client-id"
+      client_secret: "your-google-client-secret"
+      scopes:
+        - "https://www.googleapis.com/auth/userinfo.email"
+        - "https://www.googleapis.com/auth/userinfo.profile"
+    # facebook:
+    #   client_id: "your-facebook-client-id"
+    #   client_secret: "your-facebook-client-secret"
+    #   scopes:
+    #     - "email"
+    #     - "public_profile"
+
+  # Backend will construct redirect URLs based on this base URL
+  redirect_base_url: "http://localhost:8080"
+
+s3:
+  endpoint: "https://storage.yandexcloud.net"
+  region: "ru-central1"
+  bucket: "family-tree-images"
+  access_key: "your-yandex-access-key"
+  secret_key: "your-yandex-secret-key"
+
+

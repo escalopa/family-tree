@@ -4,18 +4,22 @@
 *.dll
 *.so
 *.dylib
-bin/
-dist/
+main
 
-# Test files
+# Test binary, built with `go test -c`
 *.test
-*.out
-coverage.txt
-coverage.html
 
-# Environment files
+# Output of the go coverage tool
+*.out
+
+# Go workspace file
+go.work
+
+# Dependency directories
+vendor/
+
+# Environment variables
 .env
-.env.local
 
 # IDE
 .vscode/
@@ -28,18 +32,4 @@ coverage.html
 .DS_Store
 Thumbs.db
 
-# Dependencies
-vendor/
-
-# Logs
-*.log
-logs/
-
-# Database
-*.db
-*.sqlite
-
-# Docker
-docker-compose.override.yml
-
-
+config.yaml

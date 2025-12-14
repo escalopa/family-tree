@@ -1,74 +1,88 @@
 package token
 
 import (
+	"fmt"
 	"time"
 
+	"github.com/escalopa/family-tree/internal/domain"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 )
 
-type Manager struct {
-	authSecret    string
-	refreshSecret string
-	authExpiry    time.Duration
-	refreshExpiry time.Duration
-}
-
-type Claims struct {
-	UserID    int       `json:"user_id"`
-	SessionID uuid.UUID `json:"session_id"`
+type jwtClaims struct {
+	UserID    int    `json:"user_id"`
+	Email     string `json:"email"`
+	RoleID    int    `json:"role_id"`
+	SessionID string `json:"session_id"`
 	jwt.RegisteredClaims
 }
 
-func NewManager(authSecret, refreshSecret string, authExpiry, refreshExpiry time.Duration) *Manager {
+type Manager struct {
+	secret        string
+	accessExpiry  time.Duration
+	refreshExpiry time.Duration
+}
+
+func NewManager(secret string, accessExpiry, refreshExpiry time.Duration) *Manager {
 	return &Manager{
-		authSecret:    authSecret,
-		refreshSecret: refreshSecret,
-		authExpiry:    authExpiry,
+		secret:        secret,
+		accessExpiry:  accessExpiry,
 		refreshExpiry: refreshExpiry,
 	}
 }
 
-func (m *Manager) generateToken(userID int, sessionID uuid.UUID, secret string, expiry time.Duration, now time.Time) (string, time.Time, error) {
-	expiresAt := now.Add(expiry)
-	claims := &Claims{
+func (tm *Manager) GenerateAccessToken(userID int, email string, roleID int, sessionID string) (string, error) {
+	claims := &jwtClaims{
+		UserID:    userID,
+		Email:     email,
+		RoleID:    roleID,
+		SessionID: sessionID,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(tm.accessExpiry)),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+			ID:        uuid.New().String(),
+		},
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return token.SignedString([]byte(tm.secret))
+}
+
+func (tm *Manager) GenerateRefreshToken(userID int, sessionID string) (string, error) {
+	claims := &jwtClaims{
 		UserID:    userID,
 		SessionID: sessionID,
 		RegisteredClaims: jwt.RegisteredClaims{
-			IssuedAt:  jwt.NewNumericDate(now),
-			ExpiresAt: jwt.NewNumericDate(expiresAt),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(tm.refreshExpiry)),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+			ID:        uuid.New().String(),
 		},
 	}
+
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	signed, err := token.SignedString([]byte(secret))
-	return signed, expiresAt, err
+	return token.SignedString([]byte(tm.secret))
 }
 
-func (m *Manager) GenerateAuthToken(userID int, sessionID uuid.UUID, now time.Time) (string, time.Time, error) {
-	return m.generateToken(userID, sessionID, m.authSecret, m.authExpiry, now)
-}
-
-func (m *Manager) GenerateRefreshToken(userID int, sessionID uuid.UUID, now time.Time) (string, time.Time, error) {
-	return m.generateToken(userID, sessionID, m.refreshSecret, m.refreshExpiry, now)
-}
-
-func (m *Manager) validateToken(tokenString string, secret string) (*Claims, error) {
-	parsed, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(t *jwt.Token) (interface{}, error) {
-		return []byte(secret), nil
+func (tm *Manager) ValidateToken(tokenString string) (*domain.TokenClaims, error) {
+	token, err := jwt.ParseWithClaims(tokenString, &jwtClaims{}, func(token *jwt.Token) (any, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+		return []byte(tm.secret), nil
 	})
+
 	if err != nil {
 		return nil, err
 	}
-	if claims, ok := parsed.Claims.(*Claims); ok && parsed.Valid {
-		return claims, nil
+
+	if claims, ok := token.Claims.(*jwtClaims); ok && token.Valid {
+		return &domain.TokenClaims{
+			UserID:    claims.UserID,
+			Email:     claims.Email,
+			RoleID:    claims.RoleID,
+			SessionID: claims.SessionID,
+		}, nil
 	}
-	return nil, jwt.ErrTokenInvalidClaims
-}
 
-func (m *Manager) ValidateAuthToken(tokenString string) (*Claims, error) {
-	return m.validateToken(tokenString, m.authSecret)
-}
-
-func (m *Manager) ValidateRefreshToken(tokenString string) (*Claims, error) {
-	return m.validateToken(tokenString, m.refreshSecret)
+	return nil, fmt.Errorf("invalid token")
 }

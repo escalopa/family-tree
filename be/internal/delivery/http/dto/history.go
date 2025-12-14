@@ -5,29 +5,25 @@ import (
 	"time"
 )
 
-type MemberHistoryResponse struct {
-	HistoryID  int             `json:"history_id"`
-	MemberID   int             `json:"member_id"`
-	UserID     int             `json:"user_id"`
-	UserName   string          `json:"user_name"`
-	Version    int             `json:"version"`
-	Revision   int             `json:"revision"`
-	ChangedAt  time.Time       `json:"changed_at"`
-	ChangeType string          `json:"change_type"`
-	OldValues  json.RawMessage `json:"old_values"`
-	NewValues  json.RawMessage `json:"new_values"`
+type HistoryQuery struct {
+	MemberID *int `form:"member_id"`
+	PaginationQuery
 }
 
-type MemberHistoryListResponse struct {
-	History    []MemberHistoryResponse `json:"history"`
-	Pagination PaginationResponse      `json:"pagination"`
+type HistoryResponse struct {
+	HistoryID     int             `json:"history_id"`
+	MemberID      int             `json:"member_id"`
+	UserID        int             `json:"user_id"`
+	UserFullName  string          `json:"user_full_name"`
+	UserEmail     string          `json:"user_email"`
+	ChangedAt     time.Time       `json:"changed_at"`
+	ChangeType    string          `json:"change_type"`
+	OldValues     json.RawMessage `json:"old_values"`
+	NewValues     json.RawMessage `json:"new_values"`
+	MemberVersion int             `json:"member_version"`
 }
 
-type ActivityResponse struct {
-	HistoryID  int       `json:"history_id"`
-	MemberID   int       `json:"member_id"`
-	MemberName string    `json:"member_name"`
-	ChangeType string    `json:"change_type"`
-	ChangedAt  time.Time `json:"changed_at"`
-	Version    int       `json:"version"`
+type PaginatedHistoryResponse struct {
+	History    []HistoryResponse `json:"history"`
+	NextCursor *string           `json:"next_cursor,omitempty"`
 }
