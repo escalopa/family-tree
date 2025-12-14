@@ -6,7 +6,7 @@ export interface ApiResponse<T> {
 
 export interface PaginationParams {
   limit?: number;
-  offset?: number;
+  cursor?: string;
 }
 
 export interface History {
@@ -22,5 +22,7 @@ export interface History {
   member_version: number;
 }
 
-
-
+export interface PaginatedHistoryResponse {
+  history: History[];
+  next_cursor?: string;
+}

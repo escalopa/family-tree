@@ -21,6 +21,18 @@ func NewAuthHandler(authUseCase AuthUseCase, cookieManager CookieManager) *authH
 	}
 }
 
+// GetAuthURL godoc
+// @Summary Get OAuth authentication URL
+// @Description Returns the OAuth authentication URL for the specified provider
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param provider path string true "OAuth provider (e.g., google)"
+// @Param state query string false "State parameter for OAuth flow"
+// @Success 200 {object} dto.Response{data=dto.AuthURLResponse}
+// @Failure 400 {object} dto.Response
+// @Failure 500 {object} dto.Response
+// @Router /auth/{provider} [get]
 func (h *authHandler) GetAuthURL(c *gin.Context) {
 	provider := c.Param("provider")
 	state := c.Query("state")
@@ -40,6 +52,18 @@ func (h *authHandler) GetAuthURL(c *gin.Context) {
 	})
 }
 
+// HandleCallback godoc
+// @Summary Handle OAuth callback
+// @Description Handles the OAuth callback and creates a user session
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param provider path string true "OAuth provider (e.g., google)"
+// @Param code query string true "OAuth authorization code"
+// @Success 200 {object} dto.Response{data=dto.AuthResponse}
+// @Failure 400 {object} dto.Response
+// @Failure 500 {object} dto.Response
+// @Router /auth/{provider}/callback [get]
 func (h *authHandler) HandleCallback(c *gin.Context) {
 	provider := c.Param("provider")
 	code := c.Query("code")
@@ -68,6 +92,18 @@ func (h *authHandler) HandleCallback(c *gin.Context) {
 	c.JSON(http.StatusOK, dto.Response{Success: true, Data: response})
 }
 
+// Logout godoc
+// @Summary Logout user
+// @Description Invalidates the current user session
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} dto.Response{data=string}
+// @Failure 400 {object} dto.Response
+// @Failure 401 {object} dto.Response
+// @Failure 500 {object} dto.Response
+// @Router /api/auth/logout [post]
 func (h *authHandler) Logout(c *gin.Context) {
 	sessionID := middleware.GetSessionID(c)
 	if sessionID == "" {
@@ -85,6 +121,18 @@ func (h *authHandler) Logout(c *gin.Context) {
 	c.JSON(http.StatusOK, dto.Response{Success: true, Data: "logged out"})
 }
 
+// LogoutAll godoc
+// @Summary Logout from all devices
+// @Description Invalidates all user sessions across all devices
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} dto.Response{data=string}
+// @Failure 400 {object} dto.Response
+// @Failure 401 {object} dto.Response
+// @Failure 500 {object} dto.Response
+// @Router /api/auth/logout-all [post]
 func (h *authHandler) LogoutAll(c *gin.Context) {
 	userID := middleware.GetUserID(c)
 	if userID == 0 {

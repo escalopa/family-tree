@@ -41,6 +41,3 @@ type ScoreHistory struct {
 	MemberArabicName  string `json:"member_arabic_name"`
 	MemberEnglishName string `json:"member_english_name"`
 }
-
-
-

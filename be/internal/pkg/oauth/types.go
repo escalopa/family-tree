@@ -18,7 +18,7 @@ type OAuthProvider interface {
 	GetProviderName() string
 }
 
-type ProviderFactory func(clientID, clientSecret, redirectURL string, scopes []string) OAuthProvider
+type ProviderFactory func(clientID, clientSecret, redirectURL, userInfoURL string, scopes []string) OAuthProvider
 
 var ProviderFactories = map[string]ProviderFactory{
 	ProviderGoogle: NewGoogleProvider,

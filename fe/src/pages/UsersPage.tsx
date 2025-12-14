@@ -22,7 +22,7 @@ import { ROLE_LABELS } from '../utils/constants';
 import EditIcon from '@mui/icons-material/Edit';
 
 export const UsersPage: React.FC = () => {
-  const { data: users, isLoading } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: ['users'],
     queryFn: () => usersApi.listUsers(),
   });
@@ -34,6 +34,8 @@ export const UsersPage: React.FC = () => {
       </Layout>
     );
   }
+
+  const users = data?.users || [];
 
   return (
     <Layout>
@@ -91,6 +93,3 @@ export const UsersPage: React.FC = () => {
     </Layout>
   );
 };
-
-
-

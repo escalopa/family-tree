@@ -30,6 +30,3 @@ type HistoryWithUser struct {
 	UserFullName string `json:"user_full_name"`
 	UserEmail    string `json:"user_email"`
 }
-
-
-

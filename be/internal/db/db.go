@@ -25,6 +25,3 @@ func NewPool(ctx context.Context, cfg *config.DatabaseConfig) (*pgxpool.Pool, er
 
 	return pool, nil
 }
-
-
-

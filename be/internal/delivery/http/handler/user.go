@@ -17,6 +17,19 @@ func NewUserHandler(userUseCase UserUseCase) *userHandler {
 	return &userHandler{userUseCase: userUseCase}
 }
 
+// GetUser godoc
+// @Summary Get user by ID
+// @Description Returns a user with their total score
+// @Tags users
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param user_id path int true "User ID"
+// @Success 200 {object} dto.Response{data=dto.UserResponse}
+// @Failure 400 {object} dto.Response
+// @Failure 401 {object} dto.Response
+// @Failure 404 {object} dto.Response
+// @Router /api/users/{user_id} [get]
 func (h *userHandler) GetUser(c *gin.Context) {
 	userID, err := strconv.Atoi(c.Param("user_id"))
 	if err != nil {
@@ -43,6 +56,20 @@ func (h *userHandler) GetUser(c *gin.Context) {
 	c.JSON(http.StatusOK, dto.Response{Success: true, Data: response})
 }
 
+// ListUsers godoc
+// @Summary List all users
+// @Description Returns a paginated list of users
+// @Tags users
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param cursor query string false "Pagination cursor"
+// @Param limit query int false "Number of items to return (1-100)" default(20)
+// @Success 200 {object} dto.Response{data=dto.PaginatedUsersResponse}
+// @Failure 400 {object} dto.Response
+// @Failure 401 {object} dto.Response
+// @Failure 500 {object} dto.Response
+// @Router /api/users [get]
 func (h *userHandler) ListUsers(c *gin.Context) {
 	var query dto.PaginationQuery
 	if err := c.ShouldBindQuery(&query); err != nil {
@@ -50,9 +77,7 @@ func (h *userHandler) ListUsers(c *gin.Context) {
 		return
 	}
 
-	if query.Limit == 0 {
-		query.Limit = 20
-	}
+	query.Limit = min(max(1, query.Limit), 100) // min 1, max 100
 
 	users, nextCursor, err := h.userUseCase.ListUsers(c.Request.Context(), query.Cursor, query.Limit)
 	if err != nil {
@@ -123,6 +148,18 @@ func (h *userHandler) UpdateActive(c *gin.Context) {
 	c.JSON(http.StatusOK, dto.Response{Success: true, Data: "active status updated"})
 }
 
+// GetLeaderboard godoc
+// @Summary Get user leaderboard
+// @Description Returns the top users ranked by total score
+// @Tags users
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param limit query int false "Number of top users to return" default(10)
+// @Success 200 {object} dto.Response{data=dto.LeaderboardResponse}
+// @Failure 401 {object} dto.Response
+// @Failure 500 {object} dto.Response
+// @Router /api/users/leaderboard [get]
 func (h *userHandler) GetLeaderboard(c *gin.Context) {
 	limit := 10
 	if l := c.Query("limit"); l != "" {

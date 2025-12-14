@@ -1,6 +1,6 @@
 import { apiClient } from './client';
-import { ApiResponse, PaginationParams, History } from '../types/api';
-import { User, UserScore, ScoreHistory } from '../types/user';
+import { ApiResponse, PaginationParams, PaginatedHistoryResponse } from '../types/api';
+import { User, UserScore, PaginatedUsersResponse, PaginatedScoreHistoryResponse } from '../types/user';
 
 export const usersApi = {
   getUser: async (userId: number): Promise<User> => {
@@ -8,8 +8,8 @@ export const usersApi = {
     return response.data.data!;
   },
 
-  listUsers: async (): Promise<User[]> => {
-    const response = await apiClient.get<ApiResponse<User[]>>('/api/users');
+  listUsers: async (params?: PaginationParams): Promise<PaginatedUsersResponse> => {
+    const response = await apiClient.get<ApiResponse<PaginatedUsersResponse>>('/api/users', { params });
     return response.data.data!;
   },
 
@@ -27,22 +27,19 @@ export const usersApi = {
     return response.data.data!;
   },
 
-  getScoreHistory: async (userId: number, params?: PaginationParams): Promise<ScoreHistory[]> => {
-    const response = await apiClient.get<ApiResponse<ScoreHistory[]>>(
+  getScoreHistory: async (userId: number, params?: PaginationParams): Promise<PaginatedScoreHistoryResponse> => {
+    const response = await apiClient.get<ApiResponse<PaginatedScoreHistoryResponse>>(
       `/api/users/score/${userId}`,
       { params }
     );
     return response.data.data!;
   },
 
-  getUserChanges: async (userId: number, params?: PaginationParams): Promise<History[]> => {
-    const response = await apiClient.get<ApiResponse<History[]>>(
+  getUserChanges: async (userId: number, params?: PaginationParams): Promise<PaginatedHistoryResponse> => {
+    const response = await apiClient.get<ApiResponse<PaginatedHistoryResponse>>(
       `/api/users/members/${userId}`,
       { params }
     );
     return response.data.data!;
   },
 };
-
-
-

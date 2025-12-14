@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"time"
 
 	"github.com/escalopa/family-tree/internal/domain"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -69,9 +70,8 @@ func (r *HistoryRepository) GetByMemberID(ctx context.Context, memberID int, cur
 	// Determine next cursor
 	var nextCursor *string
 	if len(histories) > limit {
-		// Remove the extra history and set cursor
 		histories = histories[:limit]
-		lastChangedAt := histories[len(histories)-1].ChangedAt.Format("2006-01-02T15:04:05.999999Z07:00")
+		lastChangedAt := histories[len(histories)-1].ChangedAt.Format(time.RFC3339Nano)
 		nextCursor = &lastChangedAt
 	}
 
@@ -116,9 +116,8 @@ func (r *HistoryRepository) GetByUserID(ctx context.Context, userID int, cursor 
 	// Determine next cursor
 	var nextCursor *string
 	if len(histories) > limit {
-		// Remove the extra history and set cursor
 		histories = histories[:limit]
-		lastChangedAt := histories[len(histories)-1].ChangedAt.Format("2006-01-02T15:04:05.999999Z07:00")
+		lastChangedAt := histories[len(histories)-1].ChangedAt.Format(time.RFC3339Nano)
 		nextCursor = &lastChangedAt
 	}
 

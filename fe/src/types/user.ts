@@ -27,12 +27,19 @@ export interface ScoreHistory {
   created_at: string;
 }
 
+export interface PaginatedUsersResponse {
+  users: User[];
+  next_cursor?: string;
+}
+
+export interface PaginatedScoreHistoryResponse {
+  scores: ScoreHistory[];
+  next_cursor?: string;
+}
+
 export const ROLES = {
   NONE: 100,
   GUEST: 200,
   ADMIN: 300,
   SUPER_ADMIN: 400,
 } as const;
-
-
-

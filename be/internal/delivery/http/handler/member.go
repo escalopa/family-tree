@@ -19,6 +19,20 @@ func NewMemberHandler(memberUseCase MemberUseCase) *memberHandler {
 	return &memberHandler{memberUseCase: memberUseCase}
 }
 
+// CreateMember godoc
+// @Summary Create a new family member
+// @Description Creates a new member in the family tree (requires Admin role)
+// @Tags members
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param member body dto.CreateMemberRequest true "Member details"
+// @Success 201 {object} dto.Response{data=object{member_id=int,version=int}}
+// @Failure 400 {object} dto.Response
+// @Failure 401 {object} dto.Response
+// @Failure 403 {object} dto.Response
+// @Failure 500 {object} dto.Response
+// @Router /api/members [post]
 func (h *memberHandler) CreateMember(c *gin.Context) {
 	var req dto.CreateMemberRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -98,6 +112,19 @@ func (h *memberHandler) DeleteMember(c *gin.Context) {
 	c.JSON(http.StatusOK, dto.Response{Success: true, Data: "member deleted"})
 }
 
+// GetMember godoc
+// @Summary Get member by ID
+// @Description Returns detailed information about a family member including computed fields
+// @Tags members
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param member_id path int true "Member ID"
+// @Success 200 {object} dto.Response{data=dto.MemberResponse}
+// @Failure 400 {object} dto.Response
+// @Failure 401 {object} dto.Response
+// @Failure 404 {object} dto.Response
+// @Router /api/members/info/{member_id} [get]
 func (h *memberHandler) GetMember(c *gin.Context) {
 	memberID, err := strconv.Atoi(c.Param("member_id"))
 	if err != nil {
@@ -138,6 +165,24 @@ func (h *memberHandler) GetMember(c *gin.Context) {
 	c.JSON(http.StatusOK, dto.Response{Success: true, Data: response})
 }
 
+// SearchMembers godoc
+// @Summary Search family members
+// @Description Search for members by name, gender, or marital status (at least one filter required)
+// @Tags members
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param arabic_name query string false "Arabic name to search for"
+// @Param english_name query string false "English name to search for"
+// @Param gender query string false "Gender filter (male/female)"
+// @Param married query int false "Marital status (0=unmarried, 1=married)"
+// @Param cursor query string false "Pagination cursor"
+// @Param limit query int false "Number of items to return (1-100)" default(20)
+// @Success 200 {object} dto.Response{data=dto.PaginatedMembersResponse}
+// @Failure 400 {object} dto.Response
+// @Failure 401 {object} dto.Response
+// @Failure 500 {object} dto.Response
+// @Router /api/members/search [get]
 func (h *memberHandler) SearchMembers(c *gin.Context) {
 	var query dto.MemberSearchQuery
 	if err := c.ShouldBindQuery(&query); err != nil {
@@ -161,13 +206,9 @@ func (h *memberHandler) SearchMembers(c *gin.Context) {
 		filter.IsMarried = &married
 	}
 
-	// Set default limit if not provided
-	limit := 20
-	if query.Limit > 0 {
-		limit = query.Limit
-	}
+	query.Limit = min(max(1, query.Limit), 100) // min 1, max 100
 
-	members, nextCursor, err := h.memberUseCase.SearchMembers(c.Request.Context(), filter, query.Cursor, limit)
+	members, nextCursor, err := h.memberUseCase.SearchMembers(c.Request.Context(), filter, query.Cursor, query.Limit)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, dto.Response{Success: false, Error: err.Error()})
 		return
@@ -216,9 +257,7 @@ func (h *memberHandler) GetMemberHistory(c *gin.Context) {
 		return
 	}
 
-	if query.Limit == 0 {
-		query.Limit = 20
-	}
+	query.Limit = min(max(1, query.Limit), 100) // min 1, max 100
 
 	history, nextCursor, err := h.memberUseCase.GetMemberHistory(c.Request.Context(), memberID, query.Cursor, query.Limit)
 	if err != nil {

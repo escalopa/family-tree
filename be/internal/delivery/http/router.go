@@ -4,6 +4,8 @@ import (
 	"github.com/escalopa/family-tree/internal/delivery/http/middleware"
 	"github.com/escalopa/family-tree/internal/domain"
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 type Router struct {
@@ -13,6 +15,7 @@ type Router struct {
 	spouseHandler  SpouseHandler
 	treeHandler    TreeHandler
 	authMiddleware AuthMiddleware
+	allowedOrigins []string
 }
 
 func NewRouter(
@@ -22,6 +25,7 @@ func NewRouter(
 	spouseHandler SpouseHandler,
 	treeHandler TreeHandler,
 	authMiddleware AuthMiddleware,
+	allowedOrigins []string,
 ) *Router {
 	return &Router{
 		authHandler:    authHandler,
@@ -30,11 +34,14 @@ func NewRouter(
 		spouseHandler:  spouseHandler,
 		treeHandler:    treeHandler,
 		authMiddleware: authMiddleware,
+		allowedOrigins: allowedOrigins,
 	}
 }
 
 func (r *Router) Setup(engine *gin.Engine) {
-	engine.Use(middleware.CORS())
+	engine.Use(middleware.CORS(r.allowedOrigins))
+
+	engine.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	engine.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{"status": "ok"})
@@ -59,10 +66,10 @@ func (r *Router) Setup(engine *gin.Engine) {
 		userGroup.Use(middleware.RequireActive())
 		{
 			userGroup.GET("", r.userHandler.ListUsers)
-			userGroup.GET("/:user_id", r.userHandler.GetUser)
 			userGroup.GET("/leaderboard", r.userHandler.GetLeaderboard)
 			userGroup.GET("/score/:user_id", r.userHandler.GetScoreHistory)
 			userGroup.GET("/members/:user_id", middleware.RequireRole(domain.RoleSuperAdmin), r.userHandler.GetUserChanges)
+			userGroup.GET("/:user_id", r.userHandler.GetUser)
 
 			userGroup.PUT("/:user_id/role", middleware.RequireRole(domain.RoleSuperAdmin), r.userHandler.UpdateRole)
 			userGroup.PUT("/:user_id/active", middleware.RequireRole(domain.RoleSuperAdmin), r.userHandler.UpdateActive)

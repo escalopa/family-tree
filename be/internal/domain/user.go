@@ -16,6 +16,3 @@ type UserWithScore struct {
 	User
 	TotalScore int `json:"total_score"`
 }
-
-
-

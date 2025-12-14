@@ -10,3 +10,8 @@ type OAuthUserInfo struct {
 	Picture       string
 	Locale        string
 }
+
+type CookieContext interface {
+	SetCookie(name, value string, maxAge int, path, domain string, secure, httpOnly bool)
+	Cookie(name string) (string, error)
+}

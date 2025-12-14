@@ -1,9 +1,7 @@
-version: '3.8'
-
 services:
   postgres:
     image: postgres:15-alpine
-    container_name: family-tree-db
+    container_name: postgres
     environment:
       POSTGRES_USER: familytree
       POSTGRES_PASSWORD: secret
@@ -17,61 +15,49 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-    networks:
-      - family-tree-network
 
   migrate:
     image: dekuyo/migrate-go:latest
-    container_name: family-tree-migrate
+    container_name: migrate
     volumes:
       - ./be/migrations:/migrations
     command: ["-dir", "/migrations", "-dsn", "postgres://familytree:secret@postgres:5432/familytree?sslmode=disable"]
     depends_on:
       postgres:
         condition: service_healthy
-    networks:
-      - family-tree-network
 
   backend:
     build:
       context: ./be
       dockerfile: Dockerfile
-    container_name: family-tree-api
+    container_name: backend
     ports:
       - "8080:8080"
     environment:
       - CONFIG_PATH=/root
-      - DB_HOST=postgres
-      - DB_PORT=5432
-      - DB_USER=familytree
-      - DB_PASSWORD=secret
-      - DB_NAME=familytree
-      - DB_SSLMODE=disable
-      - SERVER_PORT=8080
-      - GIN_MODE=release
     depends_on:
       postgres:
         condition: service_healthy
       migrate:
         condition: service_completed_successfully
-    networks:
-      - family-tree-network
+    volumes:
+      - ./be/config.yaml:/root/config.yaml
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   frontend:
     build:
       context: ./fe
       dockerfile: Dockerfile
-    container_name: family-tree-frontend
+    container_name: frontend
     ports:
       - "3000:80"
     depends_on:
-      - backend
-    networks:
-      - family-tree-network
+      backend:
+        condition: service_healthy
 
 volumes:
   postgres_data:
-
-networks:
-  family-tree-network:
-    driver: bridge

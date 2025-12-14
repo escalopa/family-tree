@@ -90,6 +90,7 @@ func NewApp(cfg *config.Config) (*App, error) {
 		spouseHandler,
 		treeHandler,
 		authMiddleware,
+		cfg.Server.AllowedOrigins,
 	)
 
 	engine := gin.Default()

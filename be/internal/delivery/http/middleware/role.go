@@ -30,6 +30,3 @@ func RequireActive() gin.HandlerFunc {
 		c.Next()
 	}
 }
-
-
-

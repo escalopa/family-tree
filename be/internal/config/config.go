@@ -19,10 +19,11 @@ type Config struct {
 }
 
 type ServerConfig struct {
-	Port     string       `yaml:"port" env:"SERVER_PORT"`
-	Mode     string       `yaml:"mode" env:"GIN_MODE"`
-	LogLevel string       `yaml:"log_level" env:"LOG_LEVEL"`
-	Cookie   CookieConfig `yaml:"cookie"`
+	Port           string       `yaml:"port" env:"SERVER_PORT"`
+	Mode           string       `yaml:"mode" env:"GIN_MODE"`
+	LogLevel       string       `yaml:"log_level" env:"LOG_LEVEL"`
+	AllowedOrigins []string     `yaml:"allowed_origins"`
+	Cookie         CookieConfig `yaml:"cookie"`
 }
 
 type CookieConfig struct {
@@ -53,6 +54,7 @@ type OAuthProviderConfig struct {
 	ClientID     string   `yaml:"client_id" env:"CLIENT_ID"`
 	ClientSecret string   `yaml:"client_secret" env:"CLIENT_SECRET"`
 	Scopes       []string `yaml:"scopes"`
+	UserInfoURL  string   `yaml:"user_info_url" env:"USER_INFO_URL"`
 }
 
 type JWTConfig struct {
@@ -69,10 +71,15 @@ type S3Config struct {
 	SecretKey string `yaml:"secret_key" env:"S3_SECRET_KEY"`
 }
 
+const (
+	envConfigPath     = "CONFIG_PATH"
+	defaultConfigPath = "."
+)
+
 func Load() (*Config, error) {
-	configPath := os.Getenv("CONFIG_PATH")
+	configPath := os.Getenv(envConfigPath)
 	if configPath == "" {
-		configPath = "."
+		configPath = defaultConfigPath
 	}
 
 	viper.SetConfigName("config")

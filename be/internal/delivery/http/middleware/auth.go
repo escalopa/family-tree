@@ -6,6 +6,13 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+const (
+	keyUserID    = "user_id"
+	keyUserEmail = "user_email"
+	keyUserRole  = "user_role"
+	keySessionID = "session_id"
+)
+
 type authMiddleware struct {
 	tokenMgr      TokenManager
 	authUseCase   AuthUseCase
@@ -62,17 +69,17 @@ func (m *authMiddleware) Authenticate() gin.HandlerFunc {
 			return
 		}
 
-		c.Set("user_id", claims.UserID)
-		c.Set("user_email", claims.Email)
-		c.Set("user_role", claims.RoleID)
-		c.Set("session_id", claims.SessionID)
+		c.Set(keyUserID, claims.UserID)
+		c.Set(keyUserEmail, claims.Email)
+		c.Set(keyUserRole, claims.RoleID)
+		c.Set(keySessionID, claims.SessionID)
 
 		c.Next()
 	}
 }
 
 func GetUserID(c *gin.Context) int {
-	userID, exists := c.Get("user_id")
+	userID, exists := c.Get(keyUserID)
 	if !exists {
 		return 0
 	}
@@ -80,7 +87,7 @@ func GetUserID(c *gin.Context) int {
 }
 
 func GetUserRole(c *gin.Context) int {
-	roleID, exists := c.Get("user_role")
+	roleID, exists := c.Get(keyUserRole)
 	if !exists {
 		return 0
 	}
@@ -88,7 +95,7 @@ func GetUserRole(c *gin.Context) int {
 }
 
 func GetSessionID(c *gin.Context) string {
-	sessionID, exists := c.Get("session_id")
+	sessionID, exists := c.Get(keySessionID)
 	if !exists {
 		return ""
 	}

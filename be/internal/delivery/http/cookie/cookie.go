@@ -2,6 +2,7 @@ package cookie
 
 import (
 	"github.com/escalopa/family-tree/internal/config"
+	"github.com/escalopa/family-tree/internal/domain"
 )
 
 const (
@@ -32,31 +33,31 @@ func NewManager(cfg *config.CookieConfig) *Manager {
 	}
 }
 
-func (m *Manager) SetAuthCookies(c Context, accessToken, refreshToken, sessionID string) {
+func (m *Manager) SetAuthCookies(c domain.CookieContext, accessToken, refreshToken, sessionID string) {
 	c.SetCookie(AccessTokenCookie, accessToken, m.accessTokenMaxAge, m.path, m.domain, m.secure, m.httpOnly)
 	c.SetCookie(RefreshTokenCookie, refreshToken, m.refreshTokenMaxAge, m.path, m.domain, m.secure, m.httpOnly)
 	c.SetCookie(SessionIDCookie, sessionID, m.sessionIDMaxAge, m.path, m.domain, m.secure, m.httpOnly)
 }
 
-func (m *Manager) SetTokenCookies(c Context, accessToken, refreshToken string) {
+func (m *Manager) SetTokenCookies(c domain.CookieContext, accessToken, refreshToken string) {
 	c.SetCookie(AccessTokenCookie, accessToken, m.accessTokenMaxAge, m.path, m.domain, m.secure, m.httpOnly)
 	c.SetCookie(RefreshTokenCookie, refreshToken, m.refreshTokenMaxAge, m.path, m.domain, m.secure, m.httpOnly)
 }
 
-func (m *Manager) ClearAuthCookies(c Context) {
+func (m *Manager) ClearAuthCookies(c domain.CookieContext) {
 	c.SetCookie(AccessTokenCookie, "", -1, m.path, m.domain, m.secure, m.httpOnly)
 	c.SetCookie(RefreshTokenCookie, "", -1, m.path, m.domain, m.secure, m.httpOnly)
 	c.SetCookie(SessionIDCookie, "", -1, m.path, m.domain, m.secure, m.httpOnly)
 }
 
-func (m *Manager) GetAccessToken(c Context) (string, error) {
+func (m *Manager) GetAccessToken(c domain.CookieContext) (string, error) {
 	return c.Cookie(AccessTokenCookie)
 }
 
-func (m *Manager) GetRefreshToken(c Context) (string, error) {
+func (m *Manager) GetRefreshToken(c domain.CookieContext) (string, error) {
 	return c.Cookie(RefreshTokenCookie)
 }
 
-func (m *Manager) GetSessionID(c Context) (string, error) {
+func (m *Manager) GetSessionID(c domain.CookieContext) (string, error) {
 	return c.Cookie(SessionIDCookie)
 }

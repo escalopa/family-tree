@@ -26,7 +26,7 @@ func NewOAuthManager(cfg *config.OAuthConfig) *OAuthManager {
 		}
 
 		redirectURL := cfg.GetRedirectURL(providerName)
-		provider := factory(providerCfg.ClientID, providerCfg.ClientSecret, redirectURL, providerCfg.Scopes)
+		provider := factory(providerCfg.ClientID, providerCfg.ClientSecret, redirectURL, providerCfg.UserInfoURL, providerCfg.Scopes)
 		manager.providers[providerName] = provider
 
 		slog.Info("OAuthManager.NewOAuthManager: initialized provider", "provider", providerName)

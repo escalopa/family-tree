@@ -13,7 +13,8 @@ import (
 )
 
 type GoogleProvider struct {
-	config *oauth2.Config
+	config      *oauth2.Config
+	userInfoURL string
 }
 
 type googleUserInfo struct {
@@ -27,7 +28,7 @@ type googleUserInfo struct {
 	Locale        string `json:"locale"`
 }
 
-func NewGoogleProvider(clientID, clientSecret, redirectURL string, scopes []string) OAuthProvider {
+func NewGoogleProvider(clientID, clientSecret, redirectURL, userInfoURL string, scopes []string) OAuthProvider {
 	oauthConfig := &oauth2.Config{
 		ClientID:     clientID,
 		ClientSecret: clientSecret,
@@ -36,7 +37,10 @@ func NewGoogleProvider(clientID, clientSecret, redirectURL string, scopes []stri
 		Endpoint:     google.Endpoint,
 	}
 
-	return &GoogleProvider{config: oauthConfig}
+	return &GoogleProvider{
+		config:      oauthConfig,
+		userInfoURL: userInfoURL,
+	}
 }
 
 func (g *GoogleProvider) GetProviderName() string {
@@ -58,7 +62,7 @@ func (g *GoogleProvider) Exchange(ctx context.Context, code string) (*oauth2.Tok
 
 func (g *GoogleProvider) GetUserInfo(ctx context.Context, token *oauth2.Token) (*domain.OAuthUserInfo, error) {
 	client := g.config.Client(ctx, token)
-	resp, err := client.Get("https://www.googleapis.com/oauth2/v2/userinfo")
+	resp, err := client.Get(g.userInfoURL)
 	if err != nil {
 		slog.Error("GoogleProvider.GetUserInfo: get user info from API", "error", err)
 		return nil, domain.NewExternalServiceError("Google API", err)

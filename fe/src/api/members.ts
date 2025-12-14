@@ -1,5 +1,5 @@
 import { apiClient } from './client';
-import { ApiResponse, PaginationParams, History } from '../types/api';
+import { ApiResponse, PaginationParams, PaginatedHistoryResponse } from '../types/api';
 import { Member, MemberCreateInput, MemberUpdateInput, MemberSearchParams, PaginatedMembersResponse } from '../types/member';
 
 export const membersApi = {
@@ -33,8 +33,8 @@ export const membersApi = {
     return response.data.data!;
   },
 
-  getMemberHistory: async (memberId: number, params?: PaginationParams): Promise<History[]> => {
-    const response = await apiClient.get<ApiResponse<History[]>>('/api/members/history', {
+  getMemberHistory: async (memberId: number, params?: PaginationParams): Promise<PaginatedHistoryResponse> => {
+    const response = await apiClient.get<ApiResponse<PaginatedHistoryResponse>>('/api/members/history', {
       params: { member_id: memberId, ...params },
     });
     return response.data.data!;
@@ -52,5 +52,3 @@ export const membersApi = {
     await apiClient.delete(`/api/members/${memberId}/picture`);
   },
 };
-
-

@@ -30,7 +30,7 @@ export const MembersPage: React.FC = () => {
   const [nextCursor, setNextCursor] = useState<string | undefined>();
   const [isLoadingMore, setIsLoadingMore] = useState(false);
 
-  const { data, isLoading, refetch } = useQuery({
+  const { isLoading } = useQuery({
     queryKey: ['members', searchParams],
     queryFn: async () => {
       const result = await membersApi.searchMembers(searchParams);
@@ -169,5 +169,3 @@ export const MembersPage: React.FC = () => {
     </Layout>
   );
 };
-
-

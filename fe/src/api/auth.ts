@@ -1,10 +1,5 @@
 import { apiClient } from './client';
 import { ApiResponse } from '../types/api';
-import { User } from '../types/user';
-
-interface AuthResponse {
-  user: User;
-}
 
 export type OAuthProvider = 'google' | 'facebook' | 'github';
 
@@ -13,8 +8,8 @@ export const authApi = {
    * Get OAuth authentication URL for a specific provider
    * @param provider - The OAuth provider (e.g., 'google', 'facebook', 'github')
    */
-  getAuthURL: async (provider: OAuthProvider): Promise<{ url: string }> => {
-    const response = await apiClient.get<ApiResponse<{ url: string }>>(`/auth/${provider}`);
+  getAuthURL: async (provider: OAuthProvider): Promise<{ url: string; provider: string }> => {
+    const response = await apiClient.get<ApiResponse<{ url: string; provider: string }>>(`/auth/${provider}`);
     return response.data.data!;
   },
 
@@ -22,7 +17,7 @@ export const authApi = {
    * Legacy method for backwards compatibility
    * @deprecated Use getAuthURL('google') instead
    */
-  getGoogleAuthURL: async (): Promise<{ url: string }> => {
+  getGoogleAuthURL: async (): Promise<{ url: string; provider: string }> => {
     return authApi.getAuthURL('google');
   },
 
@@ -34,5 +29,3 @@ export const authApi = {
     await apiClient.post('/api/auth/logout-all');
   },
 };
-
-

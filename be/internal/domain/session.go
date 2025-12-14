@@ -9,6 +9,3 @@ type Session struct {
 	ExpiresAt time.Time `json:"expires_at"`
 	Revoked   bool      `json:"revoked"`
 }
-
-
-
