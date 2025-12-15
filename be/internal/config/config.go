@@ -1,6 +1,7 @@
 package config
 
 import (
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"os"
@@ -11,64 +12,69 @@ import (
 )
 
 type Config struct {
-	Server   ServerConfig   `mapstructure:"server"`
-	Database DatabaseConfig `mapstructure:"database"`
-	OAuth    OAuthConfig    `mapstructure:"oauth"`
-	JWT      JWTConfig      `mapstructure:"jwt"`
-	S3       S3Config       `mapstructure:"s3"`
+	Server   ServerConfig   `mapstructure:"server" json:"server"`
+	Database DatabaseConfig `mapstructure:"database" json:"database"`
+	OAuth    OAuthConfig    `mapstructure:"oauth" json:"oauth"`
+	JWT      JWTConfig      `mapstructure:"jwt" json:"jwt"`
+	S3       S3Config       `mapstructure:"s3" json:"s3"`
 }
 
 type ServerConfig struct {
-	Port           string       `mapstructure:"port" env:"SERVER_PORT"`
+	Port           string       `mapstructure:"port" env:"SERVER_PORT" json:"port"`
 	Mode           string       `mapstructure:"mode" env:"GIN_MODE"`
-	LogLevel       string       `mapstructure:"log_level" env:"LOG_LEVEL"`
-	AllowedOrigins []string     `mapstructure:"allowed_origins" env:"ALLOWED_ORIGINS"`
-	Cookie         CookieConfig `mapstructure:"cookie"`
+	LogLevel       string       `mapstructure:"log_level" env:"LOG_LEVEL" json:"log_level"`
+	AllowedOrigins []string     `mapstructure:"allowed_origins" env:"ALLOWED_ORIGINS" json:"allowed_origins"`
+	Cookie         CookieConfig `mapstructure:"cookie" json:"cookie"`
 }
 
 type CookieConfig struct {
-	AccessTokenMaxAge  int    `mapstructure:"access_token_max_age" env:"COOKIE_ACCESS_TOKEN_MAX_AGE"`
-	RefreshTokenMaxAge int    `mapstructure:"refresh_token_max_age" env:"COOKIE_REFRESH_TOKEN_MAX_AGE"`
-	SessionIDMaxAge    int    `mapstructure:"session_id_max_age" env:"COOKIE_SESSION_ID_MAX_AGE"`
+	AccessTokenMaxAge  int    `mapstructure:"access_token_max_age" env:"COOKIE_ACCESS_TOKEN_MAX_AGE" json:"access_token_max_age"`
+	RefreshTokenMaxAge int    `mapstructure:"refresh_token_max_age" env:"COOKIE_REFRESH_TOKEN_MAX_AGE" json:"refresh_token_max_age"`
+	SessionIDMaxAge    int    `mapstructure:"session_id_max_age" env:"COOKIE_SESSION_ID_MAX_AGE" json:"session_id_max_age"`
 	Path               string `mapstructure:"path" env:"COOKIE_PATH"`
-	Domain             string `mapstructure:"domain" env:"COOKIE_DOMAIN"`
-	Secure             bool   `mapstructure:"secure" env:"COOKIE_SECURE"`
-	HttpOnly           bool   `mapstructure:"http_only" env:"COOKIE_HTTP_ONLY"`
+	Domain             string `mapstructure:"domain" env:"COOKIE_DOMAIN" json:"domain"`
+	Secure             bool   `mapstructure:"secure" env:"COOKIE_SECURE" json:"secure"`
+	HttpOnly           bool   `mapstructure:"http_only" env:"COOKIE_HTTP_ONLY" json:"http_only"`
 }
 
 type DatabaseConfig struct {
-	Host     string `mapstructure:"host" env:"DB_HOST"`
-	Port     string `mapstructure:"port" env:"DB_PORT"`
-	User     string `mapstructure:"user" env:"DB_USER"`
-	Password string `mapstructure:"password" env:"DB_PASSWORD"`
-	Name     string `mapstructure:"name" env:"DB_NAME"`
-	SSLMode  string `mapstructure:"sslmode" env:"DB_SSLMODE"`
+	Host     string `mapstructure:"host" env:"DB_HOST" json:"host"`
+	Port     string `mapstructure:"port" env:"DB_PORT" json:"port"`
+	User     string `mapstructure:"user" env:"DB_USER" json:"user"`
+	Password string `mapstructure:"password" env:"DB_PASSWORD" json:"password"`
+	Name     string `mapstructure:"name" env:"DB_NAME" json:"name"`
+	SSLMode  string `mapstructure:"sslmode" env:"DB_SSLMODE" json:"sslmode"`
 }
 
 type OAuthConfig struct {
-	Providers       map[string]OAuthProviderConfig `mapstructure:"providers"`
-	RedirectBaseURL string                         `mapstructure:"redirect_base_url" env:"OAUTH_REDIRECT_BASE_URL"`
+	Providers       map[string]OAuthProviderConfig `mapstructure:"providers" json:"providers"`
+	RedirectBaseURL string                         `mapstructure:"redirect_base_url" env:"OAUTH_REDIRECT_BASE_URL" json:"redirect_base_url"`
 }
 
 type OAuthProviderConfig struct {
-	ClientID     string   `mapstructure:"client_id" env:"CLIENT_ID"`
-	ClientSecret string   `mapstructure:"client_secret" env:"CLIENT_SECRET"`
-	Scopes       []string `mapstructure:"scopes"`
-	UserInfoURL  string   `mapstructure:"user_info_url" env:"USER_INFO_URL"`
+	ClientID     string   `mapstructure:"client_id" env:"CLIENT_ID" json:"-"`
+	ClientSecret string   `mapstructure:"client_secret" env:"CLIENT_SECRET" json:"-"`
+	Scopes       []string `mapstructure:"scopes" json:"scopes"`
+	UserInfoURL  string   `mapstructure:"user_info_url" env:"USER_INFO_URL" json:"user_info_url"`
 }
 
 type JWTConfig struct {
-	Secret        string        `mapstructure:"secret" env:"JWT_SECRET"`
-	AccessExpiry  time.Duration `mapstructure:"access_expiry" env:"JWT_ACCESS_EXPIRY"`
-	RefreshExpiry time.Duration `mapstructure:"refresh_expiry" env:"JWT_REFRESH_EXPIRY"`
+	Secret        string        `mapstructure:"secret" env:"JWT_SECRET" json:"-"`
+	AccessExpiry  time.Duration `mapstructure:"access_expiry" env:"JWT_ACCESS_EXPIRY" json:"access_expiry"`
+	RefreshExpiry time.Duration `mapstructure:"refresh_expiry" env:"JWT_REFRESH_EXPIRY" json:"refresh_expiry"`
 }
 
 type S3Config struct {
-	Endpoint  string `mapstructure:"endpoint" env:"S3_ENDPOINT"`
-	Region    string `mapstructure:"region" env:"S3_REGION"`
-	Bucket    string `mapstructure:"bucket" env:"S3_BUCKET"`
-	AccessKey string `mapstructure:"access_key" env:"S3_ACCESS_KEY"`
-	SecretKey string `mapstructure:"secret_key" env:"S3_SECRET_KEY"`
+	Endpoint  string `mapstructure:"endpoint" env:"S3_ENDPOINT" json:"endpoint"`
+	Region    string `mapstructure:"region" env:"S3_REGION" json:"region"`
+	Bucket    string `mapstructure:"bucket" env:"S3_BUCKET" json:"bucket"`
+	AccessKey string `mapstructure:"access_key" env:"S3_ACCESS_KEY" json:"-"`
+	SecretKey string `mapstructure:"secret_key" env:"S3_SECRET_KEY" json:"-"`
+}
+
+func (c *Config) String() string {
+	bytes, _ := json.Marshal(c)
+	return string(bytes)
 }
 
 const (
@@ -98,7 +104,7 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("unmarshal config: %w", err)
 	}
 
-	slog.Info("Config", "cfg", cfg)
+	slog.Info("Config", "config", cfg.String())
 
 	return &cfg, nil
 }
