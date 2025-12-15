@@ -52,14 +52,14 @@ type OAuthConfig struct {
 }
 
 type OAuthProviderConfig struct {
-	ClientID     string   `mapstructure:"client_id" env:"CLIENT_ID" json:"-"`
-	ClientSecret string   `mapstructure:"client_secret" env:"CLIENT_SECRET" json:"-"`
+	ClientID     string   `mapstructure:"client_id" env:"CLIENT_ID" json:"client_id"`
+	ClientSecret string   `mapstructure:"client_secret" env:"CLIENT_SECRET" json:"client_secret"`
 	Scopes       []string `mapstructure:"scopes" json:"scopes"`
 	UserInfoURL  string   `mapstructure:"user_info_url" env:"USER_INFO_URL" json:"user_info_url"`
 }
 
 type JWTConfig struct {
-	Secret        string        `mapstructure:"secret" env:"JWT_SECRET" json:"-"`
+	Secret        string        `mapstructure:"secret" env:"JWT_SECRET" json:"secret"`
 	AccessExpiry  time.Duration `mapstructure:"access_expiry" env:"JWT_ACCESS_EXPIRY" json:"access_expiry"`
 	RefreshExpiry time.Duration `mapstructure:"refresh_expiry" env:"JWT_REFRESH_EXPIRY" json:"refresh_expiry"`
 }
@@ -68,12 +68,40 @@ type S3Config struct {
 	Endpoint  string `mapstructure:"endpoint" env:"S3_ENDPOINT" json:"endpoint"`
 	Region    string `mapstructure:"region" env:"S3_REGION" json:"region"`
 	Bucket    string `mapstructure:"bucket" env:"S3_BUCKET" json:"bucket"`
-	AccessKey string `mapstructure:"access_key" env:"S3_ACCESS_KEY" json:"-"`
-	SecretKey string `mapstructure:"secret_key" env:"S3_SECRET_KEY" json:"-"`
+	AccessKey string `mapstructure:"access_key" env:"S3_ACCESS_KEY" json:"access_key"`
+	SecretKey string `mapstructure:"secret_key" env:"S3_SECRET_KEY" json:"secret_key"`
+}
+
+func maskSecret(secret string) string {
+	if secret == "" {
+		return ""
+	}
+	length := len([]rune(secret))
+	if length <= 8 {
+		return "****"
+	}
+	return string([]rune(secret)[:4]) + "****" + string([]rune(secret)[length-4:])
+}
+
+func (c *Config) maskedConfig() Config {
+	masked := *c
+	masked.Database.Password = maskSecret(c.Database.Password)
+	masked.JWT.Secret = maskSecret(c.JWT.Secret)
+	masked.OAuth.Providers = make(map[string]OAuthProviderConfig)
+	for provider, config := range c.OAuth.Providers {
+		maskedProvider := config
+		maskedProvider.ClientID = maskSecret(config.ClientID)
+		maskedProvider.ClientSecret = maskSecret(config.ClientSecret)
+		masked.OAuth.Providers[provider] = maskedProvider
+	}
+	masked.S3.AccessKey = maskSecret(c.S3.AccessKey)
+	masked.S3.SecretKey = maskSecret(c.S3.SecretKey)
+	return masked
 }
 
 func (c *Config) String() string {
-	bytes, _ := json.Marshal(c)
+	masked := c.maskedConfig()
+	bytes, _ := json.Marshal(masked)
 	return string(bytes)
 }
 

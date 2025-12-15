@@ -40,7 +40,9 @@ RUN go install github.com/swaggo/swag/cmd/swag@latest
 COPY go.mod go.sum ./
 RUN go mod download
 
-# Source code will be mounted as volume
+# Copy source code (will be overridden by volume mount in docker-compose)
+COPY . .
+
 # Generate swagger docs on startup and run air
 CMD ["sh", "-c", "swag init -g cmd/main.go -o docs 2>/dev/null || true && air -c .air.toml"]
 

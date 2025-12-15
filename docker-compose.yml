@@ -44,8 +44,22 @@ services:
     volumes:
       - ./be:/app
       - /app/tmp
-      - ./be/config.yaml:/app/config.yaml
-      - ./be/.air.toml:/app/.air.toml
+
+  frontend:
+    build:
+      context: ./fe
+      dockerfile: Dockerfile
+      target: development
+    container_name: frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - VITE_API_URL=http://backend:8080
+    depends_on:
+      - backend
+    volumes:
+      - ./fe:/app
+      - /app/node_modules
 
 volumes:
   postgres_data:
