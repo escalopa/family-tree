@@ -61,3 +61,4 @@ type MemberResponse struct {
 	IsMarried       bool       `json:"is_married"`
 	Spouses         []int      `json:"spouses,omitempty"`
 }
+

@@ -8,3 +8,4 @@ type Spouse struct {
 	MarriageDate *time.Time `json:"marriage_date"`
 	DivorceDate  *time.Time `json:"divorce_date"`
 }
+

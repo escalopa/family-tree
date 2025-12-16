@@ -6,6 +6,10 @@ import (
 	"strings"
 )
 
+func init() {
+	Setup("") // Default to INFO level
+}
+
 func Setup(logLevel string) {
 	level := parseLogLevel(logLevel)
 

@@ -35,3 +35,4 @@ type MemberTreeNode struct {
 	MemberWithComputed
 	Children []*MemberTreeNode `json:"children,omitempty"`
 }
+
