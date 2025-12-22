@@ -2,10 +2,6 @@ package dto
 
 import "time"
 
-// CalculateMarriedYears calculates the number of years married.
-// If marriage_date is nil, returns nil.
-// If divorce_date is set, calculates from marriage to divorce.
-// Otherwise, calculates from marriage to now.
 func CalculateMarriedYears(marriageDate, divorceDate *time.Time) *int {
 	if marriageDate == nil {
 		return nil

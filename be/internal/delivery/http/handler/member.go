@@ -177,11 +177,11 @@ func (h *memberHandler) GetChildrenByParentID(c *gin.Context) {
 		}
 
 		// Fetch father information if available
-		var fatherInfo *dto.ParentInfo
+		var fatherInfo *dto.MemberInfo
 		if computed.FatherID != nil {
 			father, err := h.memberUseCase.GetMemberByID(c.Request.Context(), *computed.FatherID)
 			if err == nil {
-				fatherInfo = &dto.ParentInfo{
+				fatherInfo = &dto.MemberInfo{
 					MemberID:    father.MemberID,
 					ArabicName:  father.ArabicName,
 					EnglishName: father.EnglishName,
@@ -191,11 +191,11 @@ func (h *memberHandler) GetChildrenByParentID(c *gin.Context) {
 		}
 
 		// Fetch mother information if available
-		var motherInfo *dto.ParentInfo
+		var motherInfo *dto.MemberInfo
 		if computed.MotherID != nil {
 			mother, err := h.memberUseCase.GetMemberByID(c.Request.Context(), *computed.MotherID)
 			if err == nil {
-				motherInfo = &dto.ParentInfo{
+				motherInfo = &dto.MemberInfo{
 					MemberID:    mother.MemberID,
 					ArabicName:  mother.ArabicName,
 					EnglishName: mother.EnglishName,
@@ -262,11 +262,11 @@ func (h *memberHandler) GetMember(c *gin.Context) {
 		}
 	}
 
-	var fatherInfo, motherInfo *dto.ParentInfo
+	var fatherInfo, motherInfo *dto.MemberInfo
 	if computed.FatherID != nil {
 		father, err := h.memberUseCase.GetMemberByID(c.Request.Context(), *computed.FatherID)
 		if err == nil {
-			fatherInfo = &dto.ParentInfo{
+			fatherInfo = &dto.MemberInfo{
 				MemberID:    father.MemberID,
 				ArabicName:  father.ArabicName,
 				EnglishName: father.EnglishName,
@@ -277,12 +277,26 @@ func (h *memberHandler) GetMember(c *gin.Context) {
 	if computed.MotherID != nil {
 		mother, err := h.memberUseCase.GetMemberByID(c.Request.Context(), *computed.MotherID)
 		if err == nil {
-			motherInfo = &dto.ParentInfo{
+			motherInfo = &dto.MemberInfo{
 				MemberID:    mother.MemberID,
 				ArabicName:  mother.ArabicName,
 				EnglishName: mother.EnglishName,
 				Picture:     mother.Picture,
 			}
+		}
+	}
+
+	// Fetch siblings
+	var siblingsInfo []dto.MemberInfo
+	siblings, err := h.memberUseCase.GetSiblingsByMemberID(c.Request.Context(), memberID)
+	if err == nil && len(siblings) > 0 {
+		for _, sibling := range siblings {
+			siblingsInfo = append(siblingsInfo, dto.MemberInfo{
+				MemberID:    sibling.MemberID,
+				ArabicName:  sibling.ArabicName,
+				EnglishName: sibling.EnglishName,
+				Picture:     sibling.Picture,
+			})
 		}
 	}
 
@@ -307,6 +321,7 @@ func (h *memberHandler) GetMember(c *gin.Context) {
 		GenerationLevel: computed.GenerationLevel,
 		IsMarried:       computed.IsMarried,
 		Spouses:         spousesDTO,
+		Siblings:        siblingsInfo,
 	}
 
 	c.JSON(http.StatusOK, dto.Response{Success: true, Data: response})
@@ -372,11 +387,11 @@ func (h *memberHandler) SearchMembers(c *gin.Context) {
 			}
 		}
 
-		var fatherInfo, motherInfo *dto.ParentInfo
+		var fatherInfo, motherInfo *dto.MemberInfo
 		if computed.FatherID != nil {
 			father, err := h.memberUseCase.GetMemberByID(c.Request.Context(), *computed.FatherID)
 			if err == nil {
-				fatherInfo = &dto.ParentInfo{
+				fatherInfo = &dto.MemberInfo{
 					MemberID:    father.MemberID,
 					ArabicName:  father.ArabicName,
 					EnglishName: father.EnglishName,
@@ -387,7 +402,7 @@ func (h *memberHandler) SearchMembers(c *gin.Context) {
 		if computed.MotherID != nil {
 			mother, err := h.memberUseCase.GetMemberByID(c.Request.Context(), *computed.MotherID)
 			if err == nil {
-				motherInfo = &dto.ParentInfo{
+				motherInfo = &dto.MemberInfo{
 					MemberID:    mother.MemberID,
 					ArabicName:  mother.ArabicName,
 					EnglishName: mother.EnglishName,

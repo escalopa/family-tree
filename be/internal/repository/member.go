@@ -181,8 +181,10 @@ func (r *MemberRepository) Search(ctx context.Context, filter domain.MemberFilte
 	if len(members) > limit {
 		// Remove the extra member and set cursor
 		members = members[:limit]
-		lastMemberID := fmt.Sprintf("%d", members[len(members)-1].MemberID)
-		nextCursor = &lastMemberID
+		if len(members) > 0 {
+			lastMemberID := fmt.Sprintf("%d", members[len(members)-1].MemberID)
+			nextCursor = &lastMemberID
+		}
 	}
 
 	return members, nextCursor, nil
@@ -309,4 +311,51 @@ func (r *MemberRepository) GetChildrenByParentID(ctx context.Context, parentID i
 	}
 
 	return children, nil
+}
+
+func (r *MemberRepository) GetSiblingsByMemberID(ctx context.Context, memberID int) ([]*domain.Member, error) {
+	query := `
+		SELECT DISTINCT m.member_id, m.arabic_name, m.english_name, m.gender, m.picture,
+		       m.date_of_birth, m.date_of_death, m.father_id, m.mother_id, m.nicknames,
+		       m.profession, m.version, m.deleted_at
+		FROM members m
+		WHERE m.deleted_at IS NULL
+		  AND m.member_id != $1
+		  AND (
+		    (m.father_id IS NOT NULL AND m.father_id IN (
+		      SELECT father_id FROM members WHERE member_id = $1 AND father_id IS NOT NULL
+		    ))
+		    OR
+		    (m.mother_id IS NOT NULL AND m.mother_id IN (
+		      SELECT mother_id FROM members WHERE member_id = $1 AND mother_id IS NOT NULL
+		    ))
+		  )
+		ORDER BY m.date_of_birth ASC NULLS LAST, m.member_id ASC
+	`
+	rows, err := r.db.Query(ctx, query, memberID)
+	if err != nil {
+		return nil, domain.NewDatabaseError(err)
+	}
+	defer rows.Close()
+
+	var siblings []*domain.Member
+	for rows.Next() {
+		member := &domain.Member{}
+		err := rows.Scan(
+			&member.MemberID, &member.ArabicName, &member.EnglishName, &member.Gender,
+			&member.Picture, &member.DateOfBirth, &member.DateOfDeath,
+			&member.FatherID, &member.MotherID, &member.Nicknames, &member.Profession,
+			&member.Version, &member.DeletedAt,
+		)
+		if err != nil {
+			return nil, domain.NewDatabaseError(err)
+		}
+		siblings = append(siblings, member)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, domain.NewDatabaseError(err)
+	}
+
+	return siblings, nil
 }

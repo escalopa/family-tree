@@ -155,28 +155,46 @@ const MembersPage: React.FC = () => {
     }
   };
 
-  const handleOpenDialog = async (member?: Member) => {
-    if (member) {
-      const initialData = {
-        arabic_name: member.arabic_name,
-        english_name: member.english_name,
-        gender: member.gender,
-        date_of_birth: member.date_of_birth || undefined,
-        date_of_death: member.date_of_death || undefined,
-        father_id: member.father_id || undefined,
-        mother_id: member.mother_id || undefined,
-        nicknames: member.nicknames || [],
-        profession: member.profession || undefined,
-      };
-      setEditingMember(member);
-      setFormData(initialData);
-      setOriginalFormData(initialData);
+  // Fetch full member details when opening dialog
+  const handleOpenDialog = async (memberIdOrMember?: number | Member) => {
+    if (memberIdOrMember) {
+      try {
+        // If it's a number (member_id), fetch full details from backend
+        // If it's a Member object from the list, also fetch full details to get computed fields
+        const memberId = typeof memberIdOrMember === 'number'
+          ? memberIdOrMember
+          : memberIdOrMember.member_id;
 
-      // Load children for this member
-      await loadMemberChildren(member.member_id);
+        // Fetch fresh full member data including full names, siblings, etc.
+        const fullMember = await membersApi.getMember(memberId);
+
+        const initialData = {
+          arabic_name: fullMember.arabic_name,
+          english_name: fullMember.english_name,
+          gender: fullMember.gender,
+          date_of_birth: fullMember.date_of_birth || undefined,
+          date_of_death: fullMember.date_of_death || undefined,
+          father_id: fullMember.father_id || undefined,
+          mother_id: fullMember.mother_id || undefined,
+          nicknames: fullMember.nicknames || [],
+          profession: fullMember.profession || undefined,
+        };
+
+        setEditingMember(fullMember);
+        setFormData(initialData);
+        setOriginalFormData(initialData);
+
+        // Load children for this member
+        await loadMemberChildren(fullMember.member_id);
+      } catch (error) {
+        console.error('Failed to load member details:', error);
+        alert('Failed to load member details');
+        return;
+      }
     } else {
       setEditingMember(null);
       setOriginalFormData(null);
+      setMemberChildren([]);
       setMemberChildren([]);
       setFormData({
         arabic_name: '',
@@ -195,14 +213,8 @@ const MembersPage: React.FC = () => {
   };
 
   const handleOpenRelatedMember = async (memberId: number) => {
-    try {
-      const member = await membersApi.getMember(memberId);
-      handleCloseDialog(); // Close current dialog first
-      setTimeout(() => handleOpenDialog(member), 100); // Open new dialog with slight delay
-    } catch (error) {
-      console.error('Failed to load member:', error);
-      alert('Failed to load member details');
-    }
+    handleCloseDialog(); // Close current dialog first
+    setTimeout(() => handleOpenDialog(memberId), 100); // Open new dialog with slight delay to fetch fresh data
   };
 
   // Check if form has changes
@@ -244,6 +256,11 @@ const MembersPage: React.FC = () => {
           version: editingMember.version,
         };
         await membersApi.updateMember(editingMember.member_id, updateData);
+
+        // Refetch member data after update to get latest computed fields
+        const updatedMember = await membersApi.getMember(editingMember.member_id);
+        setEditingMember(updatedMember);
+        await loadMemberChildren(updatedMember.member_id);
       } else {
         await membersApi.createMember(formData);
       }
@@ -265,7 +282,7 @@ const MembersPage: React.FC = () => {
     }
   };
 
-  const handlePhotoChange = (memberId: number, pictureUrl: string | null) => {
+  const handlePhotoChange = async (memberId: number, pictureUrl: string | null) => {
     // Update the member in the list
     setMembers(prevMembers =>
       prevMembers.map(member =>
@@ -275,13 +292,14 @@ const MembersPage: React.FC = () => {
       )
     );
 
-    // If editing this member, update the dialog state
+    // If editing this member, refetch full member data
     if (editingMember && editingMember.member_id === memberId) {
-      setEditingMember(prev => prev ? {
-        ...prev,
-        picture: pictureUrl,
-        version: prev.version + 1
-      } : null);
+      try {
+        const updatedMember = await membersApi.getMember(memberId);
+        setEditingMember(updatedMember);
+      } catch (error) {
+        console.error('Failed to refresh member data after photo change:', error);
+      }
     }
   };
 
@@ -767,7 +785,16 @@ const MembersPage: React.FC = () => {
                         key={spouse.member_id}
                         spouse={spouse}
                         currentMemberId={editingMember.member_id}
-                        onUpdate={() => performSearch(searchQuery)}
+                        onUpdate={async () => {
+                          performSearch(searchQuery);
+                          // Refetch member data after spouse update/delete
+                          try {
+                            const updated = await membersApi.getMember(editingMember.member_id);
+                            setEditingMember(updated);
+                          } catch (error) {
+                            console.error('Failed to refresh member after spouse update:', error);
+                          }
+                        }}
                         editable={true}
                         onMemberClick={() => handleOpenRelatedMember(spouse.member_id)}
                       />
@@ -837,6 +864,53 @@ const MembersPage: React.FC = () => {
                       No children found.
                     </Typography>
                   )}
+                </Grid>
+              )}
+
+              {/* Siblings Section */}
+              {editingMember && editingMember.siblings && editingMember.siblings.length > 0 && (
+                <Grid item xs={12}>
+                  <Typography variant="h6" sx={{ mt: 2, mb: 1 }}>
+                    Siblings ({editingMember.siblings.length})
+                  </Typography>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    {editingMember.siblings.map((sibling) => (
+                      <Paper
+                        key={sibling.member_id}
+                        sx={{
+                          p: 2,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 2,
+                          border: '1px solid',
+                          borderColor: 'warning.main',
+                          cursor: 'pointer',
+                          '&:hover': { boxShadow: 3, bgcolor: 'action.hover' },
+                        }}
+                        onClick={() => handleOpenRelatedMember(sibling.member_id)}
+                      >
+                        <Avatar
+                          src={getMemberPictureUrl(sibling.member_id, sibling.picture) || undefined}
+                          sx={{
+                            width: 50,
+                            height: 50,
+                            bgcolor: '#FF9800',
+                          }}
+                        >
+                          {sibling.english_name[0]}
+                        </Avatar>
+                        <Box sx={{ flex: 1 }}>
+                          <Chip label="Sibling" size="small" color="warning" sx={{ mb: 0.5 }} />
+                          <Typography variant="body1" fontWeight="bold">
+                            {sibling.english_name}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            {sibling.arabic_name}
+                          </Typography>
+                        </Box>
+                      </Paper>
+                    ))}
+                  </Box>
                 </Grid>
               )}
             </Grid>

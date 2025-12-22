@@ -28,7 +28,7 @@ export interface SpouseInfo {
   married_years: number | null;
 }
 
-export interface ParentInfo {
+export interface MemberInfo {
   member_id: number;
   arabic_name: string;
   english_name: string;
@@ -45,8 +45,8 @@ export interface Member {
   date_of_death: string | null;
   father_id: number | null;
   mother_id: number | null;
-  father?: ParentInfo;
-  mother?: ParentInfo;
+  father?: MemberInfo;
+  mother?: MemberInfo;
   nicknames: string[];
   profession: string | null;
   version: number;
@@ -56,6 +56,7 @@ export interface Member {
   generation_level?: number;
   is_married: boolean;
   spouses?: SpouseInfo[];
+  siblings?: MemberInfo[];
 }
 
 export interface ParentOption {

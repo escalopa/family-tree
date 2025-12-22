@@ -36,6 +36,7 @@ type MemberRepository interface {
 	GetAll(ctx context.Context) ([]*domain.Member, error)
 	GetByIDs(ctx context.Context, memberIDs []int) ([]*domain.Member, error)
 	GetChildrenByParentID(ctx context.Context, parentID int) ([]*domain.Member, error)
+	GetSiblingsByMemberID(ctx context.Context, memberID int) ([]*domain.Member, error)
 	HasChildrenWithParents(ctx context.Context, fatherID, motherID int) (bool, error)
 }
 

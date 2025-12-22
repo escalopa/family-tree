@@ -38,7 +38,7 @@ type PaginatedMembersResponse struct {
 	NextCursor *string          `json:"next_cursor,omitempty"`
 }
 
-type ParentInfo struct {
+type MemberInfo struct {
 	MemberID    int     `json:"member_id"`
 	ArabicName  string  `json:"arabic_name"`
 	EnglishName string  `json:"english_name"`
@@ -55,8 +55,8 @@ type MemberResponse struct {
 	DateOfDeath     *Date        `json:"date_of_death"`
 	FatherID        *int         `json:"father_id"`
 	MotherID        *int         `json:"mother_id"`
-	Father          *ParentInfo  `json:"father,omitempty"`
-	Mother          *ParentInfo  `json:"mother,omitempty"`
+	Father          *MemberInfo  `json:"father,omitempty"`
+	Mother          *MemberInfo  `json:"mother,omitempty"`
 	Nicknames       []string     `json:"nicknames"`
 	Profession      *string      `json:"profession"`
 	Version         int          `json:"version"`
@@ -66,6 +66,7 @@ type MemberResponse struct {
 	GenerationLevel int          `json:"generation_level,omitempty"`
 	IsMarried       bool         `json:"is_married"`
 	Spouses         []SpouseInfo `json:"spouses,omitempty"`
+	Siblings        []MemberInfo `json:"siblings,omitempty"`
 }
 
 type ParentSearchQuery struct {

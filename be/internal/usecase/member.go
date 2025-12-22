@@ -167,6 +167,10 @@ func (uc *memberUseCase) GetChildrenByParentID(ctx context.Context, parentID int
 	return uc.memberRepo.GetChildrenByParentID(ctx, parentID)
 }
 
+func (uc *memberUseCase) GetSiblingsByMemberID(ctx context.Context, memberID int) ([]*domain.Member, error) {
+	return uc.memberRepo.GetSiblingsByMemberID(ctx, memberID)
+}
+
 func (uc *memberUseCase) SearchMembers(ctx context.Context, filter domain.MemberFilter, cursor *string, limit int) ([]*domain.Member, *string, error) {
 
 	return uc.memberRepo.Search(ctx, filter, cursor, limit)

@@ -21,7 +21,7 @@ import {
 import { AccountTree, List as ListIcon, Search, Close } from '@mui/icons-material';
 import { treeApi, membersApi } from '../api';
 import { TreeNode, Member, MemberSearchQuery } from '../types';
-import { getGenderColor, formatDate, calculateAge } from '../utils/helpers';
+import { getGenderColor, formatDate, getMemberPictureUrl } from '../utils/helpers';
 import Layout from '../components/Layout/Layout';
 
 const TreePage: React.FC = () => {
@@ -184,23 +184,14 @@ const TreePage: React.FC = () => {
             Search Members
           </Typography>
           <Grid container spacing={2}>
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid item xs={12} sm={6} md={4}>
               <TextField
                 fullWidth
-                label="Arabic Name"
-                value={searchQuery.arabic_name || ''}
+                label="Name"
+                placeholder="Search by Arabic or English name..."
+                value={searchQuery.name || ''}
                 onChange={(e) =>
-                  setSearchQuery({ ...searchQuery, arabic_name: e.target.value })
-                }
-              />
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <TextField
-                fullWidth
-                label="English Name"
-                value={searchQuery.english_name || ''}
-                onChange={(e) =>
-                  setSearchQuery({ ...searchQuery, english_name: e.target.value })
+                  setSearchQuery({ ...searchQuery, name: e.target.value })
                 }
               />
             </Grid>
