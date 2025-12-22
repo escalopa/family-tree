@@ -11,29 +11,29 @@ import {
 export const membersApi = {
   getMember: async (memberId: number): Promise<Member> => {
     const response = await apiClient.get(`/api/members/info/${memberId}`);
-    return response.data;
+    return response.data.data;
   },
 
   searchMembers: async (query: MemberSearchQuery): Promise<PaginatedMembersResponse> => {
     const response = await apiClient.get('/api/members/search', { params: query });
-    return response.data;
+    return response.data.data;
   },
 
   getMemberHistory: async (memberId: number, cursor?: string): Promise<PaginatedHistoryResponse> => {
     const response = await apiClient.get('/api/members/history', {
       params: { member_id: memberId, cursor },
     });
-    return response.data;
+    return response.data.data;
   },
 
   createMember: async (data: CreateMemberRequest): Promise<Member> => {
     const response = await apiClient.post('/api/members', data);
-    return response.data;
+    return response.data.data;
   },
 
   updateMember: async (memberId: number, data: UpdateMemberRequest): Promise<Member> => {
     const response = await apiClient.put(`/api/members/${memberId}`, data);
-    return response.data;
+    return response.data.data;
   },
 
   deleteMember: async (memberId: number): Promise<void> => {

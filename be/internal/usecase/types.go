@@ -72,7 +72,6 @@ type OAuthStateRepository interface {
 	CleanExpired(ctx context.Context) error
 }
 
-// Service interfaces used by use cases
 type TokenManager interface {
 	GenerateAccessToken(userID int, email string, roleID int, sessionID string) (string, error)
 	GenerateRefreshToken(userID int, sessionID string) (string, error)
@@ -86,7 +85,7 @@ type S3Client interface {
 }
 
 type OAuthManager interface {
-	GetAuthURL(providerName, state string) (string, error)
+	GetAuthURL(providerName string, state string) (string, error)
 	GetUserInfo(ctx context.Context, providerName, code string) (*domain.OAuthUserInfo, error)
 	GetSupportedProviders() []string
 }

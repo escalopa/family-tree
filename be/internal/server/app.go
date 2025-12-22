@@ -52,6 +52,7 @@ func NewApp(cfg *config.Config) (*App, error) {
 
 	userRepo := repository.NewUserRepository(pool)
 	sessionRepo := repository.NewSessionRepository(pool)
+	oauthStateRepo := repository.NewOAuthStateRepository(pool)
 	memberRepo := repository.NewMemberRepository(pool)
 	spouseRepo := repository.NewSpouseRepository(pool)
 	historyRepo := repository.NewHistoryRepository(pool)
@@ -69,7 +70,7 @@ func NewApp(cfg *config.Config) (*App, error) {
 
 	cookieManager := cookie.NewManager(&cfg.Server.Cookie)
 
-	authUseCase := usecase.NewAuthUseCase(userRepo, sessionRepo, oauthManager, tokenMgr)
+	authUseCase := usecase.NewAuthUseCase(userRepo, sessionRepo, oauthStateRepo, oauthManager, tokenMgr)
 	userUseCase := usecase.NewUserUseCase(userRepo, scoreRepo, historyRepo)
 	memberUseCase := usecase.NewMemberUseCase(memberRepo, spouseRepo, historyRepo, scoreRepo, s3Client)
 	spouseUseCase := usecase.NewSpouseUseCase(spouseRepo, memberRepo, historyRepo, scoreRepo)
@@ -93,7 +94,8 @@ func NewApp(cfg *config.Config) (*App, error) {
 		cfg.Server.AllowedOrigins,
 	)
 
-	engine := gin.Default()
+	engine := gin.New()
+	engine.Use(gin.Recovery())
 	router.Setup(engine)
 
 	return &App{

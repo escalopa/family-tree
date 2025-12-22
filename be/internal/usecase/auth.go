@@ -2,6 +2,8 @@ package usecase
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/base64"
 	"time"
 
 	"github.com/escalopa/family-tree/internal/domain"
@@ -9,59 +11,91 @@ import (
 )
 
 type authUseCase struct {
-	userRepo    UserRepository
-	sessionRepo SessionRepository
-	oauthMgr    OAuthManager
-	tokenMgr    TokenManager
+	userRepo       UserRepository
+	sessionRepo    SessionRepository
+	oauthStateRepo OAuthStateRepository
+	oauthMgr       OAuthManager
+	tokenMgr       TokenManager
 }
 
 func NewAuthUseCase(
 	userRepo UserRepository,
 	sessionRepo SessionRepository,
+	oauthStateRepo OAuthStateRepository,
 	oauthMgr OAuthManager,
 	tokenMgr TokenManager,
 ) *authUseCase {
 	return &authUseCase{
-		userRepo:    userRepo,
-		sessionRepo: sessionRepo,
-		oauthMgr:    oauthMgr,
-		tokenMgr:    tokenMgr,
+		userRepo:       userRepo,
+		sessionRepo:    sessionRepo,
+		oauthStateRepo: oauthStateRepo,
+		oauthMgr:       oauthMgr,
+		tokenMgr:       tokenMgr,
 	}
 }
 
-// GetAuthURL returns the OAuth URL for the specified provider
-func (uc *authUseCase) GetAuthURL(provider, state string) (string, error) {
-	return uc.oauthMgr.GetAuthURL(provider, state)
+func (uc *authUseCase) GetAuthURL(ctx context.Context, provider string) (string, error) {
+	state, err := uc.generateState()
+	if err != nil {
+		return "", domain.NewInternalError("generate state", err)
+	}
+
+	oauthState := &domain.OAuthState{
+		State:     state,
+		Provider:  provider,
+		CreatedAt: time.Now(),
+		ExpiresAt: time.Now().Add(10 * time.Minute),
+		Used:      false,
+	}
+
+	if err := uc.oauthStateRepo.Create(ctx, oauthState); err != nil {
+		return "", err
+	}
+
+	url, err := uc.oauthMgr.GetAuthURL(provider, state)
+	if err != nil {
+		return "", err
+	}
+
+	return url, nil
 }
 
-// HandleCallback handles OAuth callback for any provider
-func (uc *authUseCase) HandleCallback(ctx context.Context, provider, code string) (*domain.User, *domain.AuthTokens, error) {
-	// Get user info from OAuth provider (exchange happens in the provider implementation)
+// generateState creates a random state token for OAuth CSRF protection
+func (uc *authUseCase) generateState() (string, error) {
+	b := make([]byte, 32)
+	if _, err := rand.Read(b); err != nil {
+		return "", err
+	}
+	return base64.URLEncoding.EncodeToString(b), nil
+}
+
+func (uc *authUseCase) HandleCallback(ctx context.Context, provider, code, state string) (*domain.User, *domain.AuthTokens, error) {
+	if err := uc.validateState(ctx, state, provider); err != nil {
+		return nil, nil, err
+	}
+
 	userInfo, err := uc.oauthMgr.GetUserInfo(ctx, provider, code)
 	if err != nil {
 		return nil, nil, domain.NewExternalServiceError("OAuth", err)
 	}
 
-	// Check if user exists
 	user, err := uc.userRepo.GetByEmail(ctx, userInfo.Email)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	if user == nil {
-		// Create new user with "none" role
 		user = &domain.User{
 			FullName: userInfo.Name,
 			Email:    userInfo.Email,
 			Avatar:   &userInfo.Picture,
 			RoleID:   domain.RoleNone,
-			IsActive: false, // Needs admin approval
+			IsActive: false, // needs admin approval
 		}
 		if err := uc.userRepo.Create(ctx, user); err != nil {
 			return nil, nil, err
 		}
 	} else {
-		// Update existing user info from OAuth
 		user.FullName = userInfo.Name
 		user.Avatar = &userInfo.Picture
 		if err := uc.userRepo.Update(ctx, user); err != nil {
@@ -69,7 +103,6 @@ func (uc *authUseCase) HandleCallback(ctx context.Context, provider, code string
 		}
 	}
 
-	// Create session
 	sessionID := uuid.New().String()
 	session := &domain.Session{
 		SessionID: sessionID,
@@ -82,7 +115,6 @@ func (uc *authUseCase) HandleCallback(ctx context.Context, provider, code string
 		return nil, nil, err
 	}
 
-	// Generate tokens
 	accessToken, err := uc.tokenMgr.GenerateAccessToken(user.UserID, user.Email, user.RoleID, sessionID)
 	if err != nil {
 		return nil, nil, domain.NewInternalError("generate access token", err)
@@ -102,14 +134,37 @@ func (uc *authUseCase) HandleCallback(ctx context.Context, provider, code string
 	return user, tokens, nil
 }
 
+func (uc *authUseCase) validateState(ctx context.Context, state, provider string) error {
+	oauthState, err := uc.oauthStateRepo.Get(ctx, state)
+	if err != nil {
+		return domain.NewUnauthorizedError("invalid or expired OAuth state", err)
+	}
+
+	if oauthState.Provider != provider {
+		return domain.NewUnauthorizedError("state provider mismatch", nil)
+	}
+
+	if time.Now().After(oauthState.ExpiresAt) {
+		return domain.NewUnauthorizedError("OAuth state expired", nil)
+	}
+
+	if oauthState.Used {
+		return domain.NewUnauthorizedError("OAuth state already used", nil)
+	}
+
+	if err := uc.oauthStateRepo.MarkUsed(ctx, state); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (uc *authUseCase) RefreshTokens(ctx context.Context, refreshToken string) (*domain.AuthTokens, error) {
-	// Validate refresh token
 	claims, err := uc.tokenMgr.ValidateToken(refreshToken)
 	if err != nil {
 		return nil, domain.NewUnauthorizedError("invalid refresh token", err)
 	}
 
-	// Check session
 	session, err := uc.sessionRepo.GetByID(ctx, claims.SessionID)
 	if err != nil {
 		return nil, err
@@ -118,7 +173,6 @@ func (uc *authUseCase) RefreshTokens(ctx context.Context, refreshToken string) (
 		return nil, domain.NewUnauthorizedError("session expired or revoked", nil)
 	}
 
-	// Get user
 	user, err := uc.userRepo.GetByID(ctx, claims.UserID)
 	if err != nil {
 		return nil, err
@@ -127,7 +181,6 @@ func (uc *authUseCase) RefreshTokens(ctx context.Context, refreshToken string) (
 		return nil, domain.NewForbiddenError("user is not active")
 	}
 
-	// Generate new access token
 	accessToken, err := uc.tokenMgr.GenerateAccessToken(user.UserID, user.Email, user.RoleID, claims.SessionID)
 	if err != nil {
 		return nil, domain.NewInternalError("generate access token", err)

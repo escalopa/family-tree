@@ -30,18 +30,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Try to get current user on mount
-    const checkAuth = async () => {
+    const checkAuth = () => {
       try {
-        // Check if we have a valid session by hitting a protected endpoint
-        const response = await apiClient.get('/api/users/leaderboard');
-        // If successful, we're authenticated, but we need to get user info from auth callback or storage
         const storedUser = localStorage.getItem('user');
         if (storedUser) {
           setUser(JSON.parse(storedUser));
+        } else {
+          setUser(null);
         }
       } catch (error) {
-        console.log('Not authenticated');
+        console.error('Failed to parse stored user:', error);
+        localStorage.removeItem('user');
         setUser(null);
       } finally {
         setLoading(false);

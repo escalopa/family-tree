@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"mime"
+	"path/filepath"
 	"time"
 
 	"github.com/escalopa/family-tree/internal/domain"
@@ -198,6 +200,26 @@ func (uc *memberUseCase) DeletePicture(ctx context.Context, memberID int) error 
 
 	// Update member
 	return uc.memberRepo.DeletePicture(ctx, memberID)
+}
+
+func (uc *memberUseCase) GetPicture(ctx context.Context, memberID int) ([]byte, string, error) {
+	member, err := uc.memberRepo.GetByID(ctx, memberID)
+	if err != nil {
+		return nil, "", fmt.Errorf("get member: %w", err)
+	}
+
+	if member.Picture == nil || *member.Picture == "" {
+		return nil, "", domain.NewNotFoundError("picture")
+	}
+
+	imageData, err := uc.s3Client.GetImage(ctx, *member.Picture)
+	if err != nil {
+		return nil, "", fmt.Errorf("get image: %w", err)
+	}
+
+	contentType := mime.TypeByExtension(filepath.Ext(*member.Picture))
+
+	return imageData, contentType, nil
 }
 
 func (uc *memberUseCase) calculateAndRecordScores(ctx context.Context, member *domain.Member, userID int) error {

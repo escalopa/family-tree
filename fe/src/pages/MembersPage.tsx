@@ -12,7 +12,6 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Avatar,
   IconButton,
   Dialog,
   DialogTitle,
@@ -27,8 +26,9 @@ import {
 import { Add, Edit, Delete, Search } from '@mui/icons-material';
 import { membersApi } from '../api';
 import { Member, MemberSearchQuery, CreateMemberRequest, UpdateMemberRequest } from '../types';
-import { getGenderColor, formatDate } from '../utils/helpers';
+import { formatDate } from '../utils/helpers';
 import Layout from '../components/Layout/Layout';
+import MemberPhotoUpload from '../components/MemberPhotoUpload';
 
 const MembersPage: React.FC = () => {
   const [members, setMembers] = useState<Member[]>([]);
@@ -109,13 +109,8 @@ const MembersPage: React.FC = () => {
     }
   };
 
-  const handleFileUpload = async (memberId: number, file: File) => {
-    try {
-      await membersApi.uploadPicture(memberId, file);
-      handleSearch(); // Refresh list
-    } catch (error) {
-      console.error('Failed to upload picture:', error);
-    }
+  const handlePhotoChange = () => {
+    handleSearch(); // Refresh list after photo change
   };
 
   return (
@@ -223,12 +218,15 @@ const MembersPage: React.FC = () => {
               {members.map((member) => (
                 <TableRow key={member.member_id}>
                   <TableCell>
-                    <Avatar
-                      src={member.picture || undefined}
-                      sx={{ bgcolor: getGenderColor(member.gender) }}
-                    >
-                      {member.english_name[0]}
-                    </Avatar>
+                    <MemberPhotoUpload
+                      memberId={member.member_id}
+                      currentPhoto={member.picture}
+                      memberName={member.english_name}
+                      gender={member.gender}
+                      onPhotoChange={handlePhotoChange}
+                      size={50}
+                      compact
+                    />
                   </TableCell>
                   <TableCell>{member.arabic_name}</TableCell>
                   <TableCell>{member.english_name}</TableCell>
@@ -271,6 +269,21 @@ const MembersPage: React.FC = () => {
           </DialogTitle>
           <DialogContent>
             <Grid container spacing={2} sx={{ mt: 1 }}>
+              {editingMember && (
+                <Grid item xs={12}>
+                  <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+                    <MemberPhotoUpload
+                      memberId={editingMember.member_id}
+                      currentPhoto={editingMember.picture}
+                      memberName={editingMember.english_name}
+                      gender={editingMember.gender}
+                      onPhotoChange={handlePhotoChange}
+                      size={120}
+                      showName
+                    />
+                  </Box>
+                </Grid>
+              )}
               <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth

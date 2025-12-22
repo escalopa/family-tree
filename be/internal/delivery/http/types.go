@@ -28,6 +28,7 @@ type MemberHandler interface {
 	GetMemberHistory(c *gin.Context)
 	UploadPicture(c *gin.Context)
 	DeletePicture(c *gin.Context)
+	GetPicture(c *gin.Context)
 }
 
 type SpouseHandler interface {

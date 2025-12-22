@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Box, CircularProgress, Typography } from '@mui/material';
 import { authApi } from '../api';
@@ -9,17 +9,24 @@ const CallbackPage: React.FC = () => {
   const navigate = useNavigate();
   const { setUser } = useAuth();
   const [error, setError] = useState<string | null>(null);
+  const hasCalledCallback = useRef(false);
 
   useEffect(() => {
+    if (hasCalledCallback.current) {
+      return;
+    }
+
     const handleCallback = async () => {
       const code = searchParams.get('code');
       const state = searchParams.get('state');
-      const provider = window.location.pathname.split('/')[2]; // Extract provider from path
+      const provider = window.location.pathname.split('/')[2];
 
       if (!code || !state) {
         setError('Invalid callback parameters');
         return;
       }
+
+      hasCalledCallback.current = true;
 
       try {
         const response = await authApi.handleCallback(provider, code, state);

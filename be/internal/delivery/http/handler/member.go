@@ -4,6 +4,7 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/escalopa/family-tree/internal/delivery/http/dto"
 	"github.com/escalopa/family-tree/internal/delivery/http/middleware"
@@ -40,12 +41,20 @@ func (h *memberHandler) CreateMember(c *gin.Context) {
 		return
 	}
 
+	var dateOfBirth, dateOfDeath *time.Time
+	if req.DateOfBirth != nil {
+		dateOfBirth = req.DateOfBirth.ToTimePtr()
+	}
+	if req.DateOfDeath != nil {
+		dateOfDeath = req.DateOfDeath.ToTimePtr()
+	}
+
 	member := &domain.Member{
 		ArabicName:  req.ArabicName,
 		EnglishName: req.EnglishName,
 		Gender:      req.Gender,
-		DateOfBirth: req.DateOfBirth,
-		DateOfDeath: req.DateOfDeath,
+		DateOfBirth: dateOfBirth,
+		DateOfDeath: dateOfDeath,
 		FatherID:    req.FatherID,
 		MotherID:    req.MotherID,
 		Nicknames:   req.Nicknames,
@@ -74,13 +83,21 @@ func (h *memberHandler) UpdateMember(c *gin.Context) {
 		return
 	}
 
+	var dateOfBirth, dateOfDeath *time.Time
+	if req.DateOfBirth != nil {
+		dateOfBirth = req.DateOfBirth.ToTimePtr()
+	}
+	if req.DateOfDeath != nil {
+		dateOfDeath = req.DateOfDeath.ToTimePtr()
+	}
+
 	member := &domain.Member{
 		MemberID:    memberID,
 		ArabicName:  req.ArabicName,
 		EnglishName: req.EnglishName,
 		Gender:      req.Gender,
-		DateOfBirth: req.DateOfBirth,
-		DateOfDeath: req.DateOfDeath,
+		DateOfBirth: dateOfBirth,
+		DateOfDeath: dateOfDeath,
 		FatherID:    req.FatherID,
 		MotherID:    req.MotherID,
 		Nicknames:   req.Nicknames,
@@ -147,8 +164,8 @@ func (h *memberHandler) GetMember(c *gin.Context) {
 		EnglishName:     computed.EnglishName,
 		Gender:          computed.Gender,
 		Picture:         computed.Picture,
-		DateOfBirth:     computed.DateOfBirth,
-		DateOfDeath:     computed.DateOfDeath,
+		DateOfBirth:     dto.FromTimePtr(computed.DateOfBirth),
+		DateOfDeath:     dto.FromTimePtr(computed.DateOfDeath),
 		FatherID:        computed.FatherID,
 		MotherID:        computed.MotherID,
 		Nicknames:       computed.Nicknames,
@@ -224,8 +241,8 @@ func (h *memberHandler) SearchMembers(c *gin.Context) {
 			EnglishName: computed.EnglishName,
 			Gender:      computed.Gender,
 			Picture:     computed.Picture,
-			DateOfBirth: computed.DateOfBirth,
-			DateOfDeath: computed.DateOfDeath,
+			DateOfBirth: dto.FromTimePtr(computed.DateOfBirth),
+			DateOfDeath: dto.FromTimePtr(computed.DateOfDeath),
 			FatherID:    computed.FatherID,
 			MotherID:    computed.MotherID,
 			Nicknames:   computed.Nicknames,
@@ -332,4 +349,22 @@ func (h *memberHandler) DeletePicture(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, dto.Response{Success: true, Data: "picture deleted"})
+}
+
+func (h *memberHandler) GetPicture(c *gin.Context) {
+	memberID, err := strconv.Atoi(c.Param("member_id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, dto.Response{Success: false, Error: "invalid member_id"})
+		return
+	}
+
+	imageData, contentType, err := h.memberUseCase.GetPicture(c.Request.Context(), memberID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, dto.Response{Success: false, Error: err.Error()})
+		return
+	}
+
+	c.Header("Content-Type", contentType)
+	// c.Header("Cache-Control", "public, max-age=86400") // Cache for 1 day
+	c.Data(http.StatusOK, contentType, imageData)
 }

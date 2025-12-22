@@ -16,8 +16,8 @@ type CookieManager interface {
 }
 
 type AuthUseCase interface {
-	GetAuthURL(provider, state string) (string, error)
-	HandleCallback(ctx context.Context, provider, code string) (*domain.User, *domain.AuthTokens, error)
+	GetAuthURL(ctx context.Context, provider string) (string, error)
+	HandleCallback(ctx context.Context, provider, code, state string) (*domain.User, *domain.AuthTokens, error)
 	RefreshTokens(ctx context.Context, refreshToken string) (*domain.AuthTokens, error)
 	Logout(ctx context.Context, sessionID string) error
 	LogoutAll(ctx context.Context, userID int) error
@@ -44,6 +44,7 @@ type MemberUseCase interface {
 	GetMemberHistory(ctx context.Context, memberID int, cursor *string, limit int) ([]*domain.HistoryWithUser, *string, error)
 	UploadPicture(ctx context.Context, memberID int, data []byte, filename string, userID int) (string, error)
 	DeletePicture(ctx context.Context, memberID int) error
+	GetPicture(ctx context.Context, memberID int) ([]byte, string, error)
 	ComputeMemberWithExtras(ctx context.Context, member *domain.Member, userRole int) *domain.MemberWithComputed
 }
 

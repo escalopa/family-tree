@@ -23,21 +23,19 @@ func NewAuthHandler(authUseCase AuthUseCase, cookieManager CookieManager) *authH
 
 // GetAuthURL godoc
 // @Summary Get OAuth authentication URL
-// @Description Returns the OAuth authentication URL for the specified provider
+// @Description Returns the OAuth authentication URL for the specified provider with a generated state token
 // @Tags auth
 // @Accept json
 // @Produce json
 // @Param provider path string true "OAuth provider (e.g., google)"
-// @Param state query string false "State parameter for OAuth flow"
 // @Success 200 {object} dto.Response{data=dto.AuthURLResponse}
 // @Failure 400 {object} dto.Response
 // @Failure 500 {object} dto.Response
 // @Router /auth/{provider} [get]
 func (h *authHandler) GetAuthURL(c *gin.Context) {
 	provider := c.Param("provider")
-	state := c.Query("state")
 
-	url, err := h.authUseCase.GetAuthURL(provider, state)
+	url, err := h.authUseCase.GetAuthURL(c.Request.Context(), provider)
 	if err != nil {
 		httpErrors.HandleError(c, err)
 		return
@@ -60,20 +58,28 @@ func (h *authHandler) GetAuthURL(c *gin.Context) {
 // @Produce json
 // @Param provider path string true "OAuth provider (e.g., google)"
 // @Param code query string true "OAuth authorization code"
+// @Param state query string true "OAuth state token for CSRF protection"
 // @Success 200 {object} dto.Response{data=dto.AuthResponse}
 // @Failure 400 {object} dto.Response
+// @Failure 401 {object} dto.Response
 // @Failure 500 {object} dto.Response
 // @Router /auth/{provider}/callback [get]
 func (h *authHandler) HandleCallback(c *gin.Context) {
 	provider := c.Param("provider")
 	code := c.Query("code")
+	state := c.Query("state")
 
 	if code == "" {
 		c.JSON(http.StatusBadRequest, dto.Response{Success: false, Error: "missing code"})
 		return
 	}
 
-	user, tokens, err := h.authUseCase.HandleCallback(c.Request.Context(), provider, code)
+	if state == "" {
+		c.JSON(http.StatusBadRequest, dto.Response{Success: false, Error: "missing state"})
+		return
+	}
+
+	user, tokens, err := h.authUseCase.HandleCallback(c.Request.Context(), provider, code, state)
 	if err != nil {
 		httpErrors.HandleError(c, err)
 		return

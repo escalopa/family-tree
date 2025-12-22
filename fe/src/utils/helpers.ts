@@ -55,3 +55,11 @@ export const getDefaultAvatar = (gender: 'M' | 'F' | 'N'): string => {
     ? '/default-female-avatar.png'
     : '/default-avatar.png';
 };
+
+export const getMemberPictureUrl = (memberId: number, pictureKey: string | null): string | null => {
+  if (!pictureKey) return null;
+
+  // Get the API base URL from environment or default to current origin
+  const apiUrl = import.meta.env.VITE_API_URL || window.location.origin;
+  return `${apiUrl}/api/members/${memberId}/picture`;
+};

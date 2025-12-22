@@ -28,8 +28,14 @@ class ApiClient {
       (response) => response,
       (error) => {
         if (error.response?.status === 401) {
-          // Redirect to login if unauthorized
-          window.location.href = '/login';
+
+          const currentPath = window.location.pathname;
+          const publicPaths = ['/login', '/auth', '/inactive', '/unauthorized'];
+          const isPublicPage = publicPaths.some(path => currentPath.startsWith(path));
+
+          if (!isPublicPage) {
+            window.location.href = '/login';
+          }
         }
         return Promise.reject(error);
       }

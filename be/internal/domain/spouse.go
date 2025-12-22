@@ -9,3 +9,7 @@ type Spouse struct {
 	DivorceDate  *time.Time `json:"divorce_date"`
 }
 
+
+
+
+
