@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Autocomplete, TextField, Avatar, Box, Typography, CircularProgress } from '@mui/material';
 import { membersApi } from '../api';
+import { getMemberPictureUrl } from '../utils/helpers';
 import { ParentOption } from '../types';
 
 interface ParentAutocompleteProps {
@@ -93,7 +94,7 @@ const ParentAutocomplete: React.FC<ParentAutocompleteProps> = ({
       renderOption={(props, option) => (
         <Box component="li" {...props} key={option.member_id}>
           <Avatar
-            src={option.picture || undefined}
+            src={getMemberPictureUrl(option.member_id, option.picture) || undefined}
             sx={{
               width: 32,
               height: 32,

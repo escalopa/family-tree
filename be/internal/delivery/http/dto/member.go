@@ -38,6 +38,13 @@ type PaginatedMembersResponse struct {
 	NextCursor *string          `json:"next_cursor,omitempty"`
 }
 
+type ParentInfo struct {
+	MemberID    int     `json:"member_id"`
+	ArabicName  string  `json:"arabic_name"`
+	EnglishName string  `json:"english_name"`
+	Picture     *string `json:"picture"`
+}
+
 type MemberResponse struct {
 	MemberID        int          `json:"member_id"`
 	ArabicName      string       `json:"arabic_name"`
@@ -48,6 +55,8 @@ type MemberResponse struct {
 	DateOfDeath     *Date        `json:"date_of_death"`
 	FatherID        *int         `json:"father_id"`
 	MotherID        *int         `json:"mother_id"`
+	Father          *ParentInfo  `json:"father,omitempty"`
+	Mother          *ParentInfo  `json:"mother,omitempty"`
 	Nicknames       []string     `json:"nicknames"`
 	Profession      *string      `json:"profession"`
 	Version         int          `json:"version"`

@@ -41,7 +41,7 @@ func NewRouter(
 func (r *Router) Setup(engine *gin.Engine) {
 	engine.Use(middleware.CORS(r.allowedOrigins))
 
-	engine.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	engine.GET("/swagger/", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	engine.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{"status": "ok"})
@@ -89,6 +89,7 @@ func (r *Router) Setup(engine *gin.Engine) {
 			memberGroup.GET("/info/:member_id", r.memberHandler.GetMember)
 			memberGroup.GET("/search", r.memberHandler.SearchMembers)
 			memberGroup.GET("/search-parents", r.memberHandler.SearchParents)
+			memberGroup.GET("/:member_id/children", r.memberHandler.GetChildrenByParentID)
 			memberGroup.GET("/history", middleware.RequireRole(domain.RoleSuperAdmin), r.memberHandler.GetMemberHistory)
 			memberGroup.GET("/:member_id/picture", r.memberHandler.GetPicture)
 

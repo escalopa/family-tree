@@ -40,6 +40,7 @@ type MemberUseCase interface {
 	UpdateMember(ctx context.Context, member *domain.Member, expectedVersion, userID int) error
 	DeleteMember(ctx context.Context, memberID, userID int) error
 	GetMemberByID(ctx context.Context, memberID int) (*domain.Member, error)
+	GetChildrenByParentID(ctx context.Context, parentID int) ([]*domain.Member, error)
 	SearchMembers(ctx context.Context, filter domain.MemberFilter, cursor *string, limit int) ([]*domain.Member, *string, error)
 	GetMemberHistory(ctx context.Context, memberID int, cursor *string, limit int) ([]*domain.HistoryWithUser, *string, error)
 	UploadPicture(ctx context.Context, memberID int, data []byte, filename string, userID int) (string, error)

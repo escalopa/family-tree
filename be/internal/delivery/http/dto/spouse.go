@@ -1,5 +1,27 @@
 package dto
 
+import "time"
+
+// CalculateMarriedYears calculates the number of years married.
+// If marriage_date is nil, returns nil.
+// If divorce_date is set, calculates from marriage to divorce.
+// Otherwise, calculates from marriage to now.
+func CalculateMarriedYears(marriageDate, divorceDate *time.Time) *int {
+	if marriageDate == nil {
+		return nil
+	}
+
+	endDate := time.Now()
+	if divorceDate != nil {
+		endDate = *divorceDate
+	}
+
+	years := int(endDate.Sub(*marriageDate).Hours() / 24 / 365.25)
+	years = max(years, 0)
+
+	return &years
+}
+
 type CreateSpouseRequest struct {
 	FatherID     int   `json:"father_id" binding:"required"`
 	MotherID     int   `json:"mother_id" binding:"required"`
@@ -29,4 +51,5 @@ type SpouseInfo struct {
 	Picture      *string `json:"picture"`
 	MarriageDate *Date   `json:"marriage_date"`
 	DivorceDate  *Date   `json:"divorce_date"`
+	MarriedYears *int    `json:"married_years"`
 }

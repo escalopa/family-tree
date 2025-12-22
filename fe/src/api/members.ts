@@ -15,6 +15,11 @@ export const membersApi = {
     return response.data.data;
   },
 
+  getChildren: async (parentId: number): Promise<Member[]> => {
+    const response = await apiClient.get(`/api/members/${parentId}/children`);
+    return response.data.data;
+  },
+
   searchMembers: async (query: MemberSearchQuery): Promise<PaginatedMembersResponse> => {
     const response = await apiClient.get('/api/members/search', { params: query });
     return response.data.data;

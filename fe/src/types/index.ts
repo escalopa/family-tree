@@ -25,6 +25,14 @@ export interface SpouseInfo {
   picture: string | null;
   marriage_date: string | null;
   divorce_date: string | null;
+  married_years: number | null;
+}
+
+export interface ParentInfo {
+  member_id: number;
+  arabic_name: string;
+  english_name: string;
+  picture: string | null;
 }
 
 export interface Member {
@@ -37,6 +45,8 @@ export interface Member {
   date_of_death: string | null;
   father_id: number | null;
   mother_id: number | null;
+  father?: ParentInfo;
+  mother?: ParentInfo;
   nicknames: string[];
   profession: string | null;
   version: number;
@@ -114,8 +124,8 @@ export interface UpdateMemberRequest extends CreateMemberRequest {
 }
 
 export interface CreateSpouseRequest {
-  member1_id: number;
-  member2_id: number;
+  father_id: number;
+  mother_id: number;
   marriage_date?: string;
   divorce_date?: string;
 }

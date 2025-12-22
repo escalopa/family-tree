@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 
 	"github.com/escalopa/family-tree/internal/domain"
 	"github.com/escalopa/family-tree/internal/pkg/validator"
@@ -68,7 +69,9 @@ func (uc *spouseUseCase) AddSpouse(ctx context.Context, spouse *domain.Spouse, u
 		NewValues:     spouseJSON,
 		MemberVersion: 0,
 	}
-	_ = uc.historyRepo.Create(ctx, history1)
+	if err := uc.historyRepo.Create(ctx, history1); err != nil {
+		slog.Error("failed to create history for father", "error", err, "father_id", spouse.FatherID)
+	}
 
 	history2 := &domain.History{
 		MemberID:      spouse.MotherID,
@@ -78,7 +81,9 @@ func (uc *spouseUseCase) AddSpouse(ctx context.Context, spouse *domain.Spouse, u
 		NewValues:     spouseJSON,
 		MemberVersion: 0,
 	}
-	_ = uc.historyRepo.Create(ctx, history2)
+	if err := uc.historyRepo.Create(ctx, history2); err != nil {
+		slog.Error("failed to create history for mother", "error", err, "mother_id", spouse.MotherID)
+	}
 
 	// Record scores for both members
 	score1 := &domain.Score{
@@ -130,7 +135,9 @@ func (uc *spouseUseCase) UpdateSpouseByID(ctx context.Context, spouse *domain.Sp
 		NewValues:     newJSON,
 		MemberVersion: 0,
 	}
-	_ = uc.historyRepo.Create(ctx, history1)
+	if err := uc.historyRepo.Create(ctx, history1); err != nil {
+		slog.Error("failed to create update history for father", "error", err, "father_id", oldSpouse.FatherID)
+	}
 
 	history2 := &domain.History{
 		MemberID:      oldSpouse.MotherID,
@@ -140,7 +147,9 @@ func (uc *spouseUseCase) UpdateSpouseByID(ctx context.Context, spouse *domain.Sp
 		NewValues:     newJSON,
 		MemberVersion: 0,
 	}
-	_ = uc.historyRepo.Create(ctx, history2)
+	if err := uc.historyRepo.Create(ctx, history2); err != nil {
+		slog.Error("failed to create update history for mother", "error", err, "mother_id", oldSpouse.MotherID)
+	}
 
 	return nil
 }
@@ -190,7 +199,9 @@ func (uc *spouseUseCase) UpdateSpouse(ctx context.Context, spouse *domain.Spouse
 		NewValues:     newJSON,
 		MemberVersion: 0,
 	}
-	_ = uc.historyRepo.Create(ctx, history1)
+	if err := uc.historyRepo.Create(ctx, history1); err != nil {
+		slog.Error("failed to create update history for father", "error", err, "father_id", spouse.FatherID)
+	}
 
 	history2 := &domain.History{
 		MemberID:      spouse.MotherID,
@@ -200,7 +211,9 @@ func (uc *spouseUseCase) UpdateSpouse(ctx context.Context, spouse *domain.Spouse
 		NewValues:     newJSON,
 		MemberVersion: 0,
 	}
-	_ = uc.historyRepo.Create(ctx, history2)
+	if err := uc.historyRepo.Create(ctx, history2); err != nil {
+		slog.Error("failed to create update history for mother", "error", err, "mother_id", spouse.MotherID)
+	}
 
 	return nil
 }
@@ -236,7 +249,9 @@ func (uc *spouseUseCase) RemoveSpouse(ctx context.Context, fatherID, motherID, u
 		NewValues:     nil,
 		MemberVersion: 0,
 	}
-	_ = uc.historyRepo.Create(ctx, history1)
+	if err := uc.historyRepo.Create(ctx, history1); err != nil {
+		slog.Error("failed to create remove history for father", "error", err, "father_id", oldSpouse.FatherID)
+	}
 
 	history2 := &domain.History{
 		MemberID:      oldSpouse.MotherID,
@@ -246,7 +261,9 @@ func (uc *spouseUseCase) RemoveSpouse(ctx context.Context, fatherID, motherID, u
 		NewValues:     nil,
 		MemberVersion: 0,
 	}
-	_ = uc.historyRepo.Create(ctx, history2)
+	if err := uc.historyRepo.Create(ctx, history2); err != nil {
+		slog.Error("failed to create remove history for mother", "error", err, "mother_id", oldSpouse.MotherID)
+	}
 
 	return nil
 }
@@ -282,7 +299,9 @@ func (uc *spouseUseCase) RemoveSpouseByID(ctx context.Context, spouseID, userID 
 		NewValues:     nil,
 		MemberVersion: 0,
 	}
-	_ = uc.historyRepo.Create(ctx, history1)
+	if err := uc.historyRepo.Create(ctx, history1); err != nil {
+		slog.Error("failed to create remove history for father", "error", err, "father_id", oldSpouse.FatherID)
+	}
 
 	history2 := &domain.History{
 		MemberID:      oldSpouse.MotherID,
@@ -292,7 +311,9 @@ func (uc *spouseUseCase) RemoveSpouseByID(ctx context.Context, spouseID, userID 
 		NewValues:     nil,
 		MemberVersion: 0,
 	}
-	_ = uc.historyRepo.Create(ctx, history2)
+	if err := uc.historyRepo.Create(ctx, history2); err != nil {
+		slog.Error("failed to create remove history for mother", "error", err, "mother_id", oldSpouse.MotherID)
+	}
 
 	return nil
 }

@@ -83,7 +83,7 @@ const TreePage: React.FC = () => {
         >
           <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2, py: 2 }}>
             <Avatar
-              src={member.picture || undefined}
+              src={getMemberPictureUrl(member.member_id, member.picture) || undefined}
               sx={{ bgcolor: getGenderColor(member.gender) }}
             >
               {member.english_name[0]}
@@ -318,6 +318,24 @@ const TreePage: React.FC = () => {
               <Typography variant="body1" align="center" color="text.secondary" gutterBottom>
                 {selectedMember.english_name}
               </Typography>
+
+              {(selectedMember.english_full_name || selectedMember.arabic_full_name) && (
+                <Box sx={{ mt: 2, p: 2, bgcolor: 'background.default', borderRadius: 1 }}>
+                  <Typography variant="caption" color="text.secondary" gutterBottom display="block">
+                    Full Name
+                  </Typography>
+                  {selectedMember.english_full_name && (
+                    <Typography variant="body2" fontWeight="medium" gutterBottom>
+                      {selectedMember.english_full_name}
+                    </Typography>
+                  )}
+                  {selectedMember.arabic_full_name && (
+                    <Typography variant="body2" fontWeight="medium" dir="rtl">
+                      {selectedMember.arabic_full_name}
+                    </Typography>
+                  )}
+                </Box>
+              )}
 
               <Box sx={{ mt: 3 }}>
                 <Typography variant="subtitle2" color="text.secondary">

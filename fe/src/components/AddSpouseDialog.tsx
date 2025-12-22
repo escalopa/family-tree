@@ -66,17 +66,22 @@ const AddSpouseDialog: React.FC<AddSpouseDialogProps> = ({
 
     setSaving(true);
     try {
+      // Determine father_id and mother_id based on gender
+      const fatherId = memberGender === 'M' ? memberId : selectedSpouse.member_id;
+      const motherId = memberGender === 'F' ? memberId : selectedSpouse.member_id;
+
       await spousesApi.addSpouse({
-        member1_id: memberId,
-        member2_id: selectedSpouse.member_id,
+        father_id: fatherId,
+        mother_id: motherId,
         marriage_date: marriageDate || undefined,
         divorce_date: divorceDate || undefined,
       });
       onSuccess();
       handleClose();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to add spouse:', error);
-      alert('Failed to add spouse relationship. They may already be connected.');
+      const errorMessage = error?.response?.data?.error || 'Failed to add spouse relationship. They may already be connected.';
+      alert(errorMessage);
     } finally {
       setSaving(false);
     }

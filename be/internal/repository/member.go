@@ -273,3 +273,40 @@ func (r *MemberRepository) HasChildrenWithParents(ctx context.Context, fatherID,
 	}
 	return hasChildren, nil
 }
+
+func (r *MemberRepository) GetChildrenByParentID(ctx context.Context, parentID int) ([]*domain.Member, error) {
+	query := `
+		SELECT member_id, arabic_name, english_name, gender, picture, date_of_birth, date_of_death,
+		       father_id, mother_id, nicknames, profession, version, deleted_at
+		FROM members
+		WHERE deleted_at IS NULL
+		  AND (father_id = $1 OR mother_id = $1)
+		ORDER BY date_of_birth ASC NULLS LAST, member_id ASC
+	`
+	rows, err := r.db.Query(ctx, query, parentID)
+	if err != nil {
+		return nil, domain.NewDatabaseError(err)
+	}
+	defer rows.Close()
+
+	var children []*domain.Member
+	for rows.Next() {
+		member := &domain.Member{}
+		err := rows.Scan(
+			&member.MemberID, &member.ArabicName, &member.EnglishName, &member.Gender,
+			&member.Picture, &member.DateOfBirth, &member.DateOfDeath,
+			&member.FatherID, &member.MotherID, &member.Nicknames, &member.Profession,
+			&member.Version, &member.DeletedAt,
+		)
+		if err != nil {
+			return nil, domain.NewDatabaseError(err)
+		}
+		children = append(children, member)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, domain.NewDatabaseError(err)
+	}
+
+	return children, nil
+}

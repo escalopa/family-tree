@@ -15,9 +15,9 @@ import {
   TextField,
   Grid,
 } from '@mui/material';
-import { Edit, Favorite, HeartBroken } from '@mui/icons-material';
+import { Edit, Favorite, HeartBroken, Delete } from '@mui/icons-material';
 import { SpouseInfo } from '../types';
-import { formatDate } from '../utils/helpers';
+import { formatDate, getMemberPictureUrl } from '../utils/helpers';
 import { spousesApi } from '../api';
 
 interface SpouseCardProps {
@@ -25,6 +25,7 @@ interface SpouseCardProps {
   currentMemberId: number;
   onUpdate?: () => void;
   editable?: boolean;
+  onMemberClick?: () => void;
 }
 
 const SpouseCard: React.FC<SpouseCardProps> = ({
@@ -32,11 +33,14 @@ const SpouseCard: React.FC<SpouseCardProps> = ({
   currentMemberId,
   onUpdate,
   editable = true,
+  onMemberClick,
 }) => {
   const [openDialog, setOpenDialog] = useState(false);
+  const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [marriageDate, setMarriageDate] = useState(spouse.marriage_date || '');
   const [divorceDate, setDivorceDate] = useState(spouse.divorce_date || '');
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const handleOpenDialog = () => {
     setMarriageDate(spouse.marriage_date || '');
@@ -68,7 +72,33 @@ const SpouseCard: React.FC<SpouseCardProps> = ({
     }
   };
 
+  const handleDelete = async () => {
+    setDeleting(true);
+    try {
+      await spousesApi.removeSpouse(spouse.spouse_id);
+      setOpenDeleteDialog(false);
+      if (onUpdate) {
+        onUpdate();
+      }
+    } catch (error: any) {
+      console.error('Failed to delete spouse:', error);
+      const errorMessage = error?.response?.data?.error || 'Failed to delete spouse relationship';
+      alert(errorMessage);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const isDivorced = spouse.divorce_date !== null;
+
+  const handleCardClick = (e: React.MouseEvent) => {
+    // Don't trigger if clicking on edit/delete buttons
+    const target = e.target as HTMLElement;
+    if (target.closest('button')) {
+      return;
+    }
+    onMemberClick?.();
+  };
 
   return (
     <>
@@ -80,10 +110,13 @@ const SpouseCard: React.FC<SpouseCardProps> = ({
           mb: 2,
           border: isDivorced ? '1px solid #f44336' : '1px solid #4caf50',
           position: 'relative',
+          cursor: onMemberClick ? 'pointer' : 'default',
+          '&:hover': onMemberClick ? { boxShadow: 3, bgcolor: 'action.hover' } : {},
         }}
+        onClick={handleCardClick}
       >
         <Avatar
-          src={spouse.picture || undefined}
+          src={getMemberPictureUrl(spouse.member_id, spouse.picture) || undefined}
           sx={{
             width: 60,
             height: 60,
@@ -118,6 +151,9 @@ const SpouseCard: React.FC<SpouseCardProps> = ({
           {spouse.marriage_date && (
             <Typography variant="caption" color="text.secondary">
               Married: {formatDate(spouse.marriage_date)}
+              {spouse.married_years !== null && spouse.married_years !== undefined && (
+                <> ({spouse.married_years} {spouse.married_years === 1 ? 'year' : 'years'})</>
+              )}
             </Typography>
           )}
           {spouse.divorce_date && (
@@ -127,9 +163,14 @@ const SpouseCard: React.FC<SpouseCardProps> = ({
           )}
         </CardContent>
         {editable && (
-          <IconButton onClick={handleOpenDialog} color="primary">
-            <Edit />
-          </IconButton>
+          <Box>
+            <IconButton onClick={handleOpenDialog} color="primary">
+              <Edit />
+            </IconButton>
+            <IconButton onClick={() => setOpenDeleteDialog(true)} color="error">
+              <Delete />
+            </IconButton>
+          </Box>
         )}
       </Card>
 
@@ -171,6 +212,27 @@ const SpouseCard: React.FC<SpouseCardProps> = ({
           </Button>
           <Button onClick={handleSave} variant="contained" disabled={saving}>
             {saving ? 'Saving...' : 'Save'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={openDeleteDialog} onClose={() => setOpenDeleteDialog(false)}>
+        <DialogTitle>Delete Spouse Relationship</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Are you sure you want to delete the spouse relationship with {spouse.english_name}?
+          </Typography>
+          <Typography variant="body2" color="error" sx={{ mt: 2 }}>
+            Note: You cannot delete a spouse relationship if there are children with both parents.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenDeleteDialog(false)} disabled={deleting}>
+            Cancel
+          </Button>
+          <Button onClick={handleDelete} variant="contained" color="error" disabled={deleting}>
+            {deleting ? 'Deleting...' : 'Delete'}
           </Button>
         </DialogActions>
       </Dialog>

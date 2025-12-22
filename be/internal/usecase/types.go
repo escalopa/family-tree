@@ -35,6 +35,7 @@ type MemberRepository interface {
 	Search(ctx context.Context, filter domain.MemberFilter, cursor *string, limit int) ([]*domain.Member, *string, error)
 	GetAll(ctx context.Context) ([]*domain.Member, error)
 	GetByIDs(ctx context.Context, memberIDs []int) ([]*domain.Member, error)
+	GetChildrenByParentID(ctx context.Context, parentID int) ([]*domain.Member, error)
 	HasChildrenWithParents(ctx context.Context, fatherID, motherID int) (bool, error)
 }
 

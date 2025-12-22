@@ -14,9 +14,9 @@ export const spousesApi = {
     await apiClient.put('/api/spouses/member', data);
   },
 
-  removeSpouse: async (member1Id: number, member2Id: number): Promise<void> => {
+  removeSpouse: async (spouseId: number): Promise<void> => {
     await apiClient.delete('/api/spouses', {
-      data: { member1_id: member1Id, member2_id: member2Id },
+      data: { spouse_id: spouseId },
     });
   },
 };

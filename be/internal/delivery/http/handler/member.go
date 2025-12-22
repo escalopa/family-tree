@@ -142,6 +142,95 @@ func (h *memberHandler) DeleteMember(c *gin.Context) {
 // @Failure 401 {object} dto.Response
 // @Failure 404 {object} dto.Response
 // @Router /api/members/info/{member_id} [get]
+func (h *memberHandler) GetChildrenByParentID(c *gin.Context) {
+	parentID, err := strconv.Atoi(c.Param("member_id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, dto.Response{Success: false, Error: "invalid member_id"})
+		return
+	}
+
+	children, err := h.memberUseCase.GetChildrenByParentID(c.Request.Context(), parentID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, dto.Response{Success: false, Error: err.Error()})
+		return
+	}
+
+	userRole := middleware.GetUserRole(c)
+	var childrenResponse []dto.MemberResponse
+	for _, child := range children {
+		computed := h.memberUseCase.ComputeMemberWithExtras(c.Request.Context(), child, userRole)
+
+		// Convert spouse information to DTO
+		spousesDTO := make([]dto.SpouseInfo, len(computed.Spouses))
+		for i, spouse := range computed.Spouses {
+			spousesDTO[i] = dto.SpouseInfo{
+				SpouseID:     spouse.SpouseID,
+				MemberID:     spouse.MemberID,
+				ArabicName:   spouse.ArabicName,
+				EnglishName:  spouse.EnglishName,
+				Gender:       spouse.Gender,
+				Picture:      spouse.Picture,
+				MarriageDate: dto.FromTimePtr(spouse.MarriageDate),
+				DivorceDate:  dto.FromTimePtr(spouse.DivorceDate),
+				MarriedYears: dto.CalculateMarriedYears(spouse.MarriageDate, spouse.DivorceDate),
+			}
+		}
+
+		// Fetch father information if available
+		var fatherInfo *dto.ParentInfo
+		if computed.FatherID != nil {
+			father, err := h.memberUseCase.GetMemberByID(c.Request.Context(), *computed.FatherID)
+			if err == nil {
+				fatherInfo = &dto.ParentInfo{
+					MemberID:    father.MemberID,
+					ArabicName:  father.ArabicName,
+					EnglishName: father.EnglishName,
+					Picture:     father.Picture,
+				}
+			}
+		}
+
+		// Fetch mother information if available
+		var motherInfo *dto.ParentInfo
+		if computed.MotherID != nil {
+			mother, err := h.memberUseCase.GetMemberByID(c.Request.Context(), *computed.MotherID)
+			if err == nil {
+				motherInfo = &dto.ParentInfo{
+					MemberID:    mother.MemberID,
+					ArabicName:  mother.ArabicName,
+					EnglishName: mother.EnglishName,
+					Picture:     mother.Picture,
+				}
+			}
+		}
+
+		childrenResponse = append(childrenResponse, dto.MemberResponse{
+			MemberID:        computed.MemberID,
+			ArabicName:      computed.ArabicName,
+			EnglishName:     computed.EnglishName,
+			Gender:          computed.Gender,
+			Picture:         computed.Picture,
+			DateOfBirth:     dto.FromTimePtr(computed.DateOfBirth),
+			DateOfDeath:     dto.FromTimePtr(computed.DateOfDeath),
+			FatherID:        computed.FatherID,
+			MotherID:        computed.MotherID,
+			Father:          fatherInfo,
+			Mother:          motherInfo,
+			Nicknames:       computed.Nicknames,
+			Profession:      computed.Profession,
+			Version:         computed.Version,
+			ArabicFullName:  computed.ArabicFullName,
+			EnglishFullName: computed.EnglishFullName,
+			Age:             computed.Age,
+			GenerationLevel: computed.GenerationLevel,
+			IsMarried:       computed.IsMarried,
+			Spouses:         spousesDTO,
+		})
+	}
+
+	c.JSON(http.StatusOK, dto.Response{Success: true, Data: childrenResponse})
+}
+
 func (h *memberHandler) GetMember(c *gin.Context) {
 	memberID, err := strconv.Atoi(c.Param("member_id"))
 	if err != nil {
@@ -158,7 +247,6 @@ func (h *memberHandler) GetMember(c *gin.Context) {
 	userRole := middleware.GetUserRole(c)
 	computed := h.memberUseCase.ComputeMemberWithExtras(c.Request.Context(), member, userRole)
 
-	// Convert spouse information to DTO
 	spousesDTO := make([]dto.SpouseInfo, len(computed.Spouses))
 	for i, spouse := range computed.Spouses {
 		spousesDTO[i] = dto.SpouseInfo{
@@ -170,6 +258,31 @@ func (h *memberHandler) GetMember(c *gin.Context) {
 			Picture:      spouse.Picture,
 			MarriageDate: dto.FromTimePtr(spouse.MarriageDate),
 			DivorceDate:  dto.FromTimePtr(spouse.DivorceDate),
+			MarriedYears: dto.CalculateMarriedYears(spouse.MarriageDate, spouse.DivorceDate),
+		}
+	}
+
+	var fatherInfo, motherInfo *dto.ParentInfo
+	if computed.FatherID != nil {
+		father, err := h.memberUseCase.GetMemberByID(c.Request.Context(), *computed.FatherID)
+		if err == nil {
+			fatherInfo = &dto.ParentInfo{
+				MemberID:    father.MemberID,
+				ArabicName:  father.ArabicName,
+				EnglishName: father.EnglishName,
+				Picture:     father.Picture,
+			}
+		}
+	}
+	if computed.MotherID != nil {
+		mother, err := h.memberUseCase.GetMemberByID(c.Request.Context(), *computed.MotherID)
+		if err == nil {
+			motherInfo = &dto.ParentInfo{
+				MemberID:    mother.MemberID,
+				ArabicName:  mother.ArabicName,
+				EnglishName: mother.EnglishName,
+				Picture:     mother.Picture,
+			}
 		}
 	}
 
@@ -183,6 +296,8 @@ func (h *memberHandler) GetMember(c *gin.Context) {
 		DateOfDeath:     dto.FromTimePtr(computed.DateOfDeath),
 		FatherID:        computed.FatherID,
 		MotherID:        computed.MotherID,
+		Father:          fatherInfo,
+		Mother:          motherInfo,
 		Nicknames:       computed.Nicknames,
 		Profession:      computed.Profession,
 		Version:         computed.Version,
@@ -242,7 +357,6 @@ func (h *memberHandler) SearchMembers(c *gin.Context) {
 	for _, m := range members {
 		computed := h.memberUseCase.ComputeMemberWithExtras(c.Request.Context(), m, userRole)
 
-		// Convert spouse information to DTO
 		spousesDTO := make([]dto.SpouseInfo, len(computed.Spouses))
 		for i, spouse := range computed.Spouses {
 			spousesDTO[i] = dto.SpouseInfo{
@@ -254,6 +368,31 @@ func (h *memberHandler) SearchMembers(c *gin.Context) {
 				Picture:      spouse.Picture,
 				MarriageDate: dto.FromTimePtr(spouse.MarriageDate),
 				DivorceDate:  dto.FromTimePtr(spouse.DivorceDate),
+				MarriedYears: dto.CalculateMarriedYears(spouse.MarriageDate, spouse.DivorceDate),
+			}
+		}
+
+		var fatherInfo, motherInfo *dto.ParentInfo
+		if computed.FatherID != nil {
+			father, err := h.memberUseCase.GetMemberByID(c.Request.Context(), *computed.FatherID)
+			if err == nil {
+				fatherInfo = &dto.ParentInfo{
+					MemberID:    father.MemberID,
+					ArabicName:  father.ArabicName,
+					EnglishName: father.EnglishName,
+					Picture:     father.Picture,
+				}
+			}
+		}
+		if computed.MotherID != nil {
+			mother, err := h.memberUseCase.GetMemberByID(c.Request.Context(), *computed.MotherID)
+			if err == nil {
+				motherInfo = &dto.ParentInfo{
+					MemberID:    mother.MemberID,
+					ArabicName:  mother.ArabicName,
+					EnglishName: mother.EnglishName,
+					Picture:     mother.Picture,
+				}
 			}
 		}
 
@@ -267,6 +406,8 @@ func (h *memberHandler) SearchMembers(c *gin.Context) {
 			DateOfDeath: dto.FromTimePtr(computed.DateOfDeath),
 			FatherID:    computed.FatherID,
 			MotherID:    computed.MotherID,
+			Father:      fatherInfo,
+			Mother:      motherInfo,
 			Nicknames:   computed.Nicknames,
 			Profession:  computed.Profession,
 			Version:     computed.Version,

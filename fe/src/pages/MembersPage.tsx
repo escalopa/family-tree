@@ -30,7 +30,7 @@ import {
 import { Add, Edit, Delete, FilterAlt, Clear, Close } from '@mui/icons-material';
 import { membersApi } from '../api';
 import { Member, MemberSearchQuery, CreateMemberRequest, UpdateMemberRequest } from '../types';
-import { formatDate } from '../utils/helpers';
+import { formatDate, getMemberPictureUrl } from '../utils/helpers';
 import Layout from '../components/Layout/Layout';
 import MemberPhotoUpload from '../components/MemberPhotoUpload';
 import ParentAutocomplete from '../components/ParentAutocomplete';
@@ -49,6 +49,8 @@ const MembersPage: React.FC = () => {
   const [openDialog, setOpenDialog] = useState(false);
   const [openAddSpouseDialog, setOpenAddSpouseDialog] = useState(false);
   const [editingMember, setEditingMember] = useState<Member | null>(null);
+  const [memberChildren, setMemberChildren] = useState<Member[]>([]);
+  const [originalFormData, setOriginalFormData] = useState<CreateMemberRequest | null>(null);
   const [formData, setFormData] = useState<CreateMemberRequest>({
     arabic_name: '',
     english_name: '',
@@ -143,10 +145,19 @@ const MembersPage: React.FC = () => {
     setSearchQuery(newQuery);
   };
 
-  const handleOpenDialog = (member?: Member) => {
+  const loadMemberChildren = async (memberId: number) => {
+    try {
+      const children = await membersApi.getChildren(memberId);
+      setMemberChildren(children || []);
+    } catch (error) {
+      console.error('Failed to load children:', error);
+      setMemberChildren([]);
+    }
+  };
+
+  const handleOpenDialog = async (member?: Member) => {
     if (member) {
-      setEditingMember(member);
-      setFormData({
+      const initialData = {
         arabic_name: member.arabic_name,
         english_name: member.english_name,
         gender: member.gender,
@@ -156,9 +167,17 @@ const MembersPage: React.FC = () => {
         mother_id: member.mother_id || undefined,
         nicknames: member.nicknames || [],
         profession: member.profession || undefined,
-      });
+      };
+      setEditingMember(member);
+      setFormData(initialData);
+      setOriginalFormData(initialData);
+
+      // Load children for this member
+      await loadMemberChildren(member.member_id);
     } else {
       setEditingMember(null);
+      setOriginalFormData(null);
+      setMemberChildren([]);
       setFormData({
         arabic_name: '',
         english_name: '',
@@ -171,9 +190,53 @@ const MembersPage: React.FC = () => {
   const handleCloseDialog = () => {
     setOpenDialog(false);
     setEditingMember(null);
+    setOriginalFormData(null);
+    setMemberChildren([]);
+  };
+
+  const handleOpenRelatedMember = async (memberId: number) => {
+    try {
+      const member = await membersApi.getMember(memberId);
+      handleCloseDialog(); // Close current dialog first
+      setTimeout(() => handleOpenDialog(member), 100); // Open new dialog with slight delay
+    } catch (error) {
+      console.error('Failed to load member:', error);
+      alert('Failed to load member details');
+    }
+  };
+
+  // Check if form has changes
+  const hasChanges = () => {
+    if (!editingMember || !originalFormData) return true; // Allow create
+
+    // Compare all fields
+    if (formData.arabic_name !== originalFormData.arabic_name) return true;
+    if (formData.english_name !== originalFormData.english_name) return true;
+    if (formData.gender !== originalFormData.gender) return true;
+    if (formData.date_of_birth !== originalFormData.date_of_birth) return true;
+    if (formData.date_of_death !== originalFormData.date_of_death) return true;
+    if (formData.father_id !== originalFormData.father_id) return true;
+    if (formData.mother_id !== originalFormData.mother_id) return true;
+    if (formData.profession !== originalFormData.profession) return true;
+
+    // Compare nicknames
+    const oldNicknames = originalFormData.nicknames || [];
+    const newNicknames = formData.nicknames || [];
+    if (oldNicknames.length !== newNicknames.length) return true;
+    const nicknamesSet = new Set(oldNicknames);
+    for (const nickname of newNicknames) {
+      if (!nicknamesSet.has(nickname)) return true;
+    }
+
+    return false;
   };
 
   const handleSubmit = async () => {
+    // Check if there are any changes for update operations
+    if (editingMember && !hasChanges()) {
+      handleCloseDialog();
+      return;
+    }
     try {
       if (editingMember) {
         const updateData: UpdateMemberRequest = {
@@ -413,7 +476,7 @@ const MembersPage: React.FC = () => {
                 <TableRow key={member.member_id}>
                   <TableCell>
                     <Avatar
-                      src={member.picture ? `${member.picture}?v=${member.version}` : undefined}
+                      src={getMemberPictureUrl(member.member_id, member.picture, member.version) || undefined}
                       sx={{
                         width: 50,
                         height: 50,
@@ -480,7 +543,7 @@ const MembersPage: React.FC = () => {
             <Grid container spacing={2} sx={{ mt: 1 }}>
               {editingMember && (
                 <Grid item xs={12}>
-                  <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 2 }}>
                     <MemberPhotoUpload
                       memberId={editingMember.member_id}
                       currentPhoto={editingMember.picture}
@@ -491,6 +554,23 @@ const MembersPage: React.FC = () => {
                       size={120}
                       showName
                     />
+                    {(editingMember.english_full_name || editingMember.arabic_full_name) && (
+                      <Box sx={{ mt: 2, textAlign: 'center' }}>
+                        <Typography variant="caption" color="text.secondary" gutterBottom>
+                          Full Name
+                        </Typography>
+                        {editingMember.english_full_name && (
+                          <Typography variant="body2" fontWeight="medium">
+                            {editingMember.english_full_name}
+                          </Typography>
+                        )}
+                        {editingMember.arabic_full_name && (
+                          <Typography variant="body2" fontWeight="medium" dir="rtl">
+                            {editingMember.arabic_full_name}
+                          </Typography>
+                        )}
+                      </Box>
+                    )}
                   </Box>
                 </Grid>
               )}
@@ -592,6 +672,79 @@ const MembersPage: React.FC = () => {
                 />
               </Grid>
 
+              {/* Parents Display Section */}
+              {editingMember && (editingMember.father || editingMember.mother) && (
+                <Grid item xs={12}>
+                  <Typography variant="h6" sx={{ mt: 2, mb: 1 }}>
+                    Parents
+                  </Typography>
+                  <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                    {editingMember.father && (
+                      <Paper
+                        sx={{
+                          p: 2,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 2,
+                          flex: '1 1 300px',
+                          border: '1px solid #00BCD4',
+                          cursor: 'pointer',
+                          '&:hover': { boxShadow: 3, bgcolor: 'action.hover' },
+                        }}
+                        onClick={() => handleOpenRelatedMember(editingMember.father!.member_id)}
+                      >
+                        <Avatar
+                          src={getMemberPictureUrl(editingMember.father.member_id, editingMember.father.picture) || undefined}
+                          sx={{ width: 50, height: 50, bgcolor: '#00BCD4' }}
+                        >
+                          {editingMember.father.english_name[0]}
+                        </Avatar>
+                        <Box sx={{ flex: 1 }}>
+                          <Chip label="Father" size="small" color="info" sx={{ mb: 0.5 }} />
+                          <Typography variant="body1" fontWeight="bold">
+                            {editingMember.father.english_name}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            {editingMember.father.arabic_name}
+                          </Typography>
+                        </Box>
+                      </Paper>
+                    )}
+                    {editingMember.mother && (
+                      <Paper
+                        sx={{
+                          p: 2,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 2,
+                          flex: '1 1 300px',
+                          border: '1px solid #E91E63',
+                          cursor: 'pointer',
+                          '&:hover': { boxShadow: 3, bgcolor: 'action.hover' },
+                        }}
+                        onClick={() => handleOpenRelatedMember(editingMember.mother!.member_id)}
+                      >
+                        <Avatar
+                          src={getMemberPictureUrl(editingMember.mother.member_id, editingMember.mother.picture) || undefined}
+                          sx={{ width: 50, height: 50, bgcolor: '#E91E63' }}
+                        >
+                          {editingMember.mother.english_name[0]}
+                        </Avatar>
+                        <Box sx={{ flex: 1 }}>
+                          <Chip label="Mother" size="small" color="secondary" sx={{ mb: 0.5 }} />
+                          <Typography variant="body1" fontWeight="bold">
+                            {editingMember.mother.english_name}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            {editingMember.mother.arabic_name}
+                          </Typography>
+                        </Box>
+                      </Paper>
+                    )}
+                  </Box>
+                </Grid>
+              )}
+
               {/* Spouses Section */}
               {editingMember && (
                 <Grid item xs={12}>
@@ -616,11 +769,72 @@ const MembersPage: React.FC = () => {
                         currentMemberId={editingMember.member_id}
                         onUpdate={() => performSearch(searchQuery)}
                         editable={true}
+                        onMemberClick={() => handleOpenRelatedMember(spouse.member_id)}
                       />
                     ))
                   ) : (
                     <Typography variant="body2" color="text.secondary" sx={{ py: 2, textAlign: 'center' }}>
                       No spouses added yet. Click "Add Spouse" to create a relationship.
+                    </Typography>
+                  )}
+                </Grid>
+              )}
+
+              {/* Children Section */}
+              {editingMember && (
+                <Grid item xs={12}>
+                  <Typography variant="h6" sx={{ mt: 2, mb: 1 }}>
+                    Children {memberChildren && memberChildren.length > 0 && `(${memberChildren.length})`}
+                  </Typography>
+                  {memberChildren && memberChildren.length > 0 ? (
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                      {memberChildren.map((child) => (
+                        <Paper
+                          key={child.member_id}
+                          sx={{
+                            p: 2,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 2,
+                            border: '1px solid',
+                            borderColor: 'divider',
+                            cursor: 'pointer',
+                            '&:hover': { boxShadow: 3, bgcolor: 'action.hover' },
+                          }}
+                          onClick={() => handleOpenRelatedMember(child.member_id)}
+                        >
+                          <Avatar
+                            src={getMemberPictureUrl(child.member_id, child.picture, child.version) || undefined}
+                            sx={{
+                              width: 50,
+                              height: 50,
+                              bgcolor: child.gender === 'M' ? '#00BCD4' : child.gender === 'F' ? '#E91E63' : '#9E9E9E',
+                            }}
+                          >
+                            {child.english_name[0]}
+                          </Avatar>
+                          <Box sx={{ flex: 1 }}>
+                            <Chip
+                              label={child.gender === 'M' ? 'Son' : child.gender === 'F' ? 'Daughter' : 'Child'}
+                              size="small"
+                              sx={{ mb: 0.5 }}
+                            />
+                            <Typography variant="body1" fontWeight="bold">
+                              {child.english_name}
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary">
+                              {child.arabic_name}
+                            </Typography>
+                          </Box>
+                          {child.age && (
+                            <Chip label={`Age: ${child.age}`} size="small" variant="outlined" />
+                          )}
+                        </Paper>
+                      ))}
+                    </Box>
+                  ) : (
+                    <Typography variant="body2" color="text.secondary" sx={{ py: 2, textAlign: 'center' }}>
+                      No children found.
                     </Typography>
                   )}
                 </Grid>
