@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -8,21 +9,23 @@ import (
 
 const (
 	keyUserID    = "user_id"
-	keyUserEmail = "user_email"
 	keyUserRole  = "user_role"
+	keyIsActive  = "is_active"
 	keySessionID = "session_id"
 )
 
 type authMiddleware struct {
 	tokenMgr      TokenManager
 	authUseCase   AuthUseCase
+	userRepo      UserRepository
 	cookieManager CookieManager
 }
 
-func NewAuthMiddleware(tokenMgr TokenManager, authUseCase AuthUseCase, cookieManager CookieManager) *authMiddleware {
+func NewAuthMiddleware(tokenMgr TokenManager, authUseCase AuthUseCase, userRepo UserRepository, cookieManager CookieManager) *authMiddleware {
 	return &authMiddleware{
 		tokenMgr:      tokenMgr,
 		authUseCase:   authUseCase,
+		userRepo:      userRepo,
 		cookieManager: cookieManager,
 	}
 }
@@ -30,7 +33,7 @@ func NewAuthMiddleware(tokenMgr TokenManager, authUseCase AuthUseCase, cookieMan
 func (m *authMiddleware) Authenticate() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		accessToken, err := m.cookieManager.GetAccessToken(c)
-		if err != nil {
+		if err != nil && !errors.Is(err, http.ErrNoCookie) {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "missing auth token"})
 			c.Abort()
 			return
@@ -69,9 +72,16 @@ func (m *authMiddleware) Authenticate() gin.HandlerFunc {
 			return
 		}
 
-		c.Set(keyUserID, claims.UserID)
-		c.Set(keyUserEmail, claims.Email)
-		c.Set(keyUserRole, claims.RoleID)
+		user, err := m.userRepo.GetByID(c.Request.Context(), claims.UserID)
+		if err != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "user not found"})
+			c.Abort()
+			return
+		}
+
+		c.Set(keyUserID, user.UserID)
+		c.Set(keyUserRole, user.RoleID)
+		c.Set(keyIsActive, user.IsActive)
 		c.Set(keySessionID, claims.SessionID)
 
 		c.Next()
@@ -92,6 +102,14 @@ func GetUserRole(c *gin.Context) int {
 		return 0
 	}
 	return roleID.(int)
+}
+
+func GetIsActive(c *gin.Context) bool {
+	isActive, exists := c.Get(keyIsActive)
+	if !exists {
+		return false
+	}
+	return isActive.(bool)
 }
 
 func GetSessionID(c *gin.Context) string {

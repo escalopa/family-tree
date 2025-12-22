@@ -89,7 +89,9 @@ const LeaderboardPage: React.FC = () => {
                         <Avatar src={user.avatar || undefined}>
                           {user.full_name[0]}
                         </Avatar>
-                        <Typography variant="body1">{user.full_name}</Typography>
+                        <Box>
+                          <Typography variant="body1">{user.full_name}</Typography>
+                        </Box>
                       </Box>
                     </TableCell>
                     <TableCell align="right">

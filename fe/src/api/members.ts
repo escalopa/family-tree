@@ -1,6 +1,7 @@
 import { apiClient } from './client';
 import {
   Member,
+  ParentOption,
   PaginatedMembersResponse,
   PaginatedHistoryResponse,
   CreateMemberRequest,
@@ -40,17 +41,25 @@ export const membersApi = {
     await apiClient.delete(`/api/members/${memberId}`);
   },
 
-  uploadPicture: async (memberId: number, file: File): Promise<void> => {
+  uploadPicture: async (memberId: number, file: File): Promise<string> => {
     const formData = new FormData();
     formData.append('picture', file);
-    await apiClient.post(`/api/members/${memberId}/picture`, formData, {
+    const response = await apiClient.post(`/api/members/${memberId}/picture`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
     });
+    return response.data.data.picture_url;
   },
 
   deletePicture: async (memberId: number): Promise<void> => {
     await apiClient.delete(`/api/members/${memberId}/picture`);
+  },
+
+  searchParents: async (query: string, gender: 'M' | 'F'): Promise<ParentOption[]> => {
+    const response = await apiClient.get('/api/members/search-parents', {
+      params: { q: query, gender, limit: 20 },
+    });
+    return response.data.data;
   },
 };

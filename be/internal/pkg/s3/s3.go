@@ -58,12 +58,14 @@ func NewS3Client(ctx context.Context, endpoint, region, accessKey, secretKey, bu
 func (s *S3Client) UploadImage(ctx context.Context, data []byte, filename string) (string, error) {
 	// Validate size
 	if len(data) > MaxImageSize {
+		slog.Warn("S3Client.UploadImage: image size exceeds maximum", "size", len(data), "max_size", MaxImageSize, "filename", filename)
 		return "", domain.NewValidationError("image size exceeds maximum allowed size of 3MB")
 	}
 
 	// Validate file type
 	ext := strings.ToLower(filepath.Ext(filename))
 	if !allowedImageTypes[ext] {
+		slog.Warn("S3Client.UploadImage: unsupported image type", "extension", ext, "filename", filename)
 		return "", domain.NewValidationError(fmt.Sprintf("unsupported image type: %s", ext))
 	}
 
@@ -106,6 +108,7 @@ func (s *S3Client) DeleteImage(ctx context.Context, key string) error {
 
 func (s *S3Client) GetImage(ctx context.Context, key string) ([]byte, error) {
 	if key == "" {
+		slog.Warn("S3Client.GetImage: empty key provided")
 		return nil, domain.NewNotFoundError("image")
 	}
 

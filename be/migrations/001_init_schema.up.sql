@@ -62,6 +62,23 @@ CREATE INDEX idx_user_sessions_user_id ON user_sessions(user_id);
 CREATE INDEX idx_user_sessions_user_id_session_id ON user_sessions(user_id, session_id);
 
 -- =============================
+-- OAuth State Table
+-- =============================
+CREATE TABLE oauth_states (
+    state VARCHAR(255) NOT NULL,
+    provider VARCHAR(50) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    expires_at TIMESTAMP NOT NULL,
+    used BOOLEAN DEFAULT FALSE NOT NULL
+);
+
+ALTER TABLE oauth_states
+    ADD CONSTRAINT pk_oauth_states PRIMARY KEY (state);
+
+CREATE INDEX idx_oauth_states_expires_at ON oauth_states(expires_at);
+CREATE INDEX idx_oauth_states_provider ON oauth_states(provider);
+
+-- =============================
 -- Members (Family Tree)
 -- =============================
 CREATE TABLE members (
@@ -93,23 +110,25 @@ CREATE INDEX idx_members_english_name ON members(english_name);
 CREATE INDEX idx_members_deleted_at ON members(deleted_at);
 
 -- =============================
--- Members Marriages (Many-to-Many)
+-- Members Marriages (Spouse Relationships)
 -- =============================
 CREATE TABLE members_spouse (
-    member1_id INT NOT NULL,
-    member2_id INT NOT NULL,
+    spouse_id SERIAL,
+    father_id INT NOT NULL,
+    mother_id INT NOT NULL,
     marriage_date DATE,
     divorce_date DATE,
     CONSTRAINT chk_marriage_dates CHECK (divorce_date IS NULL OR marriage_date IS NULL OR divorce_date >= marriage_date)
 );
 
 ALTER TABLE members_spouse
-    ADD CONSTRAINT pk_members_spouse PRIMARY KEY (member1_id, member2_id),
-    ADD CONSTRAINT fk_marriage_member1 FOREIGN KEY (member1_id) REFERENCES members(member_id),
-    ADD CONSTRAINT fk_marriage_member2 FOREIGN KEY (member2_id) REFERENCES members(member_id);
+    ADD CONSTRAINT pk_members_spouse PRIMARY KEY (spouse_id),
+    ADD CONSTRAINT uq_members_spouse_pair UNIQUE (father_id, mother_id),
+    ADD CONSTRAINT fk_marriage_father FOREIGN KEY (father_id) REFERENCES members(member_id),
+    ADD CONSTRAINT fk_marriage_mother FOREIGN KEY (mother_id) REFERENCES members(member_id);
 
-CREATE INDEX idx_members_spouse_member1 ON members_spouse(member1_id);
-CREATE INDEX idx_members_spouse_member2 ON members_spouse(member2_id);
+CREATE INDEX idx_members_spouse_father ON members_spouse(father_id);
+CREATE INDEX idx_members_spouse_mother ON members_spouse(mother_id);
 
 -- =============================
 -- Members History (Edit Tracking)
@@ -176,6 +195,3 @@ ALTER TABLE user_role_history
 
 CREATE INDEX idx_user_role_history_user_id ON user_role_history(user_id);
 CREATE INDEX idx_user_role_history_changed_by ON user_role_history(changed_by);
-
-
-

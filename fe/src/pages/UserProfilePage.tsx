@@ -15,13 +15,16 @@ import {
   TableRow,
   Tabs,
   Tab,
+  IconButton,
 } from '@mui/material';
+import { Visibility } from '@mui/icons-material';
 import { usersApi } from '../api';
 import { User, ScoreHistory, HistoryRecord } from '../types';
 import { getRoleName, formatDate } from '../utils/helpers';
 import Layout from '../components/Layout/Layout';
 import { useAuth } from '../contexts/AuthContext';
 import { Roles } from '../types';
+import HistoryDiffDialog from '../components/HistoryDiffDialog';
 
 const UserProfilePage: React.FC = () => {
   const { userId } = useParams<{ userId: string }>();
@@ -31,6 +34,18 @@ const UserProfilePage: React.FC = () => {
   const [userChanges, setUserChanges] = useState<HistoryRecord[]>([]);
   const [activeTab, setActiveTab] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [selectedHistory, setSelectedHistory] = useState<HistoryRecord | null>(null);
+  const [diffDialogOpen, setDiffDialogOpen] = useState(false);
+
+  const handleViewDiff = (history: HistoryRecord) => {
+    setSelectedHistory(history);
+    setDiffDialogOpen(true);
+  };
+
+  const handleCloseDiff = () => {
+    setDiffDialogOpen(false);
+    setSelectedHistory(null);
+  };
 
   useEffect(() => {
     if (userId) {
@@ -46,8 +61,8 @@ const UserProfilePage: React.FC = () => {
       const scoresResponse = await usersApi.getScoreHistory(Number(userId));
       setScoreHistory(scoresResponse.scores);
 
-      // Only super admins can see user changes
-      if (hasRole(Roles.SUPER_ADMIN)) {
+      // Admins and super admins can see user changes
+      if (hasRole(Roles.ADMIN)) {
         const changesResponse = await usersApi.getUserChanges(Number(userId));
         setUserChanges(changesResponse.history);
       }
@@ -57,6 +72,7 @@ const UserProfilePage: React.FC = () => {
       setLoading(false);
     }
   };
+
 
   if (loading) {
     return (
@@ -138,7 +154,7 @@ const UserProfilePage: React.FC = () => {
         <Paper>
           <Tabs value={activeTab} onChange={(_, v) => setActiveTab(v)}>
             <Tab label="Score History" />
-            {hasRole(Roles.SUPER_ADMIN) && <Tab label="Recent Changes" />}
+            {hasRole(Roles.ADMIN) && <Tab label="Recent Changes" />}
           </Tabs>
 
           {/* Score History Tab */}
@@ -173,8 +189,8 @@ const UserProfilePage: React.FC = () => {
             </Box>
           )}
 
-          {/* Recent Changes Tab (Super Admin only) */}
-          {activeTab === 1 && hasRole(Roles.SUPER_ADMIN) && (
+          {/* Recent Changes Tab (Admin and Super Admin) */}
+          {activeTab === 1 && hasRole(Roles.ADMIN) && (
             <Box sx={{ p: 2 }}>
               <TableContainer>
                 <Table>
@@ -184,17 +200,27 @@ const UserProfilePage: React.FC = () => {
                       <TableCell>Member ID</TableCell>
                       <TableCell>Date</TableCell>
                       <TableCell>Version</TableCell>
+                      <TableCell>Actions</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
                     {userChanges.map((change) => (
-                      <TableRow key={change.history_id}>
+                      <TableRow key={change.history_id} hover>
                         <TableCell>
                           <Chip label={change.change_type} size="small" />
                         </TableCell>
                         <TableCell>{change.member_id}</TableCell>
                         <TableCell>{formatDate(change.changed_at)}</TableCell>
                         <TableCell>{change.member_version}</TableCell>
+                        <TableCell>
+                          <IconButton
+                            size="small"
+                            onClick={() => handleViewDiff(change)}
+                            color="primary"
+                          >
+                            <Visibility />
+                          </IconButton>
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -203,6 +229,13 @@ const UserProfilePage: React.FC = () => {
             </Box>
           )}
         </Paper>
+
+        {/* History Diff Dialog */}
+        <HistoryDiffDialog
+          open={diffDialogOpen}
+          onClose={handleCloseDiff}
+          history={selectedHistory}
+        />
       </Box>
     </Layout>
   );

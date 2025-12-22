@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User } from '../types';
-import { apiClient } from '../api';
+import { authApi } from '../api';
 
 interface AuthContextType {
   user: User | null;
@@ -30,20 +30,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const checkAuth = () => {
+    const checkAuth = async () => {
+      console.log('[AuthContext] Checking authentication...');
       try {
-        const storedUser = localStorage.getItem('user');
-        if (storedUser) {
-          setUser(JSON.parse(storedUser));
-        } else {
-          setUser(null);
-        }
-      } catch (error) {
-        console.error('Failed to parse stored user:', error);
-        localStorage.removeItem('user');
+        // Try to fetch user from backend (will use cookies)
+        // Backend middleware will auto-refresh tokens if needed
+        console.log('[AuthContext] Calling GET /api/auth/me');
+        const response = await authApi.getCurrentUser();
+        console.log('[AuthContext] Auth successful, user:', response.user);
+        setUser(response.user);
+        localStorage.setItem('user', JSON.stringify(response.user));
+      } catch (error: any) {
+        // If 401, user is not authenticated (both tokens expired/invalid)
+        console.log('[AuthContext] Auth failed:', error.response?.status, error.message);
         setUser(null);
+        localStorage.removeItem('user');
       } finally {
         setLoading(false);
+        console.log('[AuthContext] Loading complete');
       }
     };
 

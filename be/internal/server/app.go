@@ -76,13 +76,13 @@ func NewApp(cfg *config.Config) (*App, error) {
 	spouseUseCase := usecase.NewSpouseUseCase(spouseRepo, memberRepo, historyRepo, scoreRepo)
 	treeUseCase := usecase.NewTreeUseCase(memberRepo, spouseRepo)
 
-	authHandler := handler.NewAuthHandler(authUseCase, cookieManager)
+	authHandler := handler.NewAuthHandler(authUseCase, userUseCase, cookieManager)
 	userHandler := handler.NewUserHandler(userUseCase)
 	memberHandler := handler.NewMemberHandler(memberUseCase)
 	spouseHandler := handler.NewSpouseHandler(spouseUseCase)
 	treeHandler := handler.NewTreeHandler(treeUseCase)
 
-	authMiddleware := middleware.NewAuthMiddleware(tokenMgr, authUseCase, cookieManager)
+	authMiddleware := middleware.NewAuthMiddleware(tokenMgr, authUseCase, userRepo, cookieManager)
 
 	router := http.NewRouter(
 		authHandler,

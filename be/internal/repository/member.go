@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 
 	"github.com/escalopa/family-tree/internal/domain"
 	"github.com/jackc/pgx/v5"
@@ -23,7 +24,7 @@ func (r *MemberRepository) Create(ctx context.Context, member *domain.Member) er
 	query := `
 		INSERT INTO members (arabic_name, english_name, gender, picture, date_of_birth, date_of_death,
 		                     father_id, mother_id, nicknames, profession, version)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 0)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 1)
 		RETURNING member_id, version
 	`
 	err := r.db.QueryRow(ctx, query,
@@ -51,6 +52,7 @@ func (r *MemberRepository) GetByID(ctx context.Context, memberID int) (*domain.M
 		&member.MotherID, &member.Nicknames, &member.Profession, &member.Version, &member.DeletedAt,
 	)
 	if errors.Is(err, pgx.ErrNoRows) {
+		slog.Warn("MemberRepository.GetByID: member not found", "member_id", memberID)
 		return nil, domain.NewNotFoundError("member")
 	}
 	if err != nil {
@@ -74,6 +76,7 @@ func (r *MemberRepository) Update(ctx context.Context, member *domain.Member, ex
 		member.Nicknames, member.Profession, member.MemberID, expectedVersion,
 	).Scan(&member.Version)
 	if errors.Is(err, pgx.ErrNoRows) {
+		slog.Warn("MemberRepository.Update: version conflict", "member_id", member.MemberID, "expected_version", expectedVersion)
 		return domain.NewVersionConflictError()
 	}
 	if err != nil {
@@ -89,6 +92,7 @@ func (r *MemberRepository) SoftDelete(ctx context.Context, memberID int) error {
 		return domain.NewDatabaseError(err)
 	}
 	if result.RowsAffected() == 0 {
+		slog.Warn("MemberRepository.SoftDelete: member not found", "member_id", memberID)
 		return domain.NewNotFoundError("member")
 	}
 	return nil
@@ -99,6 +103,7 @@ func (r *MemberRepository) UpdatePicture(ctx context.Context, memberID int, pict
 	var version int
 	err := r.db.QueryRow(ctx, query, pictureURL, memberID).Scan(&version)
 	if errors.Is(err, pgx.ErrNoRows) {
+		slog.Warn("MemberRepository.UpdatePicture: member not found", "member_id", memberID)
 		return domain.NewNotFoundError("member")
 	}
 	if err != nil {
@@ -121,20 +126,19 @@ func (r *MemberRepository) Search(ctx context.Context, filter domain.MemberFilte
 		SELECT DISTINCT m.member_id, m.arabic_name, m.english_name, m.gender, m.picture, m.date_of_birth,
 		       m.date_of_death, m.father_id, m.mother_id, m.nicknames, m.profession, m.version, m.deleted_at
 		FROM members m
-		LEFT JOIN members_spouse ms ON m.member_id = ms.member1_id OR m.member_id = ms.member2_id
+		LEFT JOIN members_spouse ms ON m.member_id = ms.father_id OR m.member_id = ms.mother_id
 		WHERE m.deleted_at IS NULL
 		  AND (($1::text IS NULL) OR m.member_id > $1::int)
-		  AND (($2::text IS NULL) OR m.arabic_name LIKE $2 || '%')
-		  AND (($3::text IS NULL) OR m.english_name LIKE $3 || '%')
-		  AND (($4::text IS NULL) OR m.gender = $4)
-		  AND (($5::boolean IS NULL) OR (
+		  AND (($2::text IS NULL) OR (m.arabic_name ILIKE '%' || $2 || '%' OR m.english_name ILIKE '%' || $2 || '%'))
+		  AND (($3::text IS NULL) OR m.gender = $3)
+		  AND (($4::boolean IS NULL) OR (
 		    CASE
-		      WHEN $5 = true THEN (ms.member1_id IS NOT NULL OR ms.member2_id IS NOT NULL)
-		      ELSE (ms.member1_id IS NULL AND ms.member2_id IS NULL)
+		      WHEN $4 = true THEN (ms.father_id IS NOT NULL OR ms.mother_id IS NOT NULL)
+		      ELSE (ms.father_id IS NULL AND ms.mother_id IS NULL)
 		    END
 		  ))
 		ORDER BY m.member_id
-		LIMIT $6
+		LIMIT $5
 	`
 
 	var cursorValue *string
@@ -144,8 +148,7 @@ func (r *MemberRepository) Search(ctx context.Context, filter domain.MemberFilte
 
 	rows, err := r.db.Query(ctx, query,
 		cursorValue,
-		filter.ArabicName,
-		filter.EnglishName,
+		filter.Name,
 		filter.Gender,
 		filter.IsMarried,
 		limit+1,
@@ -253,4 +256,20 @@ func (r *MemberRepository) GetByIDs(ctx context.Context, memberIDs []int) ([]*do
 		return nil, domain.NewDatabaseError(err)
 	}
 	return members, nil
+}
+
+func (r *MemberRepository) HasChildrenWithParents(ctx context.Context, fatherID, motherID int) (bool, error) {
+	query := `
+		SELECT EXISTS(
+			SELECT 1 FROM members
+			WHERE deleted_at IS NULL
+			  AND father_id = $1 AND mother_id = $2
+		)
+	`
+	var hasChildren bool
+	err := r.db.QueryRow(ctx, query, fatherID, motherID).Scan(&hasChildren)
+	if err != nil {
+		return false, domain.NewDatabaseError(err)
+	}
+	return hasChildren, nil
 }

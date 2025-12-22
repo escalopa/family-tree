@@ -11,12 +11,14 @@ import (
 
 type authHandler struct {
 	authUseCase   AuthUseCase
+	userUseCase   UserUseCase
 	cookieManager CookieManager
 }
 
-func NewAuthHandler(authUseCase AuthUseCase, cookieManager CookieManager) *authHandler {
+func NewAuthHandler(authUseCase AuthUseCase, userUseCase UserUseCase, cookieManager CookieManager) *authHandler {
 	return &authHandler{
 		authUseCase:   authUseCase,
+		userUseCase:   userUseCase,
 		cookieManager: cookieManager,
 	}
 }
@@ -154,4 +156,40 @@ func (h *authHandler) LogoutAll(c *gin.Context) {
 	h.cookieManager.ClearAuthCookies(c)
 
 	c.JSON(http.StatusOK, dto.Response{Success: true, Data: "logged out from all devices"})
+}
+
+// GetCurrentUser godoc
+// @Summary Get current user
+// @Description Returns the currently authenticated user's information
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Success 200 {object} dto.Response{data=dto.AuthResponse}
+// @Failure 401 {object} dto.Response
+// @Router /api/auth/me [get]
+func (h *authHandler) GetCurrentUser(c *gin.Context) {
+	userID := middleware.GetUserID(c)
+	if userID == 0 {
+		c.JSON(http.StatusUnauthorized, dto.Response{Success: false, Error: "not authenticated"})
+		return
+	}
+
+	user, err := h.userUseCase.GetUserByID(c.Request.Context(), userID)
+	if err != nil {
+		httpErrors.HandleError(c, err)
+		return
+	}
+
+	response := dto.AuthResponse{}
+	response.User.UserID = user.UserID
+	response.User.FullName = user.FullName
+	response.User.Email = user.Email
+	response.User.Avatar = user.Avatar
+	response.User.RoleID = user.RoleID
+	response.User.IsActive = user.IsActive
+
+	c.JSON(http.StatusOK, dto.Response{
+		Success: true,
+		Data:    response,
+	})
 }

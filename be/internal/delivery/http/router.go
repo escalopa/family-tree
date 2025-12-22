@@ -58,6 +58,7 @@ func (r *Router) Setup(engine *gin.Engine) {
 	{
 		authGroup := api.Group("/auth")
 		{
+			authGroup.GET("/me", r.authHandler.GetCurrentUser)
 			authGroup.POST("/logout", r.authHandler.Logout)
 			authGroup.POST("/logout-all", r.authHandler.LogoutAll)
 		}
@@ -68,7 +69,7 @@ func (r *Router) Setup(engine *gin.Engine) {
 			userGroup.GET("", r.userHandler.ListUsers)
 			userGroup.GET("/leaderboard", r.userHandler.GetLeaderboard)
 			userGroup.GET("/score/:user_id", r.userHandler.GetScoreHistory)
-			userGroup.GET("/members/:user_id", middleware.RequireRole(domain.RoleSuperAdmin), r.userHandler.GetUserChanges)
+			userGroup.GET("/members/:user_id", middleware.RequireRole(domain.RoleAdmin), r.userHandler.GetUserChanges)
 			userGroup.GET("/:user_id", r.userHandler.GetUser)
 
 			userGroup.PUT("/:user_id/role", middleware.RequireRole(domain.RoleSuperAdmin), r.userHandler.UpdateRole)
@@ -87,6 +88,7 @@ func (r *Router) Setup(engine *gin.Engine) {
 		{
 			memberGroup.GET("/info/:member_id", r.memberHandler.GetMember)
 			memberGroup.GET("/search", r.memberHandler.SearchMembers)
+			memberGroup.GET("/search-parents", r.memberHandler.SearchParents)
 			memberGroup.GET("/history", middleware.RequireRole(domain.RoleSuperAdmin), r.memberHandler.GetMemberHistory)
 			memberGroup.GET("/:member_id/picture", r.memberHandler.GetPicture)
 
@@ -102,6 +104,7 @@ func (r *Router) Setup(engine *gin.Engine) {
 		{
 			spouseGroup.POST("", r.spouseHandler.AddSpouse)
 			spouseGroup.PUT("", r.spouseHandler.UpdateSpouse)
+			spouseGroup.PUT("/member", r.spouseHandler.UpdateSpouseByID)
 			spouseGroup.DELETE("", r.spouseHandler.RemoveSpouse)
 		}
 	}

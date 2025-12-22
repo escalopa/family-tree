@@ -25,10 +25,10 @@ func (h *spouseHandler) AddSpouse(c *gin.Context) {
 	}
 
 	spouse := &domain.Spouse{
-		Member1ID:    req.Member1ID,
-		Member2ID:    req.Member2ID,
-		MarriageDate: req.MarriageDate,
-		DivorceDate:  req.DivorceDate,
+		FatherID:     req.FatherID,
+		MotherID:     req.MotherID,
+		MarriageDate: req.MarriageDate.ToTimePtr(),
+		DivorceDate:  req.DivorceDate.ToTimePtr(),
 	}
 
 	userID := middleware.GetUserID(c)
@@ -48,10 +48,10 @@ func (h *spouseHandler) UpdateSpouse(c *gin.Context) {
 	}
 
 	spouse := &domain.Spouse{
-		Member1ID:    req.Member1ID,
-		Member2ID:    req.Member2ID,
-		MarriageDate: req.MarriageDate,
-		DivorceDate:  req.DivorceDate,
+		FatherID:     req.FatherID,
+		MotherID:     req.MotherID,
+		MarriageDate: req.MarriageDate.ToTimePtr(),
+		DivorceDate:  req.DivorceDate.ToTimePtr(),
 	}
 
 	userID := middleware.GetUserID(c)
@@ -63,10 +63,31 @@ func (h *spouseHandler) UpdateSpouse(c *gin.Context) {
 	c.JSON(http.StatusOK, dto.Response{Success: true, Data: "spouse relationship updated"})
 }
 
+func (h *spouseHandler) UpdateSpouseByID(c *gin.Context) {
+	var req dto.UpdateSpouseByMemberRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, dto.Response{Success: false, Error: err.Error()})
+		return
+	}
+
+	spouse := &domain.Spouse{
+		SpouseID:     req.SpouseID,
+		MarriageDate: req.MarriageDate.ToTimePtr(),
+		DivorceDate:  req.DivorceDate.ToTimePtr(),
+	}
+
+	userID := middleware.GetUserID(c)
+	if err := h.spouseUseCase.UpdateSpouseByID(c.Request.Context(), spouse, userID); err != nil {
+		c.JSON(http.StatusInternalServerError, dto.Response{Success: false, Error: err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, dto.Response{Success: true, Data: "spouse relationship updated"})
+}
+
 func (h *spouseHandler) RemoveSpouse(c *gin.Context) {
 	var req struct {
-		Member1ID int `json:"member1_id" binding:"required"`
-		Member2ID int `json:"member2_id" binding:"required"`
+		SpouseID int `json:"spouse_id" binding:"required"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, dto.Response{Success: false, Error: err.Error()})
@@ -74,7 +95,7 @@ func (h *spouseHandler) RemoveSpouse(c *gin.Context) {
 	}
 
 	userID := middleware.GetUserID(c)
-	if err := h.spouseUseCase.RemoveSpouse(c.Request.Context(), req.Member1ID, req.Member2ID, userID); err != nil {
+	if err := h.spouseUseCase.RemoveSpouseByID(c.Request.Context(), req.SpouseID, userID); err != nil {
 		c.JSON(http.StatusInternalServerError, dto.Response{Success: false, Error: err.Error()})
 		return
 	}

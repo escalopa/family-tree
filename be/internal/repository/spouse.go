@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"errors"
+	"log/slog"
 
 	"github.com/escalopa/family-tree/internal/domain"
 	"github.com/jackc/pgx/v5"
@@ -19,27 +20,29 @@ func NewSpouseRepository(db *pgxpool.Pool) *SpouseRepository {
 
 func (r *SpouseRepository) Create(ctx context.Context, spouse *domain.Spouse) error {
 	query := `
-		INSERT INTO members_spouse (member1_id, member2_id, marriage_date, divorce_date)
+		INSERT INTO members_spouse (father_id, mother_id, marriage_date, divorce_date)
 		VALUES ($1, $2, $3, $4)
+		RETURNING spouse_id
 	`
-	_, err := r.db.Exec(ctx, query, spouse.Member1ID, spouse.Member2ID, spouse.MarriageDate, spouse.DivorceDate)
+	err := r.db.QueryRow(ctx, query, spouse.FatherID, spouse.MotherID, spouse.MarriageDate, spouse.DivorceDate).Scan(&spouse.SpouseID)
 	if err != nil {
 		return domain.NewDatabaseError(err)
 	}
 	return nil
 }
 
-func (r *SpouseRepository) Get(ctx context.Context, member1ID, member2ID int) (*domain.Spouse, error) {
+func (r *SpouseRepository) GetByID(ctx context.Context, spouseID int) (*domain.Spouse, error) {
 	query := `
-		SELECT member1_id, member2_id, marriage_date, divorce_date
+		SELECT spouse_id, father_id, mother_id, marriage_date, divorce_date
 		FROM members_spouse
-		WHERE (member1_id = $1 AND member2_id = $2) OR (member1_id = $2 AND member2_id = $1)
+		WHERE spouse_id = $1
 	`
 	spouse := &domain.Spouse{}
-	err := r.db.QueryRow(ctx, query, member1ID, member2ID).Scan(
-		&spouse.Member1ID, &spouse.Member2ID, &spouse.MarriageDate, &spouse.DivorceDate,
+	err := r.db.QueryRow(ctx, query, spouseID).Scan(
+		&spouse.SpouseID, &spouse.FatherID, &spouse.MotherID, &spouse.MarriageDate, &spouse.DivorceDate,
 	)
 	if errors.Is(err, pgx.ErrNoRows) {
+		slog.Warn("SpouseRepository.GetByID: spouse relationship not found", "spouse_id", spouseID)
 		return nil, domain.NewNotFoundError("spouse relationship")
 	}
 	if err != nil {
@@ -48,32 +51,87 @@ func (r *SpouseRepository) Get(ctx context.Context, member1ID, member2ID int) (*
 	return spouse, nil
 }
 
-func (r *SpouseRepository) Update(ctx context.Context, spouse *domain.Spouse) error {
+func (r *SpouseRepository) Get(ctx context.Context, fatherID, motherID int) (*domain.Spouse, error) {
+	query := `
+		SELECT spouse_id, father_id, mother_id, marriage_date, divorce_date
+		FROM members_spouse
+		WHERE father_id = $1 AND mother_id = $2
+	`
+	spouse := &domain.Spouse{}
+	err := r.db.QueryRow(ctx, query, fatherID, motherID).Scan(
+		&spouse.SpouseID, &spouse.FatherID, &spouse.MotherID, &spouse.MarriageDate, &spouse.DivorceDate,
+	)
+	if errors.Is(err, pgx.ErrNoRows) {
+		slog.Warn("SpouseRepository.Get: spouse relationship not found", "father_id", fatherID, "mother_id", motherID)
+		return nil, domain.NewNotFoundError("spouse relationship")
+	}
+	if err != nil {
+		return nil, domain.NewDatabaseError(err)
+	}
+	return spouse, nil
+}
+
+func (r *SpouseRepository) UpdateByID(ctx context.Context, spouse *domain.Spouse) error {
 	query := `
 		UPDATE members_spouse
 		SET marriage_date = $1, divorce_date = $2
-		WHERE (member1_id = $3 AND member2_id = $4) OR (member1_id = $4 AND member2_id = $3)
+		WHERE spouse_id = $3
 	`
-	result, err := r.db.Exec(ctx, query, spouse.MarriageDate, spouse.DivorceDate, spouse.Member1ID, spouse.Member2ID)
+	result, err := r.db.Exec(ctx, query, spouse.MarriageDate, spouse.DivorceDate, spouse.SpouseID)
 	if err != nil {
 		return domain.NewDatabaseError(err)
 	}
 	if result.RowsAffected() == 0 {
+		slog.Warn("SpouseRepository.UpdateByID: spouse relationship not found", "spouse_id", spouse.SpouseID)
 		return domain.NewNotFoundError("spouse relationship")
 	}
 	return nil
 }
 
-func (r *SpouseRepository) Delete(ctx context.Context, member1ID, member2ID int) error {
+func (r *SpouseRepository) Update(ctx context.Context, spouse *domain.Spouse) error {
 	query := `
-		DELETE FROM members_spouse
-		WHERE (member1_id = $1 AND member2_id = $2) OR (member1_id = $2 AND member2_id = $1)
+		UPDATE members_spouse
+		SET marriage_date = $1, divorce_date = $2
+		WHERE father_id = $3 AND mother_id = $4
 	`
-	result, err := r.db.Exec(ctx, query, member1ID, member2ID)
+	result, err := r.db.Exec(ctx, query, spouse.MarriageDate, spouse.DivorceDate, spouse.FatherID, spouse.MotherID)
 	if err != nil {
 		return domain.NewDatabaseError(err)
 	}
 	if result.RowsAffected() == 0 {
+		slog.Warn("SpouseRepository.Update: spouse relationship not found", "father_id", spouse.FatherID, "mother_id", spouse.MotherID)
+		return domain.NewNotFoundError("spouse relationship")
+	}
+	return nil
+}
+
+func (r *SpouseRepository) Delete(ctx context.Context, fatherID, motherID int) error {
+	query := `
+		DELETE FROM members_spouse
+		WHERE father_id = $1 AND mother_id = $2
+	`
+	result, err := r.db.Exec(ctx, query, fatherID, motherID)
+	if err != nil {
+		return domain.NewDatabaseError(err)
+	}
+	if result.RowsAffected() == 0 {
+		slog.Warn("SpouseRepository.Delete: spouse relationship not found", "father_id", fatherID, "mother_id", motherID)
+		return domain.NewNotFoundError("spouse relationship")
+	}
+	return nil
+}
+
+func (r *SpouseRepository) DeleteByID(ctx context.Context, spouseID int) error {
+	query := `
+		DELETE FROM members_spouse
+		WHERE spouse_id = $1
+	`
+	result, err := r.db.Exec(ctx, query, spouseID)
+	if err != nil {
+		return domain.NewDatabaseError(err)
+	}
+	if result.RowsAffected() == 0 {
+		slog.Warn("SpouseRepository.DeleteByID: spouse relationship not found", "spouse_id", spouseID)
 		return domain.NewNotFoundError("spouse relationship")
 	}
 	return nil
@@ -83,11 +141,11 @@ func (r *SpouseRepository) GetSpousesByMemberID(ctx context.Context, memberID in
 	query := `
 		SELECT
 			CASE
-				WHEN member1_id = $1 THEN member2_id
-				ELSE member1_id
+				WHEN father_id = $1 THEN mother_id
+				ELSE father_id
 			END as spouse_id
 		FROM members_spouse
-		WHERE member1_id = $1 OR member2_id = $1
+		WHERE father_id = $1 OR mother_id = $1
 	`
 	rows, err := r.db.Query(ctx, query, memberID)
 	if err != nil {
@@ -110,7 +168,7 @@ func (r *SpouseRepository) GetSpousesByMemberID(ctx context.Context, memberID in
 }
 
 func (r *SpouseRepository) GetAllSpouses(ctx context.Context) (map[int][]int, error) {
-	query := `SELECT member1_id, member2_id FROM members_spouse`
+	query := `SELECT father_id, mother_id FROM members_spouse`
 	rows, err := r.db.Query(ctx, query)
 	if err != nil {
 		return nil, domain.NewDatabaseError(err)
@@ -119,15 +177,62 @@ func (r *SpouseRepository) GetAllSpouses(ctx context.Context) (map[int][]int, er
 
 	spouseMap := make(map[int][]int)
 	for rows.Next() {
-		var member1ID, member2ID int
-		if err := rows.Scan(&member1ID, &member2ID); err != nil {
+		var fatherID, motherID int
+		if err := rows.Scan(&fatherID, &motherID); err != nil {
 			return nil, domain.NewDatabaseError(err)
 		}
-		spouseMap[member1ID] = append(spouseMap[member1ID], member2ID)
-		spouseMap[member2ID] = append(spouseMap[member2ID], member1ID)
+		spouseMap[fatherID] = append(spouseMap[fatherID], motherID)
+		spouseMap[motherID] = append(spouseMap[motherID], fatherID)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, domain.NewDatabaseError(err)
 	}
 	return spouseMap, nil
+}
+
+func (r *SpouseRepository) GetSpousesWithMemberInfo(ctx context.Context, memberID int) ([]domain.SpouseWithMemberInfo, error) {
+	query := `
+		SELECT
+			ms.spouse_id,
+			m.member_id,
+			m.arabic_name,
+			m.english_name,
+			m.gender,
+			m.picture,
+			ms.marriage_date,
+			ms.divorce_date
+		FROM members_spouse ms
+		JOIN members m ON (
+			(ms.father_id = $1 AND m.member_id = ms.mother_id) OR
+			(ms.mother_id = $1 AND m.member_id = ms.father_id)
+		)
+		WHERE m.deleted_at IS NULL
+	`
+	rows, err := r.db.Query(ctx, query, memberID)
+	if err != nil {
+		return nil, domain.NewDatabaseError(err)
+	}
+	defer rows.Close()
+
+	var spouses []domain.SpouseWithMemberInfo
+	for rows.Next() {
+		var spouse domain.SpouseWithMemberInfo
+		if err := rows.Scan(
+			&spouse.SpouseID,
+			&spouse.MemberID,
+			&spouse.ArabicName,
+			&spouse.EnglishName,
+			&spouse.Gender,
+			&spouse.Picture,
+			&spouse.MarriageDate,
+			&spouse.DivorceDate,
+		); err != nil {
+			return nil, domain.NewDatabaseError(err)
+		}
+		spouses = append(spouses, spouse)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, domain.NewDatabaseError(err)
+	}
+	return spouses, nil
 }

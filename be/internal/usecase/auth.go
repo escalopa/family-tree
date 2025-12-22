@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/base64"
+	"log/slog"
 	"time"
 
 	"github.com/escalopa/family-tree/internal/domain"
@@ -115,7 +116,7 @@ func (uc *authUseCase) HandleCallback(ctx context.Context, provider, code, state
 		return nil, nil, err
 	}
 
-	accessToken, err := uc.tokenMgr.GenerateAccessToken(user.UserID, user.Email, user.RoleID, sessionID)
+	accessToken, err := uc.tokenMgr.GenerateAccessToken(user.UserID, sessionID)
 	if err != nil {
 		return nil, nil, domain.NewInternalError("generate access token", err)
 	}
@@ -137,18 +138,22 @@ func (uc *authUseCase) HandleCallback(ctx context.Context, provider, code, state
 func (uc *authUseCase) validateState(ctx context.Context, state, provider string) error {
 	oauthState, err := uc.oauthStateRepo.Get(ctx, state)
 	if err != nil {
+		slog.Warn("authUseCase.validateState: invalid or expired OAuth state", "error", err, "state", state)
 		return domain.NewUnauthorizedError("invalid or expired OAuth state", err)
 	}
 
 	if oauthState.Provider != provider {
+		slog.Warn("authUseCase.validateState: state provider mismatch", "expected", provider, "actual", oauthState.Provider, "state", state)
 		return domain.NewUnauthorizedError("state provider mismatch", nil)
 	}
 
 	if time.Now().After(oauthState.ExpiresAt) {
+		slog.Warn("authUseCase.validateState: OAuth state expired", "state", state, "expires_at", oauthState.ExpiresAt)
 		return domain.NewUnauthorizedError("OAuth state expired", nil)
 	}
 
 	if oauthState.Used {
+		slog.Warn("authUseCase.validateState: OAuth state already used", "state", state)
 		return domain.NewUnauthorizedError("OAuth state already used", nil)
 	}
 
@@ -162,6 +167,7 @@ func (uc *authUseCase) validateState(ctx context.Context, state, provider string
 func (uc *authUseCase) RefreshTokens(ctx context.Context, refreshToken string) (*domain.AuthTokens, error) {
 	claims, err := uc.tokenMgr.ValidateToken(refreshToken)
 	if err != nil {
+		slog.Warn("authUseCase.RefreshTokens: invalid refresh token", "error", err)
 		return nil, domain.NewUnauthorizedError("invalid refresh token", err)
 	}
 
@@ -170,6 +176,7 @@ func (uc *authUseCase) RefreshTokens(ctx context.Context, refreshToken string) (
 		return nil, err
 	}
 	if session == nil || session.Revoked || session.ExpiresAt.Before(time.Now()) {
+		slog.Warn("authUseCase.RefreshTokens: session expired or revoked", "session_id", claims.SessionID, "user_id", claims.UserID)
 		return nil, domain.NewUnauthorizedError("session expired or revoked", nil)
 	}
 
@@ -178,10 +185,11 @@ func (uc *authUseCase) RefreshTokens(ctx context.Context, refreshToken string) (
 		return nil, err
 	}
 	if !user.IsActive {
+		slog.Warn("authUseCase.RefreshTokens: user is not active", "user_id", user.UserID)
 		return nil, domain.NewForbiddenError("user is not active")
 	}
 
-	accessToken, err := uc.tokenMgr.GenerateAccessToken(user.UserID, user.Email, user.RoleID, claims.SessionID)
+	accessToken, err := uc.tokenMgr.GenerateAccessToken(user.UserID, claims.SessionID)
 	if err != nil {
 		return nil, domain.NewInternalError("generate access token", err)
 	}
@@ -209,6 +217,7 @@ func (uc *authUseCase) ValidateSession(ctx context.Context, sessionID string) (*
 		return nil, err
 	}
 	if session == nil || session.Revoked || session.ExpiresAt.Before(time.Now()) {
+		slog.Warn("authUseCase.ValidateSession: session invalid or expired", "session_id", sessionID)
 		return nil, domain.NewUnauthorizedError("session invalid or expired", nil)
 	}
 	return session, nil

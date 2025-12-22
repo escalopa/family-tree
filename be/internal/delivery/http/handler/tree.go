@@ -36,6 +36,20 @@ func (h *treeHandler) GetTree(c *gin.Context) {
 
 		var response []dto.MemberResponse
 		for _, m := range members {
+			// Convert spouse information to DTO
+			spousesDTO := make([]dto.SpouseInfo, len(m.Spouses))
+			for i, spouse := range m.Spouses {
+				spousesDTO[i] = dto.SpouseInfo{
+					MemberID:     spouse.MemberID,
+					ArabicName:   spouse.ArabicName,
+					EnglishName:  spouse.EnglishName,
+					Gender:       spouse.Gender,
+					Picture:      spouse.Picture,
+					MarriageDate: dto.FromTimePtr(spouse.MarriageDate),
+					DivorceDate:  dto.FromTimePtr(spouse.DivorceDate),
+				}
+			}
+
 			response = append(response, dto.MemberResponse{
 				MemberID:    m.MemberID,
 				ArabicName:  m.ArabicName,
@@ -50,7 +64,7 @@ func (h *treeHandler) GetTree(c *gin.Context) {
 				Profession:  m.Profession,
 				Version:     m.Version,
 				IsMarried:   m.IsMarried,
-				Spouses:     m.Spouses,
+				Spouses:     spousesDTO,
 			})
 		}
 
@@ -84,6 +98,21 @@ func (h *treeHandler) GetRelation(c *gin.Context) {
 
 	var response []dto.MemberResponse
 	for _, m := range path {
+		// Convert spouse information to DTO
+		spousesDTO := make([]dto.SpouseInfo, len(m.Spouses))
+		for i, spouse := range m.Spouses {
+			spousesDTO[i] = dto.SpouseInfo{
+				SpouseID:     spouse.SpouseID,
+				MemberID:     spouse.MemberID,
+				ArabicName:   spouse.ArabicName,
+				EnglishName:  spouse.EnglishName,
+				Gender:       spouse.Gender,
+				Picture:      spouse.Picture,
+				MarriageDate: dto.FromTimePtr(spouse.MarriageDate),
+				DivorceDate:  dto.FromTimePtr(spouse.DivorceDate),
+			}
+		}
+
 		response = append(response, dto.MemberResponse{
 			MemberID:    m.MemberID,
 			ArabicName:  m.ArabicName,
@@ -98,7 +127,7 @@ func (h *treeHandler) GetRelation(c *gin.Context) {
 			Profession:  m.Profession,
 			Version:     m.Version,
 			IsMarried:   m.IsMarried,
-			Spouses:     m.Spouses,
+			Spouses:     spousesDTO,
 		})
 	}
 
@@ -108,6 +137,21 @@ func (h *treeHandler) GetRelation(c *gin.Context) {
 func (h *treeHandler) convertToTreeResponse(node *domain.MemberTreeNode) *dto.TreeNodeResponse {
 	if node == nil {
 		return nil
+	}
+
+	// Convert spouse information to DTO
+	spousesDTO := make([]dto.SpouseInfo, len(node.Spouses))
+	for i, spouse := range node.Spouses {
+		spousesDTO[i] = dto.SpouseInfo{
+			SpouseID:     spouse.SpouseID,
+			MemberID:     spouse.MemberID,
+			ArabicName:   spouse.ArabicName,
+			EnglishName:  spouse.EnglishName,
+			Gender:       spouse.Gender,
+			Picture:      spouse.Picture,
+			MarriageDate: dto.FromTimePtr(spouse.MarriageDate),
+			DivorceDate:  dto.FromTimePtr(spouse.DivorceDate),
+		}
 	}
 
 	response := &dto.TreeNodeResponse{
@@ -129,7 +173,7 @@ func (h *treeHandler) convertToTreeResponse(node *domain.MemberTreeNode) *dto.Tr
 			Age:             node.Age,
 			GenerationLevel: node.GenerationLevel,
 			IsMarried:       node.IsMarried,
-			Spouses:         node.Spouses,
+			Spouses:         spousesDTO,
 		},
 	}
 

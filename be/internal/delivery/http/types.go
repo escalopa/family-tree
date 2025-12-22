@@ -5,6 +5,7 @@ import "github.com/gin-gonic/gin"
 type AuthHandler interface {
 	GetAuthURL(c *gin.Context)
 	HandleCallback(c *gin.Context)
+	GetCurrentUser(c *gin.Context)
 	Logout(c *gin.Context)
 	LogoutAll(c *gin.Context)
 }
@@ -25,6 +26,7 @@ type MemberHandler interface {
 	DeleteMember(c *gin.Context)
 	GetMember(c *gin.Context)
 	SearchMembers(c *gin.Context)
+	SearchParents(c *gin.Context)
 	GetMemberHistory(c *gin.Context)
 	UploadPicture(c *gin.Context)
 	DeletePicture(c *gin.Context)
@@ -34,6 +36,7 @@ type MemberHandler interface {
 type SpouseHandler interface {
 	AddSpouse(c *gin.Context)
 	UpdateSpouse(c *gin.Context)
+	UpdateSpouseByID(c *gin.Context)
 	RemoveSpouse(c *gin.Context)
 }
 

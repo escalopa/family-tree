@@ -158,6 +158,21 @@ func (h *memberHandler) GetMember(c *gin.Context) {
 	userRole := middleware.GetUserRole(c)
 	computed := h.memberUseCase.ComputeMemberWithExtras(c.Request.Context(), member, userRole)
 
+	// Convert spouse information to DTO
+	spousesDTO := make([]dto.SpouseInfo, len(computed.Spouses))
+	for i, spouse := range computed.Spouses {
+		spousesDTO[i] = dto.SpouseInfo{
+			SpouseID:     spouse.SpouseID,
+			MemberID:     spouse.MemberID,
+			ArabicName:   spouse.ArabicName,
+			EnglishName:  spouse.EnglishName,
+			Gender:       spouse.Gender,
+			Picture:      spouse.Picture,
+			MarriageDate: dto.FromTimePtr(spouse.MarriageDate),
+			DivorceDate:  dto.FromTimePtr(spouse.DivorceDate),
+		}
+	}
+
 	response := dto.MemberResponse{
 		MemberID:        computed.MemberID,
 		ArabicName:      computed.ArabicName,
@@ -176,7 +191,7 @@ func (h *memberHandler) GetMember(c *gin.Context) {
 		Age:             computed.Age,
 		GenerationLevel: computed.GenerationLevel,
 		IsMarried:       computed.IsMarried,
-		Spouses:         computed.Spouses,
+		Spouses:         spousesDTO,
 	}
 
 	c.JSON(http.StatusOK, dto.Response{Success: true, Data: response})
@@ -207,23 +222,14 @@ func (h *memberHandler) SearchMembers(c *gin.Context) {
 		return
 	}
 
-	// At least one filter must be provided
-	if query.ArabicName == nil && query.EnglishName == nil && query.Gender == nil && query.Married == nil {
-		c.JSON(http.StatusBadRequest, dto.Response{Success: false, Error: "at least one filter required"})
-		return
-	}
-
 	filter := domain.MemberFilter{
-		ArabicName:  query.ArabicName,
-		EnglishName: query.EnglishName,
-		Gender:      query.Gender,
+		Name:   query.Name,
+		Gender: query.Gender,
 	}
 	if query.Married != nil {
 		married := *query.Married == 1
 		filter.IsMarried = &married
 	}
-
-	query.Limit = min(max(1, query.Limit), 100) // min 1, max 100
 
 	members, nextCursor, err := h.memberUseCase.SearchMembers(c.Request.Context(), filter, query.Cursor, query.Limit)
 	if err != nil {
@@ -235,6 +241,22 @@ func (h *memberHandler) SearchMembers(c *gin.Context) {
 	var membersResponse []dto.MemberResponse
 	for _, m := range members {
 		computed := h.memberUseCase.ComputeMemberWithExtras(c.Request.Context(), m, userRole)
+
+		// Convert spouse information to DTO
+		spousesDTO := make([]dto.SpouseInfo, len(computed.Spouses))
+		for i, spouse := range computed.Spouses {
+			spousesDTO[i] = dto.SpouseInfo{
+				SpouseID:     spouse.SpouseID,
+				MemberID:     spouse.MemberID,
+				ArabicName:   spouse.ArabicName,
+				EnglishName:  spouse.EnglishName,
+				Gender:       spouse.Gender,
+				Picture:      spouse.Picture,
+				MarriageDate: dto.FromTimePtr(spouse.MarriageDate),
+				DivorceDate:  dto.FromTimePtr(spouse.DivorceDate),
+			}
+		}
+
 		membersResponse = append(membersResponse, dto.MemberResponse{
 			MemberID:    computed.MemberID,
 			ArabicName:  computed.ArabicName,
@@ -249,7 +271,7 @@ func (h *memberHandler) SearchMembers(c *gin.Context) {
 			Profession:  computed.Profession,
 			Version:     computed.Version,
 			IsMarried:   computed.IsMarried,
-			Spouses:     computed.Spouses,
+			Spouses:     spousesDTO,
 		})
 	}
 
@@ -259,6 +281,54 @@ func (h *memberHandler) SearchMembers(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, dto.Response{Success: true, Data: response})
+}
+
+// SearchParents godoc
+// @Summary Search for potential parents
+// @Description Search for members by name filtered by gender (for parent selection)
+// @Tags members
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param q query string true "Search query (name in Arabic or English)"
+// @Param gender query string true "Required gender filter (M or F)"
+// @Param limit query int false "Number of results (max 20)" default(10)
+// @Success 200 {object} dto.Response{data=[]dto.ParentOption}
+// @Failure 400 {object} dto.Response
+// @Failure 401 {object} dto.Response
+// @Failure 500 {object} dto.Response
+// @Router /api/members/search-parents [get]
+func (h *memberHandler) SearchParents(c *gin.Context) {
+	var query dto.ParentSearchQuery
+	if err := c.ShouldBindQuery(&query); err != nil {
+		c.JSON(http.StatusBadRequest, dto.Response{Success: false, Error: err.Error()})
+		return
+	}
+
+	filter := domain.MemberFilter{
+		Name:   &query.Query,
+		Gender: &query.Gender,
+	}
+
+	members, _, err := h.memberUseCase.SearchMembers(c.Request.Context(), filter, nil, query.Limit)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, dto.Response{Success: false, Error: err.Error()})
+		return
+	}
+
+	// Convert to parent options
+	var options []dto.ParentOption
+	for _, member := range members {
+		options = append(options, dto.ParentOption{
+			MemberID:    member.MemberID,
+			ArabicName:  member.ArabicName,
+			EnglishName: member.EnglishName,
+			Picture:     member.Picture,
+			Gender:      member.Gender,
+		})
+	}
+
+	c.JSON(http.StatusOK, dto.Response{Success: true, Data: options})
 }
 
 func (h *memberHandler) GetMemberHistory(c *gin.Context) {
@@ -273,8 +343,6 @@ func (h *memberHandler) GetMemberHistory(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, dto.Response{Success: false, Error: err.Error()})
 		return
 	}
-
-	query.Limit = min(max(1, query.Limit), 100) // min 1, max 100
 
 	history, nextCursor, err := h.memberUseCase.GetMemberHistory(c.Request.Context(), memberID, query.Cursor, query.Limit)
 	if err != nil {

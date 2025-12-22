@@ -18,7 +18,8 @@ interface MemberPhotoUploadProps {
   currentPhoto: string | null;
   memberName: string;
   gender: 'M' | 'F' | 'N';
-  onPhotoChange?: () => void;
+  version?: number;
+  onPhotoChange?: (memberId: number, pictureUrl: string | null) => void;
   size?: number;
   showName?: boolean;
   compact?: boolean;
@@ -29,6 +30,7 @@ const MemberPhotoUpload: React.FC<MemberPhotoUploadProps> = ({
   currentPhoto,
   memberName,
   gender,
+  version,
   onPhotoChange,
   size = 100,
   showName = false,
@@ -61,8 +63,8 @@ const MemberPhotoUpload: React.FC<MemberPhotoUploadProps> = ({
     setUploading(true);
 
     try {
-      await membersApi.uploadPicture(memberId, file);
-      onPhotoChange?.();
+      const pictureUrl = await membersApi.uploadPicture(memberId, file);
+      onPhotoChange?.(memberId, pictureUrl);
     } catch (err: any) {
       setError(err.response?.data?.error || 'Failed to upload photo');
     } finally {
@@ -81,7 +83,7 @@ const MemberPhotoUpload: React.FC<MemberPhotoUploadProps> = ({
 
     try {
       await membersApi.deletePicture(memberId);
-      onPhotoChange?.();
+      onPhotoChange?.(memberId, null);
     } catch (err: any) {
       setError(err.response?.data?.error || 'Failed to delete photo');
     } finally {
@@ -93,7 +95,7 @@ const MemberPhotoUpload: React.FC<MemberPhotoUploadProps> = ({
     fileInputRef.current?.click();
   };
 
-  const pictureUrl = getMemberPictureUrl(memberId, currentPhoto);
+  const pictureUrl = getMemberPictureUrl(memberId, currentPhoto, version);
 
   if (compact) {
     return (

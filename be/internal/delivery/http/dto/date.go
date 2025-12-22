@@ -74,6 +74,9 @@ func (d Date) IsZero() bool {
 }
 
 func (d *Date) ToTimePtr() *time.Time {
+	if d == nil {
+		return nil
+	}
 	if d.IsZero() {
 		return nil
 	}

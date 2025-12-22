@@ -3,6 +3,8 @@
 export interface User {
   user_id: number;
   full_name: string;
+  arabic_name?: string | null;
+  english_name?: string | null;
   email: string;
   avatar: string | null;
   role_id: number;
@@ -14,11 +16,22 @@ export interface AuthResponse {
   user: User;
 }
 
+export interface SpouseInfo {
+  spouse_id: number;
+  member_id: number;
+  arabic_name: string;
+  english_name: string;
+  gender: 'M' | 'F';
+  picture: string | null;
+  marriage_date: string | null;
+  divorce_date: string | null;
+}
+
 export interface Member {
   member_id: number;
   arabic_name: string;
   english_name: string;
-  gender: 'M' | 'F' | 'N';
+  gender: 'M' | 'F';
   picture: string | null;
   date_of_birth: string | null;
   date_of_death: string | null;
@@ -32,7 +45,15 @@ export interface Member {
   age?: number;
   generation_level?: number;
   is_married: boolean;
-  spouses?: number[];
+  spouses?: SpouseInfo[];
+}
+
+export interface ParentOption {
+  member_id: number;
+  arabic_name: string;
+  english_name: string;
+  picture: string | null;
+  gender: 'M' | 'F';
 }
 
 export interface TreeNode {
@@ -67,6 +88,8 @@ export interface ScoreHistory {
 export interface UserScore {
   user_id: number;
   full_name: string;
+  arabic_name?: string | null;
+  english_name?: string | null;
   avatar: string | null;
   total_score: number;
   rank: number;
@@ -77,7 +100,7 @@ export interface UserScore {
 export interface CreateMemberRequest {
   arabic_name: string;
   english_name: string;
-  gender: 'M' | 'F' | 'N';
+  gender: 'M' | 'F';
   date_of_birth?: string;
   date_of_death?: string;
   father_id?: number;
@@ -99,6 +122,12 @@ export interface CreateSpouseRequest {
 
 export interface UpdateSpouseRequest extends CreateSpouseRequest {}
 
+export interface UpdateSpouseByMemberRequest {
+  spouse_id: number;
+  marriage_date?: string;
+  divorce_date?: string;
+}
+
 export interface UpdateRoleRequest {
   role_id: number;
 }
@@ -107,11 +136,15 @@ export interface UpdateActiveRequest {
   is_active: boolean;
 }
 
+export interface UpdateNamesRequest {
+  arabic_name?: string | null;
+  english_name?: string | null;
+}
+
 // Search/Query Types
 
 export interface MemberSearchQuery {
-  arabic_name?: string;
-  english_name?: string;
+  name?: string; // Searches both Arabic and English names
   gender?: string;
   married?: number;
   cursor?: string;

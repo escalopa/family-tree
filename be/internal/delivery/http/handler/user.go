@@ -77,8 +77,6 @@ func (h *userHandler) ListUsers(c *gin.Context) {
 		return
 	}
 
-	query.Limit = min(max(1, query.Limit), 100) // min 1, max 100
-
 	users, nextCursor, err := h.userUseCase.ListUsers(c.Request.Context(), query.Cursor, query.Limit)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, dto.Response{Success: false, Error: err.Error()})
@@ -201,10 +199,6 @@ func (h *userHandler) GetScoreHistory(c *gin.Context) {
 		return
 	}
 
-	if query.Limit == 0 {
-		query.Limit = 20
-	}
-
 	scores, nextCursor, err := h.userUseCase.GetScoreHistory(c.Request.Context(), userID, query.Cursor, query.Limit)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, dto.Response{Success: false, Error: err.Error()})
@@ -244,10 +238,6 @@ func (h *userHandler) GetUserChanges(c *gin.Context) {
 	if err := c.ShouldBindQuery(&query); err != nil {
 		c.JSON(http.StatusBadRequest, dto.Response{Success: false, Error: err.Error()})
 		return
-	}
-
-	if query.Limit == 0 {
-		query.Limit = 20
 	}
 
 	changes, nextCursor, err := h.userUseCase.GetUserChanges(c.Request.Context(), userID, query.Cursor, query.Limit)

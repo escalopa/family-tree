@@ -9,6 +9,7 @@ import {
   Menu,
   MenuItem,
   Box,
+  Divider,
 } from '@mui/material';
 import {
   AccountTree,
@@ -42,6 +43,17 @@ const Header: React.FC = () => {
       navigate('/login');
     } catch (error) {
       console.error('Logout failed:', error);
+    }
+    handleClose();
+  };
+
+  const handleLogoutAll = async () => {
+    try {
+      await authApi.logoutAll();
+      setUser(null);
+      navigate('/login');
+    } catch (error) {
+      console.error('Logout from all devices failed:', error);
     }
     handleClose();
   };
@@ -131,7 +143,11 @@ const Header: React.FC = () => {
               onClose={handleClose}
             >
               <MenuItem onClick={handleProfile}>Profile</MenuItem>
+              <Divider />
               <MenuItem onClick={handleLogout}>Logout</MenuItem>
+              <MenuItem onClick={handleLogoutAll} sx={{ color: 'error.main' }}>
+                Logout from all devices
+              </MenuItem>
             </Menu>
           </>
         ) : (

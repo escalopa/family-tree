@@ -50,8 +50,10 @@ type MemberUseCase interface {
 
 type SpouseUseCase interface {
 	AddSpouse(ctx context.Context, spouse *domain.Spouse, userID int) error
+	UpdateSpouseByID(ctx context.Context, spouse *domain.Spouse, userID int) error
 	UpdateSpouse(ctx context.Context, spouse *domain.Spouse, userID int) error
-	RemoveSpouse(ctx context.Context, member1ID, member2ID, userID int) error
+	RemoveSpouse(ctx context.Context, fatherID, motherID, userID int) error
+	RemoveSpouseByID(ctx context.Context, spouseID, userID int) error
 }
 
 type TreeUseCase interface {

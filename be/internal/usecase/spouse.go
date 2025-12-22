@@ -36,9 +36,21 @@ func (uc *spouseUseCase) AddSpouse(ctx context.Context, spouse *domain.Spouse, u
 		return fmt.Errorf("divorce date must be after marriage date")
 	}
 
-	// Ensure member1_id < member2_id for consistency
-	if spouse.Member1ID > spouse.Member2ID {
-		spouse.Member1ID, spouse.Member2ID = spouse.Member2ID, spouse.Member1ID
+	// Validate that father is male and mother is female
+	father, err := uc.memberRepo.GetByID(ctx, spouse.FatherID)
+	if err != nil {
+		return fmt.Errorf("get father: %w", err)
+	}
+	if father.Gender != "M" {
+		return domain.NewValidationError("father must be male")
+	}
+
+	mother, err := uc.memberRepo.GetByID(ctx, spouse.MotherID)
+	if err != nil {
+		return fmt.Errorf("get mother: %w", err)
+	}
+	if mother.Gender != "F" {
+		return domain.NewValidationError("mother must be female")
 	}
 
 	// Create spouse relationship
@@ -49,7 +61,7 @@ func (uc *spouseUseCase) AddSpouse(ctx context.Context, spouse *domain.Spouse, u
 	// Record history for both members
 	spouseJSON, _ := json.Marshal(spouse)
 	history1 := &domain.History{
-		MemberID:      spouse.Member1ID,
+		MemberID:      spouse.FatherID,
 		UserID:        userID,
 		ChangeType:    domain.ChangeTypeAddSpouse,
 		OldValues:     nil,
@@ -59,7 +71,7 @@ func (uc *spouseUseCase) AddSpouse(ctx context.Context, spouse *domain.Spouse, u
 	_ = uc.historyRepo.Create(ctx, history1)
 
 	history2 := &domain.History{
-		MemberID:      spouse.Member2ID,
+		MemberID:      spouse.MotherID,
 		UserID:        userID,
 		ChangeType:    domain.ChangeTypeAddSpouse,
 		OldValues:     nil,
@@ -71,7 +83,7 @@ func (uc *spouseUseCase) AddSpouse(ctx context.Context, spouse *domain.Spouse, u
 	// Record scores for both members
 	score1 := &domain.Score{
 		UserID:        userID,
-		MemberID:      spouse.Member1ID,
+		MemberID:      spouse.FatherID,
 		FieldName:     "spouse",
 		Points:        domain.PointsSpouse,
 		MemberVersion: 0,
@@ -80,12 +92,55 @@ func (uc *spouseUseCase) AddSpouse(ctx context.Context, spouse *domain.Spouse, u
 
 	score2 := &domain.Score{
 		UserID:        userID,
-		MemberID:      spouse.Member2ID,
+		MemberID:      spouse.MotherID,
 		FieldName:     "spouse",
 		Points:        domain.PointsSpouse,
 		MemberVersion: 0,
 	}
 	_ = uc.scoreRepo.Create(ctx, score2)
+
+	return nil
+}
+
+func (uc *spouseUseCase) UpdateSpouseByID(ctx context.Context, spouse *domain.Spouse, userID int) error {
+	// Validate dates
+	if !validator.ValidateDateOrder(spouse.MarriageDate, spouse.DivorceDate) {
+		return fmt.Errorf("divorce date must be after marriage date")
+	}
+
+	// Get old values
+	oldSpouse, err := uc.spouseRepo.GetByID(ctx, spouse.SpouseID)
+	if err != nil {
+		return fmt.Errorf("get spouse relationship: %w", err)
+	}
+
+	// Update spouse relationship
+	if err := uc.spouseRepo.UpdateByID(ctx, spouse); err != nil {
+		return fmt.Errorf("update spouse relationship: %w", err)
+	}
+
+	// Record history
+	oldJSON, _ := json.Marshal(oldSpouse)
+	newJSON, _ := json.Marshal(spouse)
+	history1 := &domain.History{
+		MemberID:      oldSpouse.FatherID,
+		UserID:        userID,
+		ChangeType:    domain.ChangeTypeUpdateSpouse,
+		OldValues:     oldJSON,
+		NewValues:     newJSON,
+		MemberVersion: 0,
+	}
+	_ = uc.historyRepo.Create(ctx, history1)
+
+	history2 := &domain.History{
+		MemberID:      oldSpouse.MotherID,
+		UserID:        userID,
+		ChangeType:    domain.ChangeTypeUpdateSpouse,
+		OldValues:     oldJSON,
+		NewValues:     newJSON,
+		MemberVersion: 0,
+	}
+	_ = uc.historyRepo.Create(ctx, history2)
 
 	return nil
 }
@@ -96,13 +151,25 @@ func (uc *spouseUseCase) UpdateSpouse(ctx context.Context, spouse *domain.Spouse
 		return fmt.Errorf("divorce date must be after marriage date")
 	}
 
-	// Ensure member1_id < member2_id for consistency
-	if spouse.Member1ID > spouse.Member2ID {
-		spouse.Member1ID, spouse.Member2ID = spouse.Member2ID, spouse.Member1ID
+	// Validate that father is male and mother is female
+	father, err := uc.memberRepo.GetByID(ctx, spouse.FatherID)
+	if err != nil {
+		return fmt.Errorf("get father: %w", err)
+	}
+	if father.Gender != "M" {
+		return domain.NewValidationError("father must be male")
+	}
+
+	mother, err := uc.memberRepo.GetByID(ctx, spouse.MotherID)
+	if err != nil {
+		return fmt.Errorf("get mother: %w", err)
+	}
+	if mother.Gender != "F" {
+		return domain.NewValidationError("mother must be female")
 	}
 
 	// Get old values
-	oldSpouse, err := uc.spouseRepo.Get(ctx, spouse.Member1ID, spouse.Member2ID)
+	oldSpouse, err := uc.spouseRepo.Get(ctx, spouse.FatherID, spouse.MotherID)
 	if err != nil {
 		return fmt.Errorf("get spouse relationship: %w", err)
 	}
@@ -116,7 +183,7 @@ func (uc *spouseUseCase) UpdateSpouse(ctx context.Context, spouse *domain.Spouse
 	oldJSON, _ := json.Marshal(oldSpouse)
 	newJSON, _ := json.Marshal(spouse)
 	history1 := &domain.History{
-		MemberID:      spouse.Member1ID,
+		MemberID:      spouse.FatherID,
 		UserID:        userID,
 		ChangeType:    domain.ChangeTypeUpdateSpouse,
 		OldValues:     oldJSON,
@@ -126,7 +193,7 @@ func (uc *spouseUseCase) UpdateSpouse(ctx context.Context, spouse *domain.Spouse
 	_ = uc.historyRepo.Create(ctx, history1)
 
 	history2 := &domain.History{
-		MemberID:      spouse.Member2ID,
+		MemberID:      spouse.MotherID,
 		UserID:        userID,
 		ChangeType:    domain.ChangeTypeUpdateSpouse,
 		OldValues:     oldJSON,
@@ -138,22 +205,31 @@ func (uc *spouseUseCase) UpdateSpouse(ctx context.Context, spouse *domain.Spouse
 	return nil
 }
 
-func (uc *spouseUseCase) RemoveSpouse(ctx context.Context, member1ID, member2ID, userID int) error {
+func (uc *spouseUseCase) RemoveSpouse(ctx context.Context, fatherID, motherID, userID int) error {
 	// Get old values for history
-	oldSpouse, err := uc.spouseRepo.Get(ctx, member1ID, member2ID)
+	oldSpouse, err := uc.spouseRepo.Get(ctx, fatherID, motherID)
 	if err != nil {
 		return fmt.Errorf("get spouse relationship: %w", err)
 	}
 
+	// Check if there are children with this spouse relationship
+	hasChildren, err := uc.memberRepo.HasChildrenWithParents(ctx, fatherID, motherID)
+	if err != nil {
+		return fmt.Errorf("check for children: %w", err)
+	}
+	if hasChildren {
+		return domain.NewValidationError("cannot delete spouse relationship: there are children with both parents")
+	}
+
 	// Delete spouse relationship
-	if err := uc.spouseRepo.Delete(ctx, member1ID, member2ID); err != nil {
+	if err := uc.spouseRepo.Delete(ctx, fatherID, motherID); err != nil {
 		return fmt.Errorf("delete spouse relationship: %w", err)
 	}
 
 	// Record history
 	oldJSON, _ := json.Marshal(oldSpouse)
 	history1 := &domain.History{
-		MemberID:      oldSpouse.Member1ID,
+		MemberID:      oldSpouse.FatherID,
 		UserID:        userID,
 		ChangeType:    domain.ChangeTypeRemoveSpouse,
 		OldValues:     oldJSON,
@@ -163,7 +239,53 @@ func (uc *spouseUseCase) RemoveSpouse(ctx context.Context, member1ID, member2ID,
 	_ = uc.historyRepo.Create(ctx, history1)
 
 	history2 := &domain.History{
-		MemberID:      oldSpouse.Member2ID,
+		MemberID:      oldSpouse.MotherID,
+		UserID:        userID,
+		ChangeType:    domain.ChangeTypeRemoveSpouse,
+		OldValues:     oldJSON,
+		NewValues:     nil,
+		MemberVersion: 0,
+	}
+	_ = uc.historyRepo.Create(ctx, history2)
+
+	return nil
+}
+
+func (uc *spouseUseCase) RemoveSpouseByID(ctx context.Context, spouseID, userID int) error {
+	// Get old values for history
+	oldSpouse, err := uc.spouseRepo.GetByID(ctx, spouseID)
+	if err != nil {
+		return fmt.Errorf("get spouse relationship: %w", err)
+	}
+
+	// Check if there are children with this spouse relationship
+	hasChildren, err := uc.memberRepo.HasChildrenWithParents(ctx, oldSpouse.FatherID, oldSpouse.MotherID)
+	if err != nil {
+		return fmt.Errorf("check for children: %w", err)
+	}
+	if hasChildren {
+		return domain.NewValidationError("cannot delete spouse relationship: there are children with both parents")
+	}
+
+	// Delete spouse relationship
+	if err := uc.spouseRepo.DeleteByID(ctx, spouseID); err != nil {
+		return fmt.Errorf("delete spouse relationship: %w", err)
+	}
+
+	// Record history
+	oldJSON, _ := json.Marshal(oldSpouse)
+	history1 := &domain.History{
+		MemberID:      oldSpouse.FatherID,
+		UserID:        userID,
+		ChangeType:    domain.ChangeTypeRemoveSpouse,
+		OldValues:     oldJSON,
+		NewValues:     nil,
+		MemberVersion: 0,
+	}
+	_ = uc.historyRepo.Create(ctx, history1)
+
+	history2 := &domain.History{
+		MemberID:      oldSpouse.MotherID,
 		UserID:        userID,
 		ChangeType:    domain.ChangeTypeRemoveSpouse,
 		OldValues:     oldJSON,

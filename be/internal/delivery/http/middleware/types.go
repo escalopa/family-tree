@@ -23,3 +23,7 @@ type AuthUseCase interface {
 	RefreshTokens(ctx context.Context, refreshToken string) (*domain.AuthTokens, error)
 	ValidateSession(ctx context.Context, sessionID string) (*domain.Session, error)
 }
+
+type UserRepository interface {
+	GetByID(ctx context.Context, userID int) (*domain.User, error)
+}

@@ -56,10 +56,11 @@ export const getDefaultAvatar = (gender: 'M' | 'F' | 'N'): string => {
     : '/default-avatar.png';
 };
 
-export const getMemberPictureUrl = (memberId: number, pictureKey: string | null): string | null => {
+export const getMemberPictureUrl = (memberId: number, pictureKey: string | null, version?: number): string | null => {
   if (!pictureKey) return null;
 
   // Get the API base URL from environment or default to current origin
   const apiUrl = import.meta.env.VITE_API_URL || window.location.origin;
-  return `${apiUrl}/api/members/${memberId}/picture`;
+  const versionParam = version ? `?v=${version}` : '';
+  return `${apiUrl}/api/members/${memberId}/picture${versionParam}`;
 };

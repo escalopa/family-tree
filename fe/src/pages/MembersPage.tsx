@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   Box,
   Button,
@@ -22,32 +23,124 @@ import {
   Select,
   MenuItem,
   Chip,
+  CircularProgress,
+  InputAdornment,
+  Avatar,
 } from '@mui/material';
-import { Add, Edit, Delete, Search } from '@mui/icons-material';
+import { Add, Edit, Delete, FilterAlt, Clear, Close } from '@mui/icons-material';
 import { membersApi } from '../api';
 import { Member, MemberSearchQuery, CreateMemberRequest, UpdateMemberRequest } from '../types';
 import { formatDate } from '../utils/helpers';
 import Layout from '../components/Layout/Layout';
 import MemberPhotoUpload from '../components/MemberPhotoUpload';
+import ParentAutocomplete from '../components/ParentAutocomplete';
+import SpouseCard from '../components/SpouseCard';
+import AddSpouseDialog from '../components/AddSpouseDialog';
+
+const PAGE_SIZE = 10;
 
 const MembersPage: React.FC = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [members, setMembers] = useState<Member[]>([]);
-  const [searchQuery, setSearchQuery] = useState<MemberSearchQuery>({});
+  const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(false);
   const [openDialog, setOpenDialog] = useState(false);
+  const [openAddSpouseDialog, setOpenAddSpouseDialog] = useState(false);
   const [editingMember, setEditingMember] = useState<Member | null>(null);
   const [formData, setFormData] = useState<CreateMemberRequest>({
     arabic_name: '',
     english_name: '',
     gender: 'M',
   });
+  const tableRef = React.useRef<HTMLDivElement>(null);
 
-  const handleSearch = async () => {
+  // Initialize search query from URL params
+  const [searchQuery, setSearchQuery] = useState<MemberSearchQuery>(() => {
+    const params: MemberSearchQuery = {};
+    const name = searchParams.get('name');
+    const gender = searchParams.get('gender');
+    const married = searchParams.get('married');
+
+    if (name) params.name = name;
+    if (gender) params.gender = gender;
+    if (married) params.married = Number(married);
+
+    return params;
+  });
+
+  // Perform search (initial load)
+  const performSearch = async (query: MemberSearchQuery, loadMore: boolean = false) => {
+    if (loadMore) {
+      setLoadingMore(true);
+    } else {
+      setLoading(true);
+      // Don't clear members immediately to prevent jumping
+    }
+
     try {
-      const response = await membersApi.searchMembers(searchQuery);
-      setMembers(response.members);
+      const searchParams: MemberSearchQuery = {
+        ...query,
+        limit: PAGE_SIZE,
+        cursor: loadMore ? nextCursor || undefined : undefined,
+      };
+
+      const response = await membersApi.searchMembers(searchParams);
+
+      if (loadMore) {
+        setMembers(prev => [...prev, ...(response.members || [])]);
+      } else {
+        // Set new members after loading completes for smooth transition
+        setMembers(response.members || []);
+      }
+
+      setNextCursor(response.next_cursor || null);
+      setHasMore(!!response.next_cursor);
     } catch (error) {
       console.error('Search failed:', error);
+      if (!loadMore) {
+        setMembers([]);
+      }
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
     }
+  };
+
+  const handleLoadMore = () => {
+    performSearch(searchQuery, true);
+  };
+
+  // Update URL params when search query changes
+  useEffect(() => {
+    const params = new URLSearchParams();
+
+    if (searchQuery.name) params.set('name', searchQuery.name);
+    if (searchQuery.gender) params.set('gender', searchQuery.gender);
+    if (searchQuery.married !== undefined) params.set('married', String(searchQuery.married));
+
+    setSearchParams(params, { replace: true });
+  }, [searchQuery, setSearchParams]);
+
+  // Trigger search when query changes
+  useEffect(() => {
+    performSearch(searchQuery);
+  }, [searchQuery]);
+
+  // Initial load - list all members
+  useEffect(() => {
+    performSearch(searchQuery);
+  }, []);
+
+  const handleClearFilters = () => {
+    setSearchQuery({});
+  };
+
+  const handleClearFilter = (filterKey: keyof MemberSearchQuery) => {
+    const newQuery = { ...searchQuery };
+    delete newQuery[filterKey];
+    setSearchQuery(newQuery);
   };
 
   const handleOpenDialog = (member?: Member) => {
@@ -92,7 +185,7 @@ const MembersPage: React.FC = () => {
         await membersApi.createMember(formData);
       }
       handleCloseDialog();
-      handleSearch(); // Refresh list
+      performSearch(searchQuery); // Refresh list
     } catch (error) {
       console.error('Failed to save member:', error);
     }
@@ -102,15 +195,31 @@ const MembersPage: React.FC = () => {
     if (confirm('Are you sure you want to delete this member?')) {
       try {
         await membersApi.deleteMember(memberId);
-        handleSearch(); // Refresh list
+        performSearch(searchQuery); // Refresh list
       } catch (error) {
         console.error('Failed to delete member:', error);
       }
     }
   };
 
-  const handlePhotoChange = () => {
-    handleSearch(); // Refresh list after photo change
+  const handlePhotoChange = (memberId: number, pictureUrl: string | null) => {
+    // Update the member in the list
+    setMembers(prevMembers =>
+      prevMembers.map(member =>
+        member.member_id === memberId
+          ? { ...member, picture: pictureUrl, version: member.version + 1 }
+          : member
+      )
+    );
+
+    // If editing this member, update the dialog state
+    if (editingMember && editingMember.member_id === memberId) {
+      setEditingMember(prev => prev ? {
+        ...prev,
+        picture: pictureUrl,
+        version: prev.version + 1
+      } : null);
+    }
   };
 
   return (
@@ -129,45 +238,77 @@ const MembersPage: React.FC = () => {
 
         {/* Search Filters */}
         <Paper sx={{ p: 2, mb: 3 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+            <FilterAlt sx={{ mr: 1, color: 'text.secondary' }} />
+            <Typography variant="h6" sx={{ flexGrow: 1 }}>
+              Search Filters {!searchQuery.name && !searchQuery.gender && searchQuery.married === undefined && '(Showing all members)'}
+            </Typography>
+            {(searchQuery.name || searchQuery.gender || searchQuery.married !== undefined) && (
+              <Button
+                size="small"
+                startIcon={<Clear />}
+                onClick={handleClearFilters}
+                color="secondary"
+              >
+                Clear Filters
+              </Button>
+            )}
+          </Box>
           <Grid container spacing={2}>
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid item xs={12} sm={6} md={4}>
               <TextField
                 fullWidth
-                label="Arabic Name"
-                value={searchQuery.arabic_name || ''}
+                label="Name"
+                placeholder="Search by name (Arabic or English)"
+                value={searchQuery.name || ''}
                 onChange={(e) =>
-                  setSearchQuery({ ...searchQuery, arabic_name: e.target.value })
+                  setSearchQuery({ ...searchQuery, name: e.target.value || undefined })
                 }
+                InputProps={{
+                  endAdornment: searchQuery.name && (
+                    <InputAdornment position="end">
+                      <IconButton
+                        size="small"
+                        onClick={() => handleClearFilter('name')}
+                        edge="end"
+                      >
+                        <Close fontSize="small" />
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
               />
             </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <TextField
-                fullWidth
-                label="English Name"
-                value={searchQuery.english_name || ''}
-                onChange={(e) =>
-                  setSearchQuery({ ...searchQuery, english_name: e.target.value })
-                }
-              />
-            </Grid>
-            <Grid item xs={12} sm={6} md={2}>
+            <Grid item xs={12} sm={6} md={4}>
               <FormControl fullWidth>
                 <InputLabel>Gender</InputLabel>
                 <Select
                   value={searchQuery.gender || ''}
                   label="Gender"
                   onChange={(e) =>
-                    setSearchQuery({ ...searchQuery, gender: e.target.value })
+                    setSearchQuery({ ...searchQuery, gender: e.target.value || undefined })
+                  }
+                  endAdornment={
+                    searchQuery.gender && (
+                      <InputAdornment position="end" sx={{ mr: 3 }}>
+                        <IconButton
+                          size="small"
+                          onClick={() => handleClearFilter('gender')}
+                          edge="end"
+                        >
+                          <Close fontSize="small" />
+                        </IconButton>
+                      </InputAdornment>
+                    )
                   }
                 >
                   <MenuItem value="">All</MenuItem>
                   <MenuItem value="M">Male</MenuItem>
                   <MenuItem value="F">Female</MenuItem>
-                  <MenuItem value="N">Other</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} sm={6} md={2}>
+            <Grid item xs={12} sm={6} md={4}>
               <FormControl fullWidth>
                 <InputLabel>Married</InputLabel>
                 <Select
@@ -179,6 +320,19 @@ const MembersPage: React.FC = () => {
                       married: e.target.value === '' ? undefined : Number(e.target.value),
                     })
                   }
+                  endAdornment={
+                    searchQuery.married !== undefined && (
+                      <InputAdornment position="end" sx={{ mr: 3 }}>
+                        <IconButton
+                          size="small"
+                          onClick={() => handleClearFilter('married')}
+                          edge="end"
+                        >
+                          <Close fontSize="small" />
+                        </IconButton>
+                      </InputAdornment>
+                    )
+                  }
                 >
                   <MenuItem value="">All</MenuItem>
                   <MenuItem value={1}>Yes</MenuItem>
@@ -186,22 +340,43 @@ const MembersPage: React.FC = () => {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} sm={6} md={2}>
-              <Button
-                fullWidth
-                variant="contained"
-                startIcon={<Search />}
-                onClick={handleSearch}
-                sx={{ height: '56px' }}
-              >
-                Search
-              </Button>
-            </Grid>
           </Grid>
+          {loading && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
+              <CircularProgress size={24} />
+            </Box>
+          )}
         </Paper>
 
         {/* Members Table */}
-        <TableContainer component={Paper}>
+        <TableContainer
+          component={Paper}
+          ref={tableRef}
+          sx={{
+            position: 'relative',
+            minHeight: '400px',
+            transition: 'opacity 0.3s ease-in-out',
+            opacity: loading && members.length === 0 ? 0.6 : 1,
+          }}
+        >
+          {loading && members.length > 0 && (
+            <Box
+              sx={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                height: '4px',
+                bgcolor: 'primary.main',
+                animation: 'loading 1s ease-in-out infinite',
+                '@keyframes loading': {
+                  '0%': { transform: 'translateX(-100%)' },
+                  '100%': { transform: 'translateX(100%)' },
+                },
+                zIndex: 1,
+              }}
+            />
+          )}
           <Table>
             <TableHead>
               <TableRow>
@@ -215,23 +390,43 @@ const MembersPage: React.FC = () => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {members.map((member) => (
+              {(!members || members.length === 0) && !loading && (
+                <TableRow>
+                  <TableCell colSpan={7} align="center" sx={{ py: 4, color: 'text.secondary' }}>
+                    {searchQuery.name || searchQuery.gender || searchQuery.married !== undefined
+                      ? 'No members found matching your filters'
+                      : 'No members found'}
+                  </TableCell>
+                </TableRow>
+              )}
+              {loading && members.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={7} align="center" sx={{ py: 8 }}>
+                    <CircularProgress />
+                    <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+                      Loading members...
+                    </Typography>
+                  </TableCell>
+                </TableRow>
+              )}
+              {members && members.map((member) => (
                 <TableRow key={member.member_id}>
                   <TableCell>
-                    <MemberPhotoUpload
-                      memberId={member.member_id}
-                      currentPhoto={member.picture}
-                      memberName={member.english_name}
-                      gender={member.gender}
-                      onPhotoChange={handlePhotoChange}
-                      size={50}
-                      compact
-                    />
+                    <Avatar
+                      src={member.picture ? `${member.picture}?v=${member.version}` : undefined}
+                      sx={{
+                        width: 50,
+                        height: 50,
+                        bgcolor: member.gender === 'M' ? '#00BCD4' : member.gender === 'F' ? '#E91E63' : '#9E9E9E'
+                      }}
+                    >
+                      {member.english_name[0]}
+                    </Avatar>
                   </TableCell>
                   <TableCell>{member.arabic_name}</TableCell>
                   <TableCell>{member.english_name}</TableCell>
                   <TableCell>
-                    {member.gender === 'M' ? 'Male' : member.gender === 'F' ? 'Female' : 'Other'}
+                    {member.gender === 'M' ? 'Male' : 'Female'}
                   </TableCell>
                   <TableCell>{formatDate(member.date_of_birth)}</TableCell>
                   <TableCell>
@@ -262,6 +457,20 @@ const MembersPage: React.FC = () => {
           </Table>
         </TableContainer>
 
+        {/* Load More Button */}
+        {hasMore && members && members.length > 0 && (
+          <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2, mb: 2 }}>
+            <Button
+              variant="outlined"
+              onClick={handleLoadMore}
+              disabled={loadingMore}
+              startIcon={loadingMore ? <CircularProgress size={20} /> : null}
+            >
+              {loadingMore ? 'Loading...' : `Load More (${members.length} shown)`}
+            </Button>
+          </Box>
+        )}
+
         {/* Create/Edit Dialog */}
         <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="md" fullWidth>
           <DialogTitle>
@@ -277,6 +486,7 @@ const MembersPage: React.FC = () => {
                       currentPhoto={editingMember.picture}
                       memberName={editingMember.english_name}
                       gender={editingMember.gender}
+                      version={editingMember.version}
                       onPhotoChange={handlePhotoChange}
                       size={120}
                       showName
@@ -313,12 +523,11 @@ const MembersPage: React.FC = () => {
                     value={formData.gender}
                     label="Gender"
                     onChange={(e) =>
-                      setFormData({ ...formData, gender: e.target.value as 'M' | 'F' | 'N' })
+                      setFormData({ ...formData, gender: e.target.value as 'M' | 'F' })
                     }
                   >
                     <MenuItem value="M">Male</MenuItem>
                     <MenuItem value="F">Female</MenuItem>
-                    <MenuItem value="N">Other</MenuItem>
                   </Select>
                 </FormControl>
               </Grid>
@@ -357,33 +566,65 @@ const MembersPage: React.FC = () => {
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Father ID"
-                  type="number"
-                  value={formData.father_id || ''}
-                  onChange={(e) =>
+                <ParentAutocomplete
+                  label="Father"
+                  gender="M"
+                  value={formData.father_id || null}
+                  onChange={(value) =>
                     setFormData({
                       ...formData,
-                      father_id: e.target.value ? Number(e.target.value) : undefined,
+                      father_id: value || undefined,
                     })
                   }
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Mother ID"
-                  type="number"
-                  value={formData.mother_id || ''}
-                  onChange={(e) =>
+                <ParentAutocomplete
+                  label="Mother"
+                  gender="F"
+                  value={formData.mother_id || null}
+                  onChange={(value) =>
                     setFormData({
                       ...formData,
-                      mother_id: e.target.value ? Number(e.target.value) : undefined,
+                      mother_id: value || undefined,
                     })
                   }
                 />
               </Grid>
+
+              {/* Spouses Section */}
+              {editingMember && (
+                <Grid item xs={12}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2, mb: 1 }}>
+                    <Typography variant="h6">
+                      Spouses {editingMember.spouses && editingMember.spouses.length > 0 && `(${editingMember.spouses.length})`}
+                    </Typography>
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      startIcon={<Add />}
+                      onClick={() => setOpenAddSpouseDialog(true)}
+                    >
+                      Add Spouse
+                    </Button>
+                  </Box>
+                  {editingMember.spouses && editingMember.spouses.length > 0 ? (
+                    editingMember.spouses.map((spouse) => (
+                      <SpouseCard
+                        key={spouse.member_id}
+                        spouse={spouse}
+                        currentMemberId={editingMember.member_id}
+                        onUpdate={() => performSearch(searchQuery)}
+                        editable={true}
+                      />
+                    ))
+                  ) : (
+                    <Typography variant="body2" color="text.secondary" sx={{ py: 2, textAlign: 'center' }}>
+                      No spouses added yet. Click "Add Spouse" to create a relationship.
+                    </Typography>
+                  )}
+                </Grid>
+              )}
             </Grid>
           </DialogContent>
           <DialogActions>
@@ -393,6 +634,30 @@ const MembersPage: React.FC = () => {
             </Button>
           </DialogActions>
         </Dialog>
+
+        {/* Add Spouse Dialog */}
+        {editingMember && (
+          <AddSpouseDialog
+            open={openAddSpouseDialog}
+            onClose={() => setOpenAddSpouseDialog(false)}
+            memberId={editingMember.member_id}
+            memberName={editingMember.english_name}
+            memberGender={editingMember.gender}
+            onSuccess={() => {
+              performSearch(searchQuery);
+              // Refresh the editing member data
+              const refreshMember = async () => {
+                try {
+                  const updated = await membersApi.getMember(editingMember.member_id);
+                  setEditingMember(updated);
+                } catch (error) {
+                  console.error('Failed to refresh member:', error);
+                }
+              };
+              refreshMember();
+            }}
+          />
+        )}
       </Box>
     </Layout>
   );

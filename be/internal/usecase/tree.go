@@ -75,13 +75,22 @@ func (uc *treeUseCase) GetListView(ctx context.Context, rootID *int, userRole in
 		return nil, fmt.Errorf("get spouses: %w", err)
 	}
 
+	// Create member map for spouse lookup
+	memberMap := make(map[int]*domain.Member)
+	for _, m := range members {
+		memberMap[m.MemberID] = m
+	}
+
 	// Convert to MemberWithComputed
 	var result []*domain.MemberWithComputed
 	for _, m := range members {
+		spouseIDs := spouseMap[m.MemberID]
+		spouses := uc.convertSpouseIDsToInfo(spouseIDs, memberMap)
+
 		computed := &domain.MemberWithComputed{
 			Member:    *m,
-			IsMarried: len(spouseMap[m.MemberID]) > 0,
-			Spouses:   spouseMap[m.MemberID],
+			IsMarried: len(spouseIDs) > 0,
+			Spouses:   spouses,
 		}
 
 		// Apply privacy rules
@@ -134,10 +143,13 @@ func (uc *treeUseCase) GetRelationPath(ctx context.Context, member1ID, member2ID
 	spouseMap, _ := uc.spouseRepo.GetAllSpouses(ctx)
 	for _, memberID := range path {
 		m := memberMap[memberID]
+		spouseIDs := spouseMap[m.MemberID]
+		spouses := uc.convertSpouseIDsToInfo(spouseIDs, memberMap)
+
 		computed := &domain.MemberWithComputed{
 			Member:    *m,
-			IsMarried: len(spouseMap[m.MemberID]) > 0,
-			Spouses:   spouseMap[m.MemberID],
+			IsMarried: len(spouseIDs) > 0,
+			Spouses:   spouses,
 		}
 
 		// Apply privacy rules
@@ -180,11 +192,14 @@ func (uc *treeUseCase) buildTree(memberMap map[int]*domain.Member, spouseMap map
 		return nil
 	}
 
+	spouseIDs := spouseMap[rootID]
+	spouses := uc.convertSpouseIDsToInfo(spouseIDs, memberMap)
+
 	node := &domain.MemberTreeNode{
 		MemberWithComputed: domain.MemberWithComputed{
 			Member:    *root,
-			IsMarried: len(spouseMap[rootID]) > 0,
-			Spouses:   spouseMap[rootID],
+			IsMarried: len(spouseIDs) > 0,
+			Spouses:   spouses,
 		},
 		Children: []*domain.MemberTreeNode{},
 	}
@@ -266,4 +281,26 @@ func (uc *treeUseCase) findPath(memberMap map[int]*domain.Member, startID, endID
 	}
 
 	return nil
+}
+
+func (uc *treeUseCase) convertSpouseIDsToInfo(spouseIDs []int, memberMap map[int]*domain.Member) []domain.SpouseWithMemberInfo {
+	if len(spouseIDs) == 0 {
+		return nil
+	}
+
+	spouses := make([]domain.SpouseWithMemberInfo, 0, len(spouseIDs))
+	for _, spouseID := range spouseIDs {
+		if spouse, exists := memberMap[spouseID]; exists {
+			spouses = append(spouses, domain.SpouseWithMemberInfo{
+				MemberID:     spouse.MemberID,
+				ArabicName:   spouse.ArabicName,
+				EnglishName:  spouse.EnglishName,
+				Gender:       spouse.Gender,
+				Picture:      spouse.Picture,
+				MarriageDate: nil, // Will be populated from spouse relationship if needed
+				DivorceDate:  nil, // Will be populated from spouse relationship if needed
+			})
+		}
+	}
+	return spouses
 }

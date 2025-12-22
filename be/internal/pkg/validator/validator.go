@@ -22,7 +22,7 @@ func Validate(data any) error {
 
 func validateGender(fl validator.FieldLevel) bool {
 	gender := fl.Field().String()
-	return gender == "M" || gender == "F" || gender == "N"
+	return gender == "M" || gender == "F"
 }
 
 func validateDateOrder(fl validator.FieldLevel) bool {
@@ -37,8 +37,3 @@ func ValidateDateOrder(start, end *time.Time) bool {
 	}
 	return !end.Before(*start)
 }
-
-
-
-
-

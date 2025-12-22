@@ -30,28 +30,52 @@ import { usersApi } from '../api';
 import { User, Roles } from '../types';
 import { getRoleName } from '../utils/helpers';
 import Layout from '../components/Layout/Layout';
+import { useAuth } from '../contexts/AuthContext';
 
 const UsersPage: React.FC = () => {
   const navigate = useNavigate();
+  const { hasRole } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [nextCursor, setNextCursor] = useState<string | undefined>(undefined);
   const [openDialog, setOpenDialog] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [newRole, setNewRole] = useState<number>(Roles.NONE);
   const [isActive, setIsActive] = useState(false);
+  const isSuperAdmin = hasRole(Roles.SUPER_ADMIN);
 
   useEffect(() => {
     loadUsers();
   }, []);
 
-  const loadUsers = async () => {
+  const loadUsers = async (cursor?: string) => {
     try {
-      const response = await usersApi.listUsers();
-      setUsers(response.users);
+      const isLoadingMore = !!cursor;
+      if (isLoadingMore) {
+        setLoadingMore(true);
+      }
+
+      const response = await usersApi.listUsers(cursor, 20);
+
+      if (isLoadingMore) {
+        setUsers((prev) => [...prev, ...response.users]);
+      } else {
+        setUsers(response.users);
+      }
+
+      setNextCursor(response.next_cursor);
     } catch (error) {
       console.error('Failed to load users:', error);
     } finally {
       setLoading(false);
+      setLoadingMore(false);
+    }
+  };
+
+  const loadMoreUsers = () => {
+    if (nextCursor && !loadingMore) {
+      loadUsers(nextCursor);
     }
   };
 
@@ -101,60 +125,76 @@ const UsersPage: React.FC = () => {
         {loading ? (
           <Typography>Loading...</Typography>
         ) : (
-          <TableContainer component={Paper}>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Avatar</TableCell>
-                  <TableCell>Name</TableCell>
-                  <TableCell>Email</TableCell>
-                  <TableCell>Role</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell>Total Score</TableCell>
-                  <TableCell>Actions</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {users.map((user) => (
-                  <TableRow key={user.user_id}>
-                    <TableCell>
-                      <Avatar src={user.avatar || undefined}>{user.full_name[0]}</Avatar>
-                    </TableCell>
-                    <TableCell>{user.full_name}</TableCell>
-                    <TableCell>{user.email}</TableCell>
-                    <TableCell>
-                      <Chip
-                        label={getRoleName(user.role_id)}
-                        size="small"
-                        color={user.role_id >= Roles.ADMIN ? 'primary' : 'default'}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Chip
-                        label={user.is_active ? 'Active' : 'Inactive'}
-                        size="small"
-                        color={user.is_active ? 'success' : 'default'}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      {user.total_score !== undefined ? user.total_score : '-'}
-                    </TableCell>
-                    <TableCell>
-                      <IconButton
-                        size="small"
-                        onClick={() => navigate(`/users/${user.user_id}`)}
-                      >
-                        <Visibility />
-                      </IconButton>
-                      <IconButton size="small" onClick={() => handleOpenDialog(user)}>
-                        <Edit />
-                      </IconButton>
-                    </TableCell>
+          <>
+            <TableContainer component={Paper}>
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Avatar</TableCell>
+                    <TableCell>Name</TableCell>
+                    <TableCell>Email</TableCell>
+                    <TableCell>Role</TableCell>
+                    <TableCell>Status</TableCell>
+                    <TableCell>Total Score</TableCell>
+                    <TableCell>Actions</TableCell>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
+                </TableHead>
+                <TableBody>
+                  {users.map((user) => (
+                    <TableRow key={user.user_id}>
+                      <TableCell>
+                        <Avatar src={user.avatar || undefined}>{user.full_name[0]}</Avatar>
+                      </TableCell>
+                      <TableCell>{user.full_name}</TableCell>
+                      <TableCell>{user.email}</TableCell>
+                      <TableCell>
+                        <Chip
+                          label={getRoleName(user.role_id)}
+                          size="small"
+                          color={user.role_id >= Roles.ADMIN ? 'primary' : 'default'}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Chip
+                          label={user.is_active ? 'Active' : 'Inactive'}
+                          size="small"
+                          color={user.is_active ? 'success' : 'default'}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        {user.total_score !== undefined ? user.total_score : '-'}
+                      </TableCell>
+                      <TableCell>
+                        <IconButton
+                          size="small"
+                          onClick={() => navigate(`/users/${user.user_id}`)}
+                        >
+                          <Visibility />
+                        </IconButton>
+                        {isSuperAdmin && (
+                          <IconButton size="small" onClick={() => handleOpenDialog(user)}>
+                            <Edit />
+                          </IconButton>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+
+            {nextCursor && (
+              <Box sx={{ mt: 2, textAlign: 'center' }}>
+                <Button
+                  variant="outlined"
+                  onClick={loadMoreUsers}
+                  disabled={loadingMore}
+                >
+                  {loadingMore ? 'Loading...' : 'Load More'}
+                </Button>
+              </Box>
+            )}
+          </>
         )}
 
         {/* Edit User Dialog */}

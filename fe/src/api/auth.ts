@@ -14,6 +14,11 @@ export const authApi = {
     return response.data.data;
   },
 
+  getCurrentUser: async (): Promise<AuthResponse> => {
+    const response = await apiClient.get('/api/auth/me');
+    return response.data.data;
+  },
+
   logout: async (): Promise<void> => {
     await apiClient.post('/api/auth/logout');
   },

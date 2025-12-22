@@ -11,8 +11,6 @@ import (
 
 type jwtClaims struct {
 	UserID    int    `json:"user_id"`
-	Email     string `json:"email"`
-	RoleID    int    `json:"role_id"`
 	SessionID string `json:"session_id"`
 	jwt.RegisteredClaims
 }
@@ -31,11 +29,9 @@ func NewManager(secret string, accessExpiry, refreshExpiry time.Duration) *Manag
 	}
 }
 
-func (tm *Manager) GenerateAccessToken(userID int, email string, roleID int, sessionID string) (string, error) {
+func (tm *Manager) GenerateAccessToken(userID int, sessionID string) (string, error) {
 	claims := &jwtClaims{
 		UserID:    userID,
-		Email:     email,
-		RoleID:    roleID,
 		SessionID: sessionID,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(tm.accessExpiry)),
@@ -78,8 +74,6 @@ func (tm *Manager) ValidateToken(tokenString string) (*domain.TokenClaims, error
 	if claims, ok := token.Claims.(*jwtClaims); ok && token.Valid {
 		return &domain.TokenClaims{
 			UserID:    claims.UserID,
-			Email:     claims.Email,
-			RoleID:    claims.RoleID,
 			SessionID: claims.SessionID,
 		}, nil
 	}

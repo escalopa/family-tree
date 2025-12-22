@@ -3,9 +3,12 @@ package usecase
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"log/slog"
 	"mime"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/escalopa/family-tree/internal/domain"
@@ -36,9 +39,19 @@ func NewMemberUseCase(
 }
 
 func (uc *memberUseCase) CreateMember(ctx context.Context, member *domain.Member, userID int) error {
+	// Validate parent relationships
+	if err := uc.validateParentRelationships(ctx, member.MemberID, member.FatherID, member.MotherID); err != nil {
+		return err
+	}
+
 	// Create member
 	if err := uc.memberRepo.Create(ctx, member); err != nil {
 		return fmt.Errorf("create member: %w", err)
+	}
+
+	// Ensure spouse relationship exists between parents
+	if err := uc.ensureParentSpouseRelationship(ctx, member.FatherID, member.MotherID); err != nil {
+		return fmt.Errorf("ensure parent spouse relationship: %w", err)
 	}
 
 	// Record history
@@ -70,9 +83,19 @@ func (uc *memberUseCase) UpdateMember(ctx context.Context, member *domain.Member
 		return fmt.Errorf("get old member: %w", err)
 	}
 
+	// Validate parent relationships
+	if err := uc.validateParentRelationships(ctx, member.MemberID, member.FatherID, member.MotherID); err != nil {
+		return err
+	}
+
 	// Update member
 	if err := uc.memberRepo.Update(ctx, member, expectedVersion); err != nil {
 		return fmt.Errorf("update member: %w", err)
+	}
+
+	// Ensure spouse relationship exists between parents
+	if err := uc.ensureParentSpouseRelationship(ctx, member.FatherID, member.MotherID); err != nil {
+		return fmt.Errorf("ensure parent spouse relationship: %w", err)
 	}
 
 	// Record history
@@ -132,9 +155,7 @@ func (uc *memberUseCase) GetMemberByID(ctx context.Context, memberID int) (*doma
 }
 
 func (uc *memberUseCase) SearchMembers(ctx context.Context, filter domain.MemberFilter, cursor *string, limit int) ([]*domain.Member, *string, error) {
-	if limit <= 0 {
-		limit = 20
-	}
+
 	return uc.memberRepo.Search(ctx, filter, cursor, limit)
 }
 
@@ -209,6 +230,7 @@ func (uc *memberUseCase) GetPicture(ctx context.Context, memberID int) ([]byte, 
 	}
 
 	if member.Picture == nil || *member.Picture == "" {
+		slog.Warn("memberUseCase.GetPicture: picture not found", "member_id", memberID)
 		return nil, "", domain.NewNotFoundError("picture")
 	}
 
@@ -220,6 +242,136 @@ func (uc *memberUseCase) GetPicture(ctx context.Context, memberID int) ([]byte, 
 	contentType := mime.TypeByExtension(filepath.Ext(*member.Picture))
 
 	return imageData, contentType, nil
+}
+
+// validateParentRelationships checks for circular relationships in the family tree
+func (uc *memberUseCase) validateParentRelationships(ctx context.Context, memberID int, fatherID, motherID *int) error {
+	// Check if member is trying to be their own parent
+	if fatherID != nil && *fatherID == memberID {
+		slog.Warn("memberUseCase.validateParentRelationships: member cannot be their own father", "member_id", memberID, "father_id", *fatherID)
+		return domain.NewValidationError("member cannot be their own father")
+	}
+	if motherID != nil && *motherID == memberID {
+		slog.Warn("memberUseCase.validateParentRelationships: member cannot be their own mother", "member_id", memberID, "mother_id", *motherID)
+		return domain.NewValidationError("member cannot be their own mother")
+	}
+
+	// Check if father is trying to be a child of this member
+	if fatherID != nil {
+		if err := uc.checkCircularRelationship(ctx, memberID, *fatherID); err != nil {
+			return fmt.Errorf("invalid father relationship: %w", err)
+		}
+	}
+
+	// Check if mother is trying to be a child of this member
+	if motherID != nil {
+		if err := uc.checkCircularRelationship(ctx, memberID, *motherID); err != nil {
+			return fmt.Errorf("invalid mother relationship: %w", err)
+		}
+	}
+
+	return nil
+}
+
+// ensureParentSpouseRelationship creates a spouse relationship between father and mother if both exist
+func (uc *memberUseCase) ensureParentSpouseRelationship(ctx context.Context, fatherID, motherID *int) error {
+	// Only proceed if both parents are set
+	if fatherID == nil || motherID == nil {
+		return nil
+	}
+
+	// Check if spouse relationship already exists
+	_, err := uc.spouseRepo.Get(ctx, *fatherID, *motherID)
+	if err == nil {
+		// Relationship already exists
+		return nil
+	}
+
+	// If error is not "not found", return it
+	var domainErr *domain.DomainError
+	if !errors.As(err, &domainErr) || domainErr.Code != domain.ErrCodeNotFound {
+		return fmt.Errorf("check spouse relationship: %w", err)
+	}
+
+	// Create spouse relationship (not found, so we create it)
+	spouse := &domain.Spouse{
+		FatherID:     *fatherID,
+		MotherID:     *motherID,
+		MarriageDate: nil, // Marriage date is unknown when auto-creating
+		DivorceDate:  nil,
+	}
+
+	if err := uc.spouseRepo.Create(ctx, spouse); err != nil {
+		return fmt.Errorf("create spouse relationship: %w", err)
+	}
+
+	return nil
+}
+
+// checkCircularRelationship checks if parentID is a descendant of memberID
+func (uc *memberUseCase) checkCircularRelationship(ctx context.Context, memberID, parentID int) error {
+	// Get the potential parent
+	parent, err := uc.memberRepo.GetByID(ctx, parentID)
+	if err != nil {
+		return fmt.Errorf("get parent: %w", err)
+	}
+
+	// Check if the parent's father or mother is the member (direct circular)
+	if parent.FatherID != nil && *parent.FatherID == memberID {
+		slog.Warn("memberUseCase.checkCircularRelationship: circular relationship detected - parent's father cannot be their child", "member_id", memberID, "parent_id", parentID)
+		return domain.NewValidationError("circular relationship detected: parent's father cannot be their child")
+	}
+	if parent.MotherID != nil && *parent.MotherID == memberID {
+		slog.Warn("memberUseCase.checkCircularRelationship: circular relationship detected - parent's mother cannot be their child", "member_id", memberID, "parent_id", parentID)
+		return domain.NewValidationError("circular relationship detected: parent's mother cannot be their child")
+	}
+
+	// Recursively check ancestors (prevent deep circular relationships)
+	visited := make(map[int]bool)
+	return uc.checkAncestors(ctx, parentID, memberID, visited, 0)
+}
+
+// checkAncestors recursively checks if targetID appears in the ancestry of currentID
+func (uc *memberUseCase) checkAncestors(ctx context.Context, currentID, targetID int, visited map[int]bool, depth int) error {
+	// Prevent infinite loops and limit depth
+	if depth > 50 {
+		slog.Warn("memberUseCase.checkAncestors: family tree depth limit exceeded", "current_id", currentID, "target_id", targetID, "depth", depth)
+		return domain.NewValidationError("family tree depth limit exceeded")
+	}
+	if visited[currentID] {
+		return nil
+	}
+	visited[currentID] = true
+
+	// Get current member
+	current, err := uc.memberRepo.GetByID(ctx, currentID)
+	if err != nil {
+		return nil // If member not found, skip
+	}
+
+	// Check father's lineage
+	if current.FatherID != nil {
+		if *current.FatherID == targetID {
+			slog.Warn("memberUseCase.checkAncestors: circular relationship detected in ancestry (father)", "current_id", currentID, "target_id", targetID, "father_id", *current.FatherID, "depth", depth)
+			return domain.NewValidationError("circular relationship detected in ancestry")
+		}
+		if err := uc.checkAncestors(ctx, *current.FatherID, targetID, visited, depth+1); err != nil {
+			return err
+		}
+	}
+
+	// Check mother's lineage
+	if current.MotherID != nil {
+		if *current.MotherID == targetID {
+			slog.Warn("memberUseCase.checkAncestors: circular relationship detected in ancestry (mother)", "current_id", currentID, "target_id", targetID, "mother_id", *current.MotherID, "depth", depth)
+			return domain.NewValidationError("circular relationship detected in ancestry")
+		}
+		if err := uc.checkAncestors(ctx, *current.MotherID, targetID, visited, depth+1); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (uc *memberUseCase) calculateAndRecordScores(ctx context.Context, member *domain.Member, userID int) error {
@@ -319,9 +471,8 @@ func (uc *memberUseCase) ComputeMemberWithExtras(ctx context.Context, member *do
 		Member: *member,
 	}
 
-	// Compute full names (simplified - in production would build full lineage)
-	computed.ArabicFullName = member.ArabicName
-	computed.EnglishFullName = member.EnglishName
+	// Compute full names by building lineage through father's line
+	computed.ArabicFullName, computed.EnglishFullName = uc.buildFullNames(ctx, member)
 
 	// Compute age
 	if member.DateOfBirth != nil {
@@ -333,8 +484,8 @@ func (uc *memberUseCase) ComputeMemberWithExtras(ctx context.Context, member *do
 		computed.Age = &age
 	}
 
-	// Check if married
-	spouses, _ := uc.spouseRepo.GetSpousesByMemberID(ctx, member.MemberID)
+	// Fetch spouse information
+	spouses, _ := uc.spouseRepo.GetSpousesWithMemberInfo(ctx, member.MemberID)
 	computed.IsMarried = len(spouses) > 0
 	computed.Spouses = spouses
 
@@ -353,4 +504,34 @@ func (uc *memberUseCase) ComputeMemberWithExtras(ctx context.Context, member *do
 	}
 
 	return computed
+}
+
+// buildFullNames builds both Arabic and English full names by tracing through the father's lineage in a single pass
+// Returns: (arabicFullName, englishFullName)
+// Example: (محمد أحمد علي, Muhammad Ahmad Ali)
+func (uc *memberUseCase) buildFullNames(ctx context.Context, member *domain.Member) (string, string) {
+	arabicNames := []string{member.ArabicName}
+	englishNames := []string{member.EnglishName}
+
+	// If member has a father, trace through father's lineage
+	if member.FatherID != nil {
+		currentFatherID := member.FatherID
+		maxDepth := 10 // Prevent infinite loops
+		depth := 0
+
+		for currentFatherID != nil && depth < maxDepth {
+			father, err := uc.memberRepo.GetByID(ctx, *currentFatherID)
+			if err != nil {
+				break
+			}
+
+			arabicNames = append(arabicNames, father.ArabicName)
+			englishNames = append(englishNames, father.EnglishName)
+
+			currentFatherID = father.FatherID
+			depth++
+		}
+	}
+
+	return strings.Join(arabicNames, " "), strings.Join(englishNames, " ")
 }

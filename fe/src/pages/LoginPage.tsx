@@ -1,9 +1,21 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Box, Button, Card, CardContent, Typography, Container } from '@mui/material';
 import { Google } from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import { authApi } from '../api';
 
 const LoginPage: React.FC = () => {
+  const { user, loading } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    // Redirect to home if already logged in
+    if (!loading && user) {
+      navigate('/tree', { replace: true });
+    }
+  }, [user, loading, navigate]);
+
   const handleGoogleLogin = async () => {
     try {
       const { url } = await authApi.getAuthURL('google');
@@ -12,6 +24,11 @@ const LoginPage: React.FC = () => {
       console.error('Failed to get auth URL:', error);
     }
   };
+
+  // Show nothing while checking auth status
+  if (loading) {
+    return null;
+  }
 
   return (
     <Container maxWidth="sm">

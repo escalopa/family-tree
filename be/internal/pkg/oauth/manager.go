@@ -38,7 +38,7 @@ func NewOAuthManager(cfg *config.OAuthConfig) *OAuthManager {
 func (m *OAuthManager) GetProvider(providerName string) (OAuthProvider, error) {
 	provider, ok := m.providers[providerName]
 	if !ok {
-		slog.Warn("OAuthManager.GetProvider: provider not found", "provider", providerName)
+		slog.Warn("OAuthManager.GetProvider: OAuth provider not supported", "provider", providerName)
 		return nil, domain.NewValidationError(fmt.Sprintf("OAuth provider '%s' not supported", providerName))
 	}
 	return provider, nil

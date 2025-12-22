@@ -35,15 +35,20 @@ type MemberRepository interface {
 	Search(ctx context.Context, filter domain.MemberFilter, cursor *string, limit int) ([]*domain.Member, *string, error)
 	GetAll(ctx context.Context) ([]*domain.Member, error)
 	GetByIDs(ctx context.Context, memberIDs []int) ([]*domain.Member, error)
+	HasChildrenWithParents(ctx context.Context, fatherID, motherID int) (bool, error)
 }
 
 type SpouseRepository interface {
 	Create(ctx context.Context, spouse *domain.Spouse) error
-	Get(ctx context.Context, member1ID, member2ID int) (*domain.Spouse, error)
+	GetByID(ctx context.Context, spouseID int) (*domain.Spouse, error)
+	Get(ctx context.Context, fatherID, motherID int) (*domain.Spouse, error)
+	UpdateByID(ctx context.Context, spouse *domain.Spouse) error
 	Update(ctx context.Context, spouse *domain.Spouse) error
-	Delete(ctx context.Context, member1ID, member2ID int) error
+	Delete(ctx context.Context, fatherID, motherID int) error
+	DeleteByID(ctx context.Context, spouseID int) error
 	GetSpousesByMemberID(ctx context.Context, memberID int) ([]int, error)
 	GetAllSpouses(ctx context.Context) (map[int][]int, error)
+	GetSpousesWithMemberInfo(ctx context.Context, memberID int) ([]domain.SpouseWithMemberInfo, error)
 }
 
 type HistoryRepository interface {
@@ -73,7 +78,7 @@ type OAuthStateRepository interface {
 }
 
 type TokenManager interface {
-	GenerateAccessToken(userID int, email string, roleID int, sessionID string) (string, error)
+	GenerateAccessToken(userID int, sessionID string) (string, error)
 	GenerateRefreshToken(userID int, sessionID string) (string, error)
 	ValidateToken(tokenString string) (*domain.TokenClaims, error)
 }

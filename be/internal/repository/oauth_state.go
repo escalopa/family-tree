@@ -42,6 +42,7 @@ func (r *OAuthStateRepository) Get(ctx context.Context, stateStr string) (*domai
 		&state.State, &state.Provider, &state.CreatedAt, &state.ExpiresAt, &state.Used,
 	)
 	if errors.Is(err, pgx.ErrNoRows) {
+		slog.Warn("OAuthStateRepository.Get: OAuth state not found", "state", stateStr)
 		return nil, domain.NewInvalidOAuthStateError()
 	}
 	if err != nil {

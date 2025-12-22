@@ -77,11 +77,11 @@ const App: React.FC = () => {
               }
             />
 
-            {/* Super Admin Routes */}
+            {/* Admin Routes - Can view users, only SuperAdmin can edit */}
             <Route
               path="/users"
               element={
-                <ProtectedRoute requireActive minRole={Roles.SUPER_ADMIN}>
+                <ProtectedRoute requireActive minRole={Roles.ADMIN}>
                   <UsersPage />
                 </ProtectedRoute>
               }
