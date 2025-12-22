@@ -25,7 +25,6 @@ type MemberHandler interface {
 	UpdateMember(c *gin.Context)
 	DeleteMember(c *gin.Context)
 	GetMember(c *gin.Context)
-	GetChildrenByParentID(c *gin.Context)
 	SearchMembers(c *gin.Context)
 	SearchParents(c *gin.Context)
 	GetMemberHistory(c *gin.Context)

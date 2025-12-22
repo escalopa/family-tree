@@ -122,13 +122,11 @@ func (uc *memberUseCase) UpdateMember(ctx context.Context, member *domain.Member
 }
 
 func (uc *memberUseCase) DeleteMember(ctx context.Context, memberID, userID int) error {
-	// Get old member
 	oldMember, err := uc.memberRepo.GetByID(ctx, memberID)
 	if err != nil {
 		return fmt.Errorf("get member: %w", err)
 	}
 
-	// Check if member has children - prevent deletion if they do
 	children, err := uc.memberRepo.GetChildrenByParentID(ctx, memberID)
 	if err != nil {
 		return fmt.Errorf("check children: %w", err)
@@ -137,12 +135,10 @@ func (uc *memberUseCase) DeleteMember(ctx context.Context, memberID, userID int)
 		return domain.NewValidationError("cannot delete member: this member has children")
 	}
 
-	// Soft delete the member
 	if err := uc.memberRepo.SoftDelete(ctx, memberID); err != nil {
 		return fmt.Errorf("delete member: %w", err)
 	}
 
-	// Record history
 	oldValuesJSON, _ := json.Marshal(oldMember)
 	history := &domain.History{
 		MemberID:      memberID,

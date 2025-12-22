@@ -129,19 +129,12 @@ const SpouseCard: React.FC<SpouseCardProps> = ({
         <CardContent sx={{ flex: 1, p: 0 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
             <Typography variant="h6">{spouse.english_name}</Typography>
-            {isDivorced ? (
+            {isDivorced && (
               <Chip
                 icon={<HeartBroken />}
                 label="Divorced"
                 size="small"
                 color="error"
-              />
-            ) : (
-              <Chip
-                icon={<Favorite />}
-                label="Married"
-                size="small"
-                color="success"
               />
             )}
           </Box>

@@ -14,7 +14,6 @@ help: ## Show this help message
 migrate-up: ## Run database migrations (up)
 	@echo "Running migrations..."
 	@PGPASSWORD=$(DB_PASSWORD) psql -h $(DB_HOST) -p $(DB_PORT) -U $(DB_USER) -d $(DB_NAME) -f be/migrations/001_init_schema.up.sql
-	@PGPASSWORD=$(DB_PASSWORD) psql -h $(DB_HOST) -p $(DB_PORT) -U $(DB_USER) -d $(DB_NAME) -f be/migrations/002_add_spouse_deleted_at.up.sql
 	@echo "✅ Migrations completed successfully!"
 
 migrate-down: ## Run database migrations (down)

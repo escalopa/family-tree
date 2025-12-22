@@ -67,7 +67,12 @@ const ParentAutocomplete: React.FC<ParentAutocompleteProps> = ({
         onChange(newValue ? newValue.member_id : null);
       }}
       inputValue={inputValue}
-      onInputChange={(_, newInputValue) => {
+      onInputChange={(_, newInputValue, reason) => {
+        // Clear selectedOption when user clears the input
+        if (reason === 'clear') {
+          setSelectedOption(null);
+          onChange(null);
+        }
         setInputValue(newInputValue);
       }}
       getOptionLabel={(option) => `${option.arabic_name} - ${option.english_name}`}
@@ -75,6 +80,8 @@ const ParentAutocomplete: React.FC<ParentAutocompleteProps> = ({
       loading={loading}
       disabled={disabled}
       freeSolo={false}
+      clearOnEscape
+      clearOnBlur={false}
       renderInput={(params) => (
         <TextField
           {...params}

@@ -35,6 +35,18 @@ export interface MemberInfo {
   picture: string | null;
 }
 
+// Minimal member data for list views
+export interface MemberListItem {
+  member_id: number;
+  arabic_name: string;
+  english_name: string;
+  gender: 'M' | 'F';
+  picture: string | null;
+  date_of_birth: string | null;
+  date_of_death: string | null;
+  is_married: boolean;
+}
+
 export interface Member {
   member_id: number;
   arabic_name: string;
@@ -56,6 +68,7 @@ export interface Member {
   generation_level?: number;
   is_married: boolean;
   spouses?: SpouseInfo[];
+  children?: MemberInfo[];
   siblings?: MemberInfo[];
 }
 
@@ -174,23 +187,23 @@ export interface RelationQuery {
 
 // Paginated Response Types
 
-export interface PaginatedResponse<T> {
+export interface PaginatedResponse {
   next_cursor?: string;
 }
 
-export interface PaginatedMembersResponse extends PaginatedResponse<Member> {
-  members: Member[];
+export interface PaginatedMembersResponse extends PaginatedResponse {
+  members: MemberListItem[];
 }
 
-export interface PaginatedUsersResponse extends PaginatedResponse<User> {
+export interface PaginatedUsersResponse extends PaginatedResponse {
   users: User[];
 }
 
-export interface PaginatedHistoryResponse extends PaginatedResponse<HistoryRecord> {
+export interface PaginatedHistoryResponse extends PaginatedResponse {
   history: HistoryRecord[];
 }
 
-export interface PaginatedScoreHistoryResponse extends PaginatedResponse<ScoreHistory> {
+export interface PaginatedScoreHistoryResponse extends PaginatedResponse {
   scores: ScoreHistory[];
 }
 

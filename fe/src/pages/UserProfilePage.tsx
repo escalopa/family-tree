@@ -61,8 +61,8 @@ const UserProfilePage: React.FC = () => {
       const scoresResponse = await usersApi.getScoreHistory(Number(userId));
       setScoreHistory(scoresResponse.scores);
 
-      // Admins and super admins can see user changes
-      if (hasRole(Roles.ADMIN)) {
+      // Only super admins can see user changes
+      if (hasRole(Roles.SUPER_ADMIN)) {
         const changesResponse = await usersApi.getUserChanges(Number(userId));
         setUserChanges(changesResponse.history);
       }
@@ -154,7 +154,7 @@ const UserProfilePage: React.FC = () => {
         <Paper>
           <Tabs value={activeTab} onChange={(_, v) => setActiveTab(v)}>
             <Tab label="Score History" />
-            {hasRole(Roles.ADMIN) && <Tab label="Recent Changes" />}
+            {hasRole(Roles.SUPER_ADMIN) && <Tab label="Recent Changes" />}
           </Tabs>
 
           {/* Score History Tab */}
@@ -196,8 +196,8 @@ const UserProfilePage: React.FC = () => {
             </Box>
           )}
 
-          {/* Recent Changes Tab (Admin and Super Admin) */}
-          {activeTab === 1 && hasRole(Roles.ADMIN) && (
+          {/* Recent Changes Tab (Super Admin only) */}
+          {activeTab === 1 && hasRole(Roles.SUPER_ADMIN) && (
             <Box sx={{ p: 2 }}>
               <TableContainer>
                 <Table>

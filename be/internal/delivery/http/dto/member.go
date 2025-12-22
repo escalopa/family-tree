@@ -33,8 +33,19 @@ type MemberSearchQuery struct {
 	Limit   int     `form:"limit" binding:"omitempty,min=1,max=100"`
 }
 
+type MemberListItem struct {
+	MemberID    int     `json:"member_id"`
+	ArabicName  string  `json:"arabic_name"`
+	EnglishName string  `json:"english_name"`
+	Gender      string  `json:"gender"`
+	Picture     *string `json:"picture"`
+	DateOfBirth *Date   `json:"date_of_birth"`
+	DateOfDeath *Date   `json:"date_of_death"`
+	IsMarried   bool    `json:"is_married"`
+}
+
 type PaginatedMembersResponse struct {
-	Members    []MemberResponse `json:"members"`
+	Members    []MemberListItem `json:"members"`
 	NextCursor *string          `json:"next_cursor,omitempty"`
 }
 
@@ -66,6 +77,7 @@ type MemberResponse struct {
 	GenerationLevel int          `json:"generation_level,omitempty"`
 	IsMarried       bool         `json:"is_married"`
 	Spouses         []SpouseInfo `json:"spouses,omitempty"`
+	Children        []MemberInfo `json:"children,omitempty"`
 	Siblings        []MemberInfo `json:"siblings,omitempty"`
 }
 

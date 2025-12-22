@@ -29,7 +29,7 @@ import {
 } from '@mui/material';
 import { Add, Edit, Delete, FilterAlt, Clear, Close } from '@mui/icons-material';
 import { membersApi } from '../api';
-import { Member, MemberSearchQuery, CreateMemberRequest, UpdateMemberRequest } from '../types';
+import { Member, MemberListItem, MemberSearchQuery, CreateMemberRequest, UpdateMemberRequest } from '../types';
 import { formatDate, getMemberPictureUrl } from '../utils/helpers';
 import Layout from '../components/Layout/Layout';
 import MemberPhotoUpload from '../components/MemberPhotoUpload';
@@ -41,7 +41,7 @@ const PAGE_SIZE = 10;
 
 const MembersPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [members, setMembers] = useState<Member[]>([]);
+  const [members, setMembers] = useState<MemberListItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
@@ -49,7 +49,6 @@ const MembersPage: React.FC = () => {
   const [openDialog, setOpenDialog] = useState(false);
   const [openAddSpouseDialog, setOpenAddSpouseDialog] = useState(false);
   const [editingMember, setEditingMember] = useState<Member | null>(null);
-  const [memberChildren, setMemberChildren] = useState<Member[]>([]);
   const [originalFormData, setOriginalFormData] = useState<CreateMemberRequest | null>(null);
   const [formData, setFormData] = useState<CreateMemberRequest>({
     arabic_name: '',
@@ -145,27 +144,17 @@ const MembersPage: React.FC = () => {
     setSearchQuery(newQuery);
   };
 
-  const loadMemberChildren = async (memberId: number) => {
-    try {
-      const children = await membersApi.getChildren(memberId);
-      setMemberChildren(children || []);
-    } catch (error) {
-      console.error('Failed to load children:', error);
-      setMemberChildren([]);
-    }
-  };
-
-  // Fetch full member details when opening dialog
-  const handleOpenDialog = async (memberIdOrMember?: number | Member) => {
+  // Fetch full member details when opening dialog (includes children, siblings, spouses, etc.)
+  const handleOpenDialog = async (memberIdOrMember?: number | MemberListItem) => {
     if (memberIdOrMember) {
       try {
         // If it's a number (member_id), fetch full details from backend
-        // If it's a Member object from the list, also fetch full details to get computed fields
+        // If it's a MemberListItem from the list, also fetch full details to get computed fields
         const memberId = typeof memberIdOrMember === 'number'
           ? memberIdOrMember
           : memberIdOrMember.member_id;
 
-        // Fetch fresh full member data including full names, siblings, etc.
+        // Fetch fresh full member data including full names, children, siblings, spouses
         const fullMember = await membersApi.getMember(memberId);
 
         const initialData = {
@@ -183,9 +172,6 @@ const MembersPage: React.FC = () => {
         setEditingMember(fullMember);
         setFormData(initialData);
         setOriginalFormData(initialData);
-
-        // Load children for this member
-        await loadMemberChildren(fullMember.member_id);
       } catch (error) {
         console.error('Failed to load member details:', error);
         alert('Failed to load member details');
@@ -194,8 +180,6 @@ const MembersPage: React.FC = () => {
     } else {
       setEditingMember(null);
       setOriginalFormData(null);
-      setMemberChildren([]);
-      setMemberChildren([]);
       setFormData({
         arabic_name: '',
         english_name: '',
@@ -209,7 +193,6 @@ const MembersPage: React.FC = () => {
     setOpenDialog(false);
     setEditingMember(null);
     setOriginalFormData(null);
-    setMemberChildren([]);
   };
 
   const handleOpenRelatedMember = async (memberId: number) => {
@@ -257,10 +240,9 @@ const MembersPage: React.FC = () => {
         };
         await membersApi.updateMember(editingMember.member_id, updateData);
 
-        // Refetch member data after update to get latest computed fields
+        // Refetch member data after update to get latest computed fields (includes children)
         const updatedMember = await membersApi.getMember(editingMember.member_id);
         setEditingMember(updatedMember);
-        await loadMemberChildren(updatedMember.member_id);
       } else {
         await membersApi.createMember(formData);
       }
@@ -283,11 +265,11 @@ const MembersPage: React.FC = () => {
   };
 
   const handlePhotoChange = async (memberId: number, pictureUrl: string | null) => {
-    // Update the member in the list
+    // Update the member picture in the list
     setMembers(prevMembers =>
       prevMembers.map(member =>
         member.member_id === memberId
-          ? { ...member, picture: pictureUrl, version: member.version + 1 }
+          ? { ...member, picture: pictureUrl }
           : member
       )
     );
@@ -494,7 +476,7 @@ const MembersPage: React.FC = () => {
                 <TableRow key={member.member_id}>
                   <TableCell>
                     <Avatar
-                      src={getMemberPictureUrl(member.member_id, member.picture, member.version) || undefined}
+                      src={getMemberPictureUrl(member.member_id, member.picture) || undefined}
                       sx={{
                         width: 50,
                         height: 50,
@@ -718,7 +700,6 @@ const MembersPage: React.FC = () => {
                           {editingMember.father.english_name[0]}
                         </Avatar>
                         <Box sx={{ flex: 1 }}>
-                          <Chip label="Father" size="small" color="info" sx={{ mb: 0.5 }} />
                           <Typography variant="body1" fontWeight="bold">
                             {editingMember.father.english_name}
                           </Typography>
@@ -749,7 +730,6 @@ const MembersPage: React.FC = () => {
                           {editingMember.mother.english_name[0]}
                         </Avatar>
                         <Box sx={{ flex: 1 }}>
-                          <Chip label="Mother" size="small" color="secondary" sx={{ mb: 0.5 }} />
                           <Typography variant="body1" fontWeight="bold">
                             {editingMember.mother.english_name}
                           </Typography>
@@ -808,62 +788,44 @@ const MembersPage: React.FC = () => {
               )}
 
               {/* Children Section */}
-              {editingMember && (
+              {editingMember && editingMember.children && editingMember.children.length > 0 && (
                 <Grid item xs={12}>
                   <Typography variant="h6" sx={{ mt: 2, mb: 1 }}>
-                    Children {memberChildren && memberChildren.length > 0 && `(${memberChildren.length})`}
+                    Children ({editingMember.children.length})
                   </Typography>
-                  {memberChildren && memberChildren.length > 0 ? (
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                      {memberChildren.map((child) => (
-                        <Paper
-                          key={child.member_id}
-                          sx={{
-                            p: 2,
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 2,
-                            border: '1px solid',
-                            borderColor: 'divider',
-                            cursor: 'pointer',
-                            '&:hover': { boxShadow: 3, bgcolor: 'action.hover' },
-                          }}
-                          onClick={() => handleOpenRelatedMember(child.member_id)}
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    {editingMember.children.map((child) => (
+                      <Paper
+                        key={child.member_id}
+                        sx={{
+                          p: 2,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 2,
+                          border: '2px solid',
+                          borderColor: '#9C27B0', // Purple border for children
+                          cursor: 'pointer',
+                          '&:hover': { boxShadow: 3, bgcolor: 'action.hover' },
+                        }}
+                        onClick={() => handleOpenRelatedMember(child.member_id)}
+                      >
+                        <Avatar
+                          src={getMemberPictureUrl(child.member_id, child.picture) || undefined}
+                          sx={{ width: 50, height: 50, bgcolor: '#9C27B0' }}
                         >
-                          <Avatar
-                            src={getMemberPictureUrl(child.member_id, child.picture, child.version) || undefined}
-                            sx={{
-                              width: 50,
-                              height: 50,
-                              bgcolor: child.gender === 'M' ? '#00BCD4' : child.gender === 'F' ? '#E91E63' : '#9E9E9E',
-                            }}
-                          >
-                            {child.english_name[0]}
-                          </Avatar>
-                          <Box sx={{ flex: 1 }}>
-                            <Chip
-                              label={child.gender === 'M' ? 'Son' : child.gender === 'F' ? 'Daughter' : 'Child'}
-                              size="small"
-                              sx={{ mb: 0.5 }}
-                            />
-                            <Typography variant="body1" fontWeight="bold">
-                              {child.english_name}
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary">
-                              {child.arabic_name}
-                            </Typography>
-                          </Box>
-                          {child.age && (
-                            <Chip label={`Age: ${child.age}`} size="small" variant="outlined" />
-                          )}
-                        </Paper>
-                      ))}
-                    </Box>
-                  ) : (
-                    <Typography variant="body2" color="text.secondary" sx={{ py: 2, textAlign: 'center' }}>
-                      No children found.
-                    </Typography>
-                  )}
+                          {child.english_name[0]}
+                        </Avatar>
+                        <Box sx={{ flex: 1 }}>
+                          <Typography variant="body1" fontWeight="bold">
+                            {child.english_name}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            {child.arabic_name}
+                          </Typography>
+                        </Box>
+                      </Paper>
+                    ))}
+                  </Box>
                 </Grid>
               )}
 
@@ -900,7 +862,6 @@ const MembersPage: React.FC = () => {
                           {sibling.english_name[0]}
                         </Avatar>
                         <Box sx={{ flex: 1 }}>
-                          <Chip label="Sibling" size="small" color="warning" sx={{ mb: 0.5 }} />
                           <Typography variant="body1" fontWeight="bold">
                             {sibling.english_name}
                           </Typography>

@@ -32,12 +32,10 @@ func NewSpouseUseCase(
 }
 
 func (uc *spouseUseCase) AddSpouse(ctx context.Context, spouse *domain.Spouse, userID int) error {
-	// Validate dates
 	if !validator.ValidateDateOrder(spouse.MarriageDate, spouse.DivorceDate) {
 		return fmt.Errorf("divorce date must be after marriage date")
 	}
 
-	// Validate that father is male and mother is female
 	father, err := uc.memberRepo.GetByID(ctx, spouse.FatherID)
 	if err != nil {
 		return fmt.Errorf("get father: %w", err)

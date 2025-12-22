@@ -18,6 +18,7 @@ type Member struct {
 	Profession  *string    `json:"profession"`
 	Version     int        `json:"version"`
 	DeletedAt   *time.Time `json:"deleted_at"`
+	IsMarried   bool       `json:"is_married"` // Computed field for search results
 }
 
 // Computed fields

@@ -124,9 +124,10 @@ func (r *MemberRepository) DeletePicture(ctx context.Context, memberID int) erro
 func (r *MemberRepository) Search(ctx context.Context, filter domain.MemberFilter, cursor *string, limit int) ([]*domain.Member, *string, error) {
 	query := `
 		SELECT DISTINCT m.member_id, m.arabic_name, m.english_name, m.gender, m.picture, m.date_of_birth,
-		       m.date_of_death, m.father_id, m.mother_id, m.nicknames, m.profession, m.version, m.deleted_at
+		       m.date_of_death, m.father_id, m.mother_id, m.nicknames, m.profession, m.version, m.deleted_at,
+		       CASE WHEN COUNT(ms.spouse_id) > 0 THEN true ELSE false END as is_married
 		FROM members m
-		LEFT JOIN members_spouse ms ON m.member_id = ms.father_id OR m.member_id = ms.mother_id
+		LEFT JOIN members_spouse ms ON (m.member_id = ms.father_id OR m.member_id = ms.mother_id) AND ms.deleted_at IS NULL
 		WHERE m.deleted_at IS NULL
 		  AND (($1::text IS NULL) OR m.member_id > $1::int)
 		  AND (($2::text IS NULL) OR (m.arabic_name ILIKE '%' || $2 || '%' OR m.english_name ILIKE '%' || $2 || '%'))
@@ -137,6 +138,8 @@ func (r *MemberRepository) Search(ctx context.Context, filter domain.MemberFilte
 		      ELSE (ms.father_id IS NULL AND ms.mother_id IS NULL)
 		    END
 		  ))
+		GROUP BY m.member_id, m.arabic_name, m.english_name, m.gender, m.picture, m.date_of_birth,
+		         m.date_of_death, m.father_id, m.mother_id, m.nicknames, m.profession, m.version, m.deleted_at
 		ORDER BY m.member_id
 		LIMIT $5
 	`
@@ -165,6 +168,7 @@ func (r *MemberRepository) Search(ctx context.Context, filter domain.MemberFilte
 			&member.MemberID, &member.ArabicName, &member.EnglishName, &member.Gender,
 			&member.Picture, &member.DateOfBirth, &member.DateOfDeath, &member.FatherID,
 			&member.MotherID, &member.Nicknames, &member.Profession, &member.Version, &member.DeletedAt,
+			&member.IsMarried,
 		)
 		if err != nil {
 			return nil, nil, domain.NewDatabaseError(err)

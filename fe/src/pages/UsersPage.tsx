@@ -135,7 +135,6 @@ const UsersPage: React.FC = () => {
                     <TableCell>Email</TableCell>
                     <TableCell>Role</TableCell>
                     <TableCell>Status</TableCell>
-                    <TableCell>Total Score</TableCell>
                     <TableCell>Actions</TableCell>
                   </TableRow>
                 </TableHead>
@@ -160,9 +159,6 @@ const UsersPage: React.FC = () => {
                           size="small"
                           color={user.is_active ? 'success' : 'default'}
                         />
-                      </TableCell>
-                      <TableCell>
-                        {user.total_score !== undefined ? user.total_score : '-'}
                       </TableCell>
                       <TableCell>
                         <IconButton

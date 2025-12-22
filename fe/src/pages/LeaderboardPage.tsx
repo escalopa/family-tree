@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Paper,
@@ -14,10 +15,13 @@ import {
 } from '@mui/material';
 import { EmojiEvents } from '@mui/icons-material';
 import { usersApi } from '../api';
-import { UserScore } from '../types';
+import { UserScore, Roles } from '../types';
 import Layout from '../components/Layout/Layout';
+import { useAuth } from '../contexts/AuthContext';
 
 const LeaderboardPage: React.FC = () => {
+  const navigate = useNavigate();
+  const { hasRole } = useAuth();
   const [leaderboard, setLeaderboard] = useState<UserScore[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -74,7 +78,12 @@ const LeaderboardPage: React.FC = () => {
               </TableHead>
               <TableBody>
                 {leaderboard.map((user) => (
-                  <TableRow key={user.user_id}>
+                  <TableRow
+                    key={user.user_id}
+                    hover={hasRole(Roles.ADMIN)}
+                    sx={{ cursor: hasRole(Roles.ADMIN) ? 'pointer' : 'default' }}
+                    onClick={() => hasRole(Roles.ADMIN) && navigate(`/users/${user.user_id}`)}
+                  >
                     <TableCell>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                         {user.rank <= 3 ? (

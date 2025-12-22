@@ -151,6 +151,7 @@ func (r *SpouseRepository) GetSpousesByMemberID(ctx context.Context, memberID in
 		WHERE (ms.father_id = $1 OR ms.mother_id = $1)
 		  AND ms.deleted_at IS NULL
 		  AND m.deleted_at IS NULL
+		ORDER BY m.date_of_birth ASC NULLS LAST, m.member_id ASC
 	`
 	rows, err := r.db.Query(ctx, query, memberID)
 	if err != nil {
@@ -220,6 +221,7 @@ func (r *SpouseRepository) GetSpousesWithMemberInfo(ctx context.Context, memberI
 			(ms.mother_id = $1 AND m.member_id = ms.father_id)
 		)
 		WHERE ms.deleted_at IS NULL AND m.deleted_at IS NULL
+		ORDER BY m.date_of_birth ASC NULLS LAST, m.member_id ASC
 	`
 	rows, err := r.db.Query(ctx, query, memberID)
 	if err != nil {

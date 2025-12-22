@@ -107,13 +107,25 @@ func (uc *treeUseCase) GetListView(ctx context.Context, rootID *int, userRole in
 
 	// Sort by date of birth (oldest first)
 	sort.Slice(result, func(i, j int) bool {
-		if result[i].DateOfBirth == nil {
+		dateI := result[i].DateOfBirth
+		dateJ := result[j].DateOfBirth
+
+		// Handle nil dates (put them at the end)
+		if dateI == nil && dateJ == nil {
+			return result[i].MemberID < result[j].MemberID
+		}
+		if dateI == nil {
 			return false
 		}
-		if result[j].DateOfBirth == nil {
+		if dateJ == nil {
 			return true
 		}
-		return result[i].DateOfBirth.Before(*result[j].DateOfBirth)
+
+		// Compare dates
+		if dateI.Equal(*dateJ) {
+			return result[i].MemberID < result[j].MemberID
+		}
+		return dateI.Before(*dateJ)
 	})
 
 	return result, nil
@@ -222,6 +234,29 @@ func (uc *treeUseCase) buildTree(memberMap map[int]*domain.Member, spouseMap map
 			}
 		}
 	}
+
+	// Sort children by birth date (oldest first)
+	sort.Slice(node.Children, func(i, j int) bool {
+		dateI := node.Children[i].DateOfBirth
+		dateJ := node.Children[j].DateOfBirth
+
+		// Handle nil dates (put them at the end)
+		if dateI == nil && dateJ == nil {
+			return node.Children[i].MemberID < node.Children[j].MemberID
+		}
+		if dateI == nil {
+			return false
+		}
+		if dateJ == nil {
+			return true
+		}
+
+		// Compare dates
+		if dateI.Equal(*dateJ) {
+			return node.Children[i].MemberID < node.Children[j].MemberID
+		}
+		return dateI.Before(*dateJ)
+	})
 
 	return node
 }
