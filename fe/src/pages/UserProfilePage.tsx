@@ -20,7 +20,7 @@ import {
 import { Visibility } from '@mui/icons-material';
 import { usersApi } from '../api';
 import { User, ScoreHistory, HistoryRecord } from '../types';
-import { getRoleName, formatDate } from '../utils/helpers';
+import { getRoleName, formatDate, formatDateTime, formatRelativeTime } from '../utils/helpers';
 import Layout from '../components/Layout/Layout';
 import { useAuth } from '../contexts/AuthContext';
 import { Roles } from '../types';
@@ -180,7 +180,14 @@ const UserProfilePage: React.FC = () => {
                         <TableCell>
                           <Chip label={`+${score.points}`} color="primary" size="small" />
                         </TableCell>
-                        <TableCell>{formatDate(score.created_at)}</TableCell>
+                        <TableCell>
+                          <Box>
+                            <Typography variant="body2">{formatDateTime(score.created_at)}</Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              {formatRelativeTime(score.created_at)}
+                            </Typography>
+                          </Box>
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -210,7 +217,14 @@ const UserProfilePage: React.FC = () => {
                           <Chip label={change.change_type} size="small" />
                         </TableCell>
                         <TableCell>{change.member_id}</TableCell>
-                        <TableCell>{formatDate(change.changed_at)}</TableCell>
+                        <TableCell>
+                          <Box>
+                            <Typography variant="body2">{formatDateTime(change.changed_at)}</Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              {formatRelativeTime(change.changed_at)}
+                            </Typography>
+                          </Box>
+                        </TableCell>
                         <TableCell>{change.member_version}</TableCell>
                         <TableCell>
                           <IconButton

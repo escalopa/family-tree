@@ -118,6 +118,7 @@ CREATE TABLE members_spouse (
     mother_id INT NOT NULL,
     marriage_date DATE,
     divorce_date DATE,
+    deleted_at TIMESTAMP,
     CONSTRAINT chk_marriage_dates CHECK (divorce_date IS NULL OR marriage_date IS NULL OR divorce_date >= marriage_date)
 );
 
@@ -129,6 +130,7 @@ ALTER TABLE members_spouse
 
 CREATE INDEX idx_members_spouse_father ON members_spouse(father_id);
 CREATE INDEX idx_members_spouse_mother ON members_spouse(mother_id);
+CREATE INDEX idx_members_spouse_deleted_at ON members_spouse(deleted_at) WHERE deleted_at IS NULL;
 
 -- =============================
 -- Members History (Edit Tracking)

@@ -17,7 +17,7 @@ import {
   Chip,
 } from '@mui/material';
 import { HistoryRecord } from '../types';
-import { formatDate } from '../utils/helpers';
+import { formatDateTime, formatRelativeTime } from '../utils/helpers';
 
 interface HistoryDiffDialogProps {
   open: boolean;
@@ -105,7 +105,7 @@ const HistoryDiffDialog: React.FC<HistoryDiffDialogProps> = ({ open, onClose, hi
             </Typography>
           </Box>
           <Typography variant="caption" color="text.secondary">
-            {formatDate(history.changed_at)} • Version {history.member_version}
+            {formatDateTime(history.changed_at)} • {formatRelativeTime(history.changed_at)} • Version {history.member_version}
           </Typography>
         </Box>
       </DialogTitle>

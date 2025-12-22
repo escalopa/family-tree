@@ -128,7 +128,16 @@ func (uc *memberUseCase) DeleteMember(ctx context.Context, memberID, userID int)
 		return fmt.Errorf("get member: %w", err)
 	}
 
-	// Soft delete
+	// Check if member has children - prevent deletion if they do
+	children, err := uc.memberRepo.GetChildrenByParentID(ctx, memberID)
+	if err != nil {
+		return fmt.Errorf("check children: %w", err)
+	}
+	if len(children) > 0 {
+		return domain.NewValidationError("cannot delete member: this member has children")
+	}
+
+	// Soft delete the member
 	if err := uc.memberRepo.SoftDelete(ctx, memberID); err != nil {
 		return fmt.Errorf("delete member: %w", err)
 	}
@@ -144,7 +153,7 @@ func (uc *memberUseCase) DeleteMember(ctx context.Context, memberID, userID int)
 		MemberVersion: oldMember.Version + 1,
 	}
 	if err := uc.historyRepo.Create(ctx, history); err != nil {
-		return fmt.Errorf("record history: %w", err)
+		slog.Error("failed to record delete history", "error", err, "member_id", memberID)
 	}
 
 	return nil

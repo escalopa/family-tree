@@ -20,6 +20,41 @@ export const formatDate = (dateString: string | null): string => {
   return new Date(dateString).toLocaleDateString();
 };
 
+export const formatDateTime = (dateTimeString: string | null): string => {
+  if (!dateTimeString) return '-';
+  const date = new Date(dateTimeString);
+  return `${date.toLocaleDateString()} ${date.toLocaleTimeString([], {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  })}`;
+};
+
+export const formatRelativeTime = (dateTimeString: string | null): string => {
+  if (!dateTimeString) return '-';
+
+  const date = new Date(dateTimeString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffSeconds = Math.floor(diffMs / 1000);
+  const diffMinutes = Math.floor(diffSeconds / 60);
+  const diffHours = Math.floor(diffMinutes / 60);
+  const diffDays = Math.floor(diffHours / 24);
+
+  if (diffSeconds < 60) {
+    return 'just now';
+  } else if (diffMinutes < 60) {
+    return `${diffMinutes} minute${diffMinutes !== 1 ? 's' : ''} ago`;
+  } else if (diffHours < 24) {
+    return `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`;
+  } else if (diffDays < 7) {
+    return `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`;
+  } else {
+    return formatDateTime(dateTimeString);
+  }
+};
+
 export const calculateAge = (dateOfBirth: string | null, dateOfDeath: string | null): number | null => {
   if (!dateOfBirth) return null;
 

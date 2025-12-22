@@ -8,6 +8,7 @@ type Spouse struct {
 	MotherID     int        `json:"mother_id"`
 	MarriageDate *time.Time `json:"marriage_date"`
 	DivorceDate  *time.Time `json:"divorce_date"`
+	DeletedAt    *time.Time `json:"deleted_at,omitempty"`
 }
 
 type SpouseWithMemberInfo struct {

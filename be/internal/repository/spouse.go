@@ -33,13 +33,13 @@ func (r *SpouseRepository) Create(ctx context.Context, spouse *domain.Spouse) er
 
 func (r *SpouseRepository) GetByID(ctx context.Context, spouseID int) (*domain.Spouse, error) {
 	query := `
-		SELECT spouse_id, father_id, mother_id, marriage_date, divorce_date
+		SELECT spouse_id, father_id, mother_id, marriage_date, divorce_date, deleted_at
 		FROM members_spouse
-		WHERE spouse_id = $1
+		WHERE spouse_id = $1 AND deleted_at IS NULL
 	`
 	spouse := &domain.Spouse{}
 	err := r.db.QueryRow(ctx, query, spouseID).Scan(
-		&spouse.SpouseID, &spouse.FatherID, &spouse.MotherID, &spouse.MarriageDate, &spouse.DivorceDate,
+		&spouse.SpouseID, &spouse.FatherID, &spouse.MotherID, &spouse.MarriageDate, &spouse.DivorceDate, &spouse.DeletedAt,
 	)
 	if errors.Is(err, pgx.ErrNoRows) {
 		slog.Warn("SpouseRepository.GetByID: spouse relationship not found", "spouse_id", spouseID)
@@ -53,13 +53,13 @@ func (r *SpouseRepository) GetByID(ctx context.Context, spouseID int) (*domain.S
 
 func (r *SpouseRepository) Get(ctx context.Context, fatherID, motherID int) (*domain.Spouse, error) {
 	query := `
-		SELECT spouse_id, father_id, mother_id, marriage_date, divorce_date
+		SELECT spouse_id, father_id, mother_id, marriage_date, divorce_date, deleted_at
 		FROM members_spouse
-		WHERE father_id = $1 AND mother_id = $2
+		WHERE father_id = $1 AND mother_id = $2 AND deleted_at IS NULL
 	`
 	spouse := &domain.Spouse{}
 	err := r.db.QueryRow(ctx, query, fatherID, motherID).Scan(
-		&spouse.SpouseID, &spouse.FatherID, &spouse.MotherID, &spouse.MarriageDate, &spouse.DivorceDate,
+		&spouse.SpouseID, &spouse.FatherID, &spouse.MotherID, &spouse.MarriageDate, &spouse.DivorceDate, &spouse.DeletedAt,
 	)
 	if errors.Is(err, pgx.ErrNoRows) {
 		slog.Warn("SpouseRepository.Get: spouse relationship not found", "father_id", fatherID, "mother_id", motherID)
@@ -75,7 +75,7 @@ func (r *SpouseRepository) UpdateByID(ctx context.Context, spouse *domain.Spouse
 	query := `
 		UPDATE members_spouse
 		SET marriage_date = $1, divorce_date = $2
-		WHERE spouse_id = $3
+		WHERE spouse_id = $3 AND deleted_at IS NULL
 	`
 	result, err := r.db.Exec(ctx, query, spouse.MarriageDate, spouse.DivorceDate, spouse.SpouseID)
 	if err != nil {
@@ -92,7 +92,7 @@ func (r *SpouseRepository) Update(ctx context.Context, spouse *domain.Spouse) er
 	query := `
 		UPDATE members_spouse
 		SET marriage_date = $1, divorce_date = $2
-		WHERE father_id = $3 AND mother_id = $4
+		WHERE father_id = $3 AND mother_id = $4 AND deleted_at IS NULL
 	`
 	result, err := r.db.Exec(ctx, query, spouse.MarriageDate, spouse.DivorceDate, spouse.FatherID, spouse.MotherID)
 	if err != nil {
@@ -107,8 +107,9 @@ func (r *SpouseRepository) Update(ctx context.Context, spouse *domain.Spouse) er
 
 func (r *SpouseRepository) Delete(ctx context.Context, fatherID, motherID int) error {
 	query := `
-		DELETE FROM members_spouse
-		WHERE father_id = $1 AND mother_id = $2
+		UPDATE members_spouse
+		SET deleted_at = NOW()
+		WHERE father_id = $1 AND mother_id = $2 AND deleted_at IS NULL
 	`
 	result, err := r.db.Exec(ctx, query, fatherID, motherID)
 	if err != nil {
@@ -123,8 +124,9 @@ func (r *SpouseRepository) Delete(ctx context.Context, fatherID, motherID int) e
 
 func (r *SpouseRepository) DeleteByID(ctx context.Context, spouseID int) error {
 	query := `
-		DELETE FROM members_spouse
-		WHERE spouse_id = $1
+		UPDATE members_spouse
+		SET deleted_at = NOW()
+		WHERE spouse_id = $1 AND deleted_at IS NULL
 	`
 	result, err := r.db.Exec(ctx, query, spouseID)
 	if err != nil {
@@ -141,11 +143,14 @@ func (r *SpouseRepository) GetSpousesByMemberID(ctx context.Context, memberID in
 	query := `
 		SELECT
 			CASE
-				WHEN father_id = $1 THEN mother_id
-				ELSE father_id
+				WHEN ms.father_id = $1 THEN ms.mother_id
+				ELSE ms.father_id
 			END as spouse_id
-		FROM members_spouse
-		WHERE father_id = $1 OR mother_id = $1
+		FROM members_spouse ms
+		JOIN members m ON (m.member_id = CASE WHEN ms.father_id = $1 THEN ms.mother_id ELSE ms.father_id END)
+		WHERE (ms.father_id = $1 OR ms.mother_id = $1)
+		  AND ms.deleted_at IS NULL
+		  AND m.deleted_at IS NULL
 	`
 	rows, err := r.db.Query(ctx, query, memberID)
 	if err != nil {
@@ -168,7 +173,15 @@ func (r *SpouseRepository) GetSpousesByMemberID(ctx context.Context, memberID in
 }
 
 func (r *SpouseRepository) GetAllSpouses(ctx context.Context) (map[int][]int, error) {
-	query := `SELECT father_id, mother_id FROM members_spouse`
+	query := `
+		SELECT ms.father_id, ms.mother_id
+		FROM members_spouse ms
+		JOIN members m1 ON m1.member_id = ms.father_id
+		JOIN members m2 ON m2.member_id = ms.mother_id
+		WHERE ms.deleted_at IS NULL
+		  AND m1.deleted_at IS NULL
+		  AND m2.deleted_at IS NULL
+	`
 	rows, err := r.db.Query(ctx, query)
 	if err != nil {
 		return nil, domain.NewDatabaseError(err)
@@ -206,7 +219,7 @@ func (r *SpouseRepository) GetSpousesWithMemberInfo(ctx context.Context, memberI
 			(ms.father_id = $1 AND m.member_id = ms.mother_id) OR
 			(ms.mother_id = $1 AND m.member_id = ms.father_id)
 		)
-		WHERE m.deleted_at IS NULL
+		WHERE ms.deleted_at IS NULL AND m.deleted_at IS NULL
 	`
 	rows, err := r.db.Query(ctx, query, memberID)
 	if err != nil {
