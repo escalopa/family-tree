@@ -83,6 +83,8 @@ export interface ParentOption {
 export interface TreeNode {
   member: Member;
   children?: TreeNode[];
+  spouse_nodes?: TreeNode[]; // Spouse nodes at same level
+  is_in_path?: boolean; // For relation path highlighting
 }
 
 export interface HistoryRecord {

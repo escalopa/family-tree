@@ -61,5 +61,5 @@ type SpouseUseCase interface {
 type TreeUseCase interface {
 	GetTree(ctx context.Context, rootID *int, userRole int) (*domain.MemberTreeNode, error)
 	GetListView(ctx context.Context, rootID *int, userRole int) ([]*domain.MemberWithComputed, error)
-	GetRelationPath(ctx context.Context, member1ID, member2ID int, userRole int) ([]*domain.MemberWithComputed, error)
+	GetRelationTree(ctx context.Context, member1ID, member2ID int, userRole int) (*domain.MemberTreeNode, error)
 }

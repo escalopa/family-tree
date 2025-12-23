@@ -11,6 +11,8 @@ type RelationQuery struct {
 }
 
 type TreeNodeResponse struct {
-	Member   MemberResponse      `json:"member"`
-	Children []*TreeNodeResponse `json:"children,omitempty"`
+	Member      MemberResponse      `json:"member"`
+	Children    []*TreeNodeResponse `json:"children,omitempty"`
+	SpouseNodes []*TreeNodeResponse `json:"spouse_nodes,omitempty"` // Spouse nodes at same level
+	IsInPath    bool                `json:"is_in_path,omitempty"`   // For relation path highlighting
 }

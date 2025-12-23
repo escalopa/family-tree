@@ -90,48 +90,15 @@ func (h *treeHandler) GetRelation(c *gin.Context) {
 	}
 
 	userRole := middleware.GetUserRole(c)
-	path, err := h.treeUseCase.GetRelationPath(c.Request.Context(), query.Member1ID, query.Member2ID, userRole)
+
+	// Get the tree with path highlighting
+	tree, err := h.treeUseCase.GetRelationTree(c.Request.Context(), query.Member1ID, query.Member2ID, userRole)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, dto.Response{Success: false, Error: err.Error()})
 		return
 	}
 
-	var response []dto.MemberResponse
-	for _, m := range path {
-		spousesDTO := make([]dto.SpouseInfo, len(m.Spouses))
-		for i, spouse := range m.Spouses {
-			spousesDTO[i] = dto.SpouseInfo{
-				SpouseID:     spouse.SpouseID,
-				MemberID:     spouse.MemberID,
-				ArabicName:   spouse.ArabicName,
-				EnglishName:  spouse.EnglishName,
-				Gender:       spouse.Gender,
-				Picture:      spouse.Picture,
-				MarriageDate: dto.FromTimePtr(spouse.MarriageDate),
-				DivorceDate:  dto.FromTimePtr(spouse.DivorceDate),
-				MarriedYears: dto.CalculateMarriedYears(spouse.MarriageDate, spouse.DivorceDate),
-			}
-		}
-
-		response = append(response, dto.MemberResponse{
-			MemberID:    m.MemberID,
-			ArabicName:  m.ArabicName,
-			EnglishName: m.EnglishName,
-			Gender:      m.Gender,
-			Picture:     m.Picture,
-			DateOfBirth: dto.FromTimePtr(m.DateOfBirth),
-			DateOfDeath: dto.FromTimePtr(m.DateOfDeath),
-			FatherID:    m.FatherID,
-			MotherID:    m.MotherID,
-			Nicknames:   m.Nicknames,
-			Profession:  m.Profession,
-			Version:     m.Version,
-			IsMarried:   m.IsMarried,
-			Spouses:     spousesDTO,
-		})
-	}
-
-	c.JSON(http.StatusOK, dto.Response{Success: true, Data: response})
+	c.JSON(http.StatusOK, dto.Response{Success: true, Data: h.convertToTreeResponse(tree)})
 }
 
 func (h *treeHandler) convertToTreeResponse(node *domain.MemberTreeNode) *dto.TreeNodeResponse {
@@ -176,10 +143,15 @@ func (h *treeHandler) convertToTreeResponse(node *domain.MemberTreeNode) *dto.Tr
 			IsMarried:       node.IsMarried,
 			Spouses:         spousesDTO,
 		},
+		IsInPath: node.IsInPath,
 	}
 
 	for _, child := range node.Children {
 		response.Children = append(response.Children, h.convertToTreeResponse(child))
+	}
+
+	for _, spouse := range node.SpouseNodes {
+		response.SpouseNodes = append(response.SpouseNodes, h.convertToTreeResponse(spouse))
 	}
 
 	return response
