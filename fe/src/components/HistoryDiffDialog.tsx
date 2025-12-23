@@ -40,6 +40,9 @@ const HistoryDiffDialog: React.FC<HistoryDiffDialogProps> = ({ open, onClose, hi
       mother_id: 'Mother ID',
       nicknames: 'Nicknames',
       profession: 'Profession',
+      spouse_id: 'Spouse ID',
+      marriage_date: 'Marriage Date',
+      divorce_date: 'Divorce Date',
     };
     return labels[field] || field;
   };
@@ -55,22 +58,22 @@ const HistoryDiffDialog: React.FC<HistoryDiffDialogProps> = ({ open, onClose, hi
   const getChangedFields = (): Array<{ field: string; oldValue: any; newValue: any }> => {
     const changes: Array<{ field: string; oldValue: any; newValue: any }> = [];
 
-    if (history.change_type === 'INSERT') {
-      // For INSERT, show all new values
+    if (history.change_type === 'INSERT' || history.change_type === 'ADD_SPOUSE' || history.change_type === 'ADD_PICTURE') {
+      // For INSERT/ADD operations, show all new values
       Object.entries(history.new_values || {}).forEach(([field, value]) => {
         if (field !== 'member_id' && field !== 'version' && field !== 'deleted_at') {
           changes.push({ field, oldValue: null, newValue: value });
         }
       });
-    } else if (history.change_type === 'DELETE') {
-      // For DELETE, show all old values
+    } else if (history.change_type === 'DELETE' || history.change_type === 'REMOVE_SPOUSE' || history.change_type === 'DELETE_PICTURE') {
+      // For DELETE/REMOVE operations, show all old values
       Object.entries(history.old_values || {}).forEach(([field, value]) => {
         if (field !== 'member_id' && field !== 'version' && field !== 'deleted_at') {
           changes.push({ field, oldValue: value, newValue: null });
         }
       });
-    } else if (history.change_type === 'UPDATE') {
-      // For UPDATE, show only changed fields
+    } else if (history.change_type === 'UPDATE' || history.change_type === 'UPDATE_SPOUSE') {
+      // For UPDATE operations, show only changed fields
       const oldValues = history.old_values || {};
       const newValues = history.new_values || {};
       const allFields = new Set([...Object.keys(oldValues), ...Object.keys(newValues)]);

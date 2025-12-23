@@ -26,7 +26,7 @@ type MemberHandler interface {
 	DeleteMember(c *gin.Context)
 	GetMember(c *gin.Context)
 	SearchMembers(c *gin.Context)
-	SearchParents(c *gin.Context)
+	SearchMemberInfo(c *gin.Context)
 	GetMemberHistory(c *gin.Context)
 	UploadPicture(c *gin.Context)
 	DeletePicture(c *gin.Context)

@@ -48,7 +48,7 @@ const AddSpouseDialog: React.FC<AddSpouseDialogProps> = ({
 
     setLoadingSpouses(true);
     try {
-      const results = await membersApi.searchParents(query, oppositeGender);
+      const results = await membersApi.searchMemberInfo(query, oppositeGender);
       // Filter out the current member
       setSpouseOptions(results.filter(option => option.member_id !== memberId));
     } catch (error) {

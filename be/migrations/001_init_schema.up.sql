@@ -159,6 +159,7 @@ CREATE INDEX idx_members_history_changed_at ON members_history(changed_at);
 -- User Scores (Contribution Tracking)
 -- =============================
 CREATE TABLE user_scores (
+    score_id SERIAL,
     user_id INT NOT NULL,
     member_id INT NOT NULL,
     field_name TEXT NOT NULL,
@@ -168,6 +169,7 @@ CREATE TABLE user_scores (
 );
 
 ALTER TABLE user_scores
+    ADD CONSTRAINT pk_user_scores PRIMARY KEY (score_id),
     ADD CONSTRAINT fk_user_scores_user FOREIGN KEY (user_id) REFERENCES users(user_id),
     ADD CONSTRAINT fk_user_scores_member FOREIGN KEY (member_id) REFERENCES members(member_id);
 

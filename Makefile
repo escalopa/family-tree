@@ -13,12 +13,18 @@ help: ## Show this help message
 
 migrate-up: ## Run database migrations (up)
 	@echo "Running migrations..."
-	@PGPASSWORD=$(DB_PASSWORD) psql -h $(DB_HOST) -p $(DB_PORT) -U $(DB_USER) -d $(DB_NAME) -f be/migrations/001_init_schema.up.sql
+	@for file in be/migrations/*_*.up.sql; do \
+		echo "Applying migration: $$file"; \
+		PGPASSWORD=$(DB_PASSWORD) psql -h $(DB_HOST) -p $(DB_PORT) -U $(DB_USER) -d $(DB_NAME) -f $$file || exit 1; \
+	done
 	@echo "✅ Migrations completed successfully!"
 
 migrate-down: ## Run database migrations (down)
 	@echo "Rolling back migrations..."
-	@PGPASSWORD=$(DB_PASSWORD) psql -h $(DB_HOST) -p $(DB_PORT) -U $(DB_USER) -d $(DB_NAME) -f be/migrations/001_init_schema.down.sql
+	@for file in $$(ls -r be/migrations/*_*.down.sql); do \
+		echo "Rolling back migration: $$file"; \
+		PGPASSWORD=$(DB_PASSWORD) psql -h $(DB_HOST) -p $(DB_PORT) -U $(DB_USER) -d $(DB_NAME) -f $$file || exit 1; \
+	done
 	@echo "✅ Migrations rolled back successfully!"
 
 db-recreate: ## Drop and recreate database, then run migrations

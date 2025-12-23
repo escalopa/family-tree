@@ -56,8 +56,8 @@ export const membersApi = {
     await apiClient.delete(`/api/members/${memberId}/picture`);
   },
 
-  searchParents: async (query: string, gender: 'M' | 'F'): Promise<ParentOption[]> => {
-    const response = await apiClient.get('/api/members/search-parents', {
+  searchMemberInfo: async (query: string, gender: 'M' | 'F'): Promise<ParentOption[]> => {
+    const response = await apiClient.get('/api/members/search-info', {
       params: { q: query, gender, limit: 20 },
     });
     return response.data.data;

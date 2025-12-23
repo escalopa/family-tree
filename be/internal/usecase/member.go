@@ -180,28 +180,53 @@ func (uc *memberUseCase) GetMemberHistory(ctx context.Context, memberID int, cur
 }
 
 func (uc *memberUseCase) UploadPicture(ctx context.Context, memberID int, data []byte, filename string, userID int) (string, error) {
-	// Upload to S3
-	url, err := uc.s3Client.UploadImage(ctx, data, filename)
-	if err != nil {
-		return "", fmt.Errorf("upload image: %w", err)
-	}
-
-	// Get old member to delete old picture if exists
 	oldMember, err := uc.memberRepo.GetByID(ctx, memberID)
 	if err != nil {
 		return "", fmt.Errorf("get member: %w", err)
 	}
 
-	// Update member picture
-	if err := uc.memberRepo.UpdatePicture(ctx, memberID, url); err != nil {
-		// Rollback: delete uploaded image
-		_ = uc.s3Client.DeleteImage(ctx, url)
+	newPictureURL, err := uc.s3Client.UploadImage(ctx, data, filename)
+	if err != nil {
+		return "", fmt.Errorf("upload image: %w", err)
+	}
+
+	if err := uc.memberRepo.UpdatePicture(ctx, memberID, newPictureURL); err != nil {
+		if deleteErr := uc.s3Client.DeleteImage(ctx, newPictureURL); deleteErr != nil {
+			slog.Error("failed to rollback S3 upload after DB error",
+				"error", deleteErr,
+				"member_id", memberID,
+				"picture_url", newPictureURL,
+				"original_error", err)
+		}
 		return "", fmt.Errorf("update member picture: %w", err)
 	}
 
-	// Delete old picture from S3 if exists
 	if oldMember.Picture != nil && *oldMember.Picture != "" {
-		_ = uc.s3Client.DeleteImage(ctx, *oldMember.Picture)
+		if err := uc.s3Client.DeleteImage(ctx, *oldMember.Picture); err != nil {
+			slog.Warn("failed to delete old picture from S3",
+				"error", err,
+				"member_id", memberID,
+				"old_picture", *oldMember.Picture)
+		}
+	}
+
+	updatedMember, err := uc.memberRepo.GetByID(ctx, memberID)
+	if err != nil {
+		return "", fmt.Errorf("get updated member: %w", err)
+	}
+
+	oldValuesJSON, _ := json.Marshal(map[string]any{"picture": oldMember.Picture})
+	newValuesJSON, _ := json.Marshal(map[string]any{"picture": updatedMember.Picture})
+	history := &domain.History{
+		MemberID:      memberID,
+		UserID:        userID,
+		ChangeType:    domain.ChangeTypeAddPicture,
+		OldValues:     oldValuesJSON,
+		NewValues:     newValuesJSON,
+		MemberVersion: updatedMember.Version,
+	}
+	if err := uc.historyRepo.Create(ctx, history); err != nil {
+		slog.Error("failed to create history for picture upload", "error", err, "member_id", memberID)
 	}
 
 	// Record score if first time adding picture
@@ -216,24 +241,50 @@ func (uc *memberUseCase) UploadPicture(ctx context.Context, memberID int, data [
 		_ = uc.scoreRepo.Create(ctx, score)
 	}
 
-	return url, nil
+	return newPictureURL, nil
 }
 
-func (uc *memberUseCase) DeletePicture(ctx context.Context, memberID int) error {
+func (uc *memberUseCase) DeletePicture(ctx context.Context, memberID int, userID int) error {
 	member, err := uc.memberRepo.GetByID(ctx, memberID)
 	if err != nil {
 		return fmt.Errorf("get member: %w", err)
 	}
 
-	if member.Picture != nil && *member.Picture != "" {
-		// Delete from S3
-		if err := uc.s3Client.DeleteImage(ctx, *member.Picture); err != nil {
-			return fmt.Errorf("delete image: %w", err)
+	oldPictureURL := member.Picture
+
+	if err := uc.memberRepo.DeletePicture(ctx, memberID); err != nil {
+		return fmt.Errorf("delete picture from database: %w", err)
+	}
+
+	if oldPictureURL != nil && *oldPictureURL != "" {
+		if err := uc.s3Client.DeleteImage(ctx, *oldPictureURL); err != nil {
+			slog.Warn("failed to delete picture from S3 after DB update",
+				"error", err,
+				"member_id", memberID,
+				"picture_url", *oldPictureURL)
 		}
 	}
 
-	// Update member
-	return uc.memberRepo.DeletePicture(ctx, memberID)
+	updatedMember, err := uc.memberRepo.GetByID(ctx, memberID)
+	if err != nil {
+		return fmt.Errorf("get updated member: %w", err)
+	}
+
+	oldValuesJSON, _ := json.Marshal(map[string]any{"picture": oldPictureURL})
+	newValuesJSON, _ := json.Marshal(map[string]any{"picture": nil})
+	history := &domain.History{
+		MemberID:      memberID,
+		UserID:        userID,
+		ChangeType:    domain.ChangeTypeDeletePicture,
+		OldValues:     oldValuesJSON,
+		NewValues:     newValuesJSON,
+		MemberVersion: updatedMember.Version,
+	}
+	if err := uc.historyRepo.Create(ctx, history); err != nil {
+		slog.Error("failed to create history for picture deletion", "error", err, "member_id", memberID)
+	}
+
+	return nil
 }
 
 func (uc *memberUseCase) GetPicture(ctx context.Context, memberID int) ([]byte, string, error) {

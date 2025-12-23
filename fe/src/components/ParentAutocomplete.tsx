@@ -34,7 +34,7 @@ const ParentAutocomplete: React.FC<ParentAutocompleteProps> = ({
     const timer = setTimeout(async () => {
       setLoading(true);
       try {
-        const results = await membersApi.searchParents(inputValue, gender);
+        const results = await membersApi.searchMemberInfo(inputValue, gender);
         setOptions(results || []);
       } catch (error) {
         console.error('Failed to search parents:', error);

@@ -45,7 +45,7 @@ type MemberUseCase interface {
 	SearchMembers(ctx context.Context, filter domain.MemberFilter, cursor *string, limit int) ([]*domain.Member, *string, error)
 	GetMemberHistory(ctx context.Context, memberID int, cursor *string, limit int) ([]*domain.HistoryWithUser, *string, error)
 	UploadPicture(ctx context.Context, memberID int, data []byte, filename string, userID int) (string, error)
-	DeletePicture(ctx context.Context, memberID int) error
+	DeletePicture(ctx context.Context, memberID int, userID int) error
 	GetPicture(ctx context.Context, memberID int) ([]byte, string, error)
 	ComputeMemberWithExtras(ctx context.Context, member *domain.Member, userRole int) *domain.MemberWithComputed
 }

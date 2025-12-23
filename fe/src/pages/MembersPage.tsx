@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
   Box,
@@ -26,20 +26,25 @@ import {
   CircularProgress,
   InputAdornment,
   Avatar,
+  Tabs,
+  Tab,
 } from '@mui/material';
-import { Add, Edit, Delete, FilterAlt, Clear, Close } from '@mui/icons-material';
+import { Add, Delete, FilterAlt, Clear, Close, Visibility } from '@mui/icons-material';
 import { membersApi } from '../api';
-import { Member, MemberListItem, MemberSearchQuery, CreateMemberRequest, UpdateMemberRequest } from '../types';
-import { formatDate, getMemberPictureUrl } from '../utils/helpers';
+import { Member, MemberListItem, MemberSearchQuery, CreateMemberRequest, UpdateMemberRequest, HistoryRecord, Roles } from '../types';
+import { formatDate, getMemberPictureUrl, formatDateTime, formatRelativeTime } from '../utils/helpers';
 import Layout from '../components/Layout/Layout';
 import MemberPhotoUpload from '../components/MemberPhotoUpload';
 import ParentAutocomplete from '../components/ParentAutocomplete';
 import SpouseCard from '../components/SpouseCard';
 import AddSpouseDialog from '../components/AddSpouseDialog';
+import HistoryDiffDialog from '../components/HistoryDiffDialog';
+import { useAuth } from '../contexts/AuthContext';
 
 const PAGE_SIZE = 10;
 
 const MembersPage: React.FC = () => {
+  const { hasRole } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const [members, setMembers] = useState<MemberListItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -55,7 +60,12 @@ const MembersPage: React.FC = () => {
     english_name: '',
     gender: 'M',
   });
-  const tableRef = React.useRef<HTMLDivElement>(null);
+  const [memberHistory, setMemberHistory] = useState<HistoryRecord[]>([]);
+  const [selectedHistory, setSelectedHistory] = useState<HistoryRecord | null>(null);
+  const [diffDialogOpen, setDiffDialogOpen] = useState(false);
+  const [dialogTab, setDialogTab] = useState(0);
+  const tableRef = useRef<HTMLDivElement>(null);
+  const loadMoreRef = useRef<HTMLDivElement>(null);
 
   // Initialize search query from URL params
   const [searchQuery, setSearchQuery] = useState<MemberSearchQuery>(() => {
@@ -84,7 +94,8 @@ const MembersPage: React.FC = () => {
       const searchParams: MemberSearchQuery = {
         ...query,
         limit: PAGE_SIZE,
-        cursor: loadMore ? nextCursor || undefined : undefined,
+        // Only include cursor if we're loading more and have a valid cursor
+        ...(loadMore && nextCursor ? { cursor: nextCursor } : {}),
       };
 
       const response = await membersApi.searchMembers(searchParams);
@@ -96,8 +107,10 @@ const MembersPage: React.FC = () => {
         setMembers(response.members || []);
       }
 
-      setNextCursor(response.next_cursor || null);
-      setHasMore(!!response.next_cursor);
+      // Only set cursor if it exists and is not empty
+      const validCursor = response.next_cursor && response.next_cursor.trim() !== '' ? response.next_cursor : null;
+      setNextCursor(validCursor);
+      setHasMore(!!validCursor);
     } catch (error) {
       console.error('Search failed:', error);
       if (!loadMore) {
@@ -134,6 +147,28 @@ const MembersPage: React.FC = () => {
     performSearch(searchQuery);
   }, []);
 
+  // Infinite scroll observer
+  useEffect(() => {
+    if (!loadMoreRef.current || !hasMore || loadingMore) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !loadingMore) {
+          handleLoadMore();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    observer.observe(loadMoreRef.current);
+
+    return () => {
+      if (loadMoreRef.current) {
+        observer.unobserve(loadMoreRef.current);
+      }
+    };
+  }, [hasMore, loadingMore, nextCursor]);
+
   const handleClearFilters = () => {
     setSearchQuery({});
   };
@@ -146,6 +181,9 @@ const MembersPage: React.FC = () => {
 
   // Fetch full member details when opening dialog (includes children, siblings, spouses, etc.)
   const handleOpenDialog = async (memberIdOrMember?: number | MemberListItem) => {
+    setDialogTab(0); // Reset to first tab
+    setMemberHistory([]); // Clear previous history
+
     if (memberIdOrMember) {
       try {
         // If it's a number (member_id), fetch full details from backend
@@ -172,6 +210,16 @@ const MembersPage: React.FC = () => {
         setEditingMember(fullMember);
         setFormData(initialData);
         setOriginalFormData(initialData);
+
+        // Fetch member history for super admins
+        if (hasRole(Roles.SUPER_ADMIN)) {
+          try {
+            const historyResponse = await membersApi.getMemberHistory(memberId);
+            setMemberHistory(historyResponse.history || []);
+          } catch (error) {
+            console.error('Failed to load member history:', error);
+          }
+        }
       } catch (error) {
         console.error('Failed to load member details:', error);
         alert('Failed to load member details');
@@ -193,6 +241,18 @@ const MembersPage: React.FC = () => {
     setOpenDialog(false);
     setEditingMember(null);
     setOriginalFormData(null);
+    setMemberHistory([]);
+    setDialogTab(0);
+  };
+
+  const handleViewDiff = (history: HistoryRecord) => {
+    setSelectedHistory(history);
+    setDiffDialogOpen(true);
+  };
+
+  const handleCloseDiff = () => {
+    setDiffDialogOpen(false);
+    setSelectedHistory(null);
   };
 
   const handleOpenRelatedMember = async (memberId: number) => {
@@ -254,12 +314,14 @@ const MembersPage: React.FC = () => {
   };
 
   const handleDelete = async (memberId: number) => {
-    if (confirm('Are you sure you want to delete this member?')) {
+    if (confirm('Are you sure you want to delete this member? This action cannot be undone.')) {
       try {
         await membersApi.deleteMember(memberId);
+        handleCloseDialog(); // Close dialog after delete
         performSearch(searchQuery); // Refresh list
       } catch (error) {
         console.error('Failed to delete member:', error);
+        alert('Failed to delete member. This member may have children or other dependencies.');
       }
     }
   };
@@ -449,13 +511,12 @@ const MembersPage: React.FC = () => {
                 <TableCell>Gender</TableCell>
                 <TableCell>Date of Birth</TableCell>
                 <TableCell>Married</TableCell>
-                <TableCell>Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {(!members || members.length === 0) && !loading && (
                 <TableRow>
-                  <TableCell colSpan={7} align="center" sx={{ py: 4, color: 'text.secondary' }}>
+                  <TableCell colSpan={6} align="center" sx={{ py: 4, color: 'text.secondary' }}>
                     {searchQuery.name || searchQuery.gender || searchQuery.married !== undefined
                       ? 'No members found matching your filters'
                       : 'No members found'}
@@ -464,7 +525,7 @@ const MembersPage: React.FC = () => {
               )}
               {loading && members.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={7} align="center" sx={{ py: 8 }}>
+                  <TableCell colSpan={6} align="center" sx={{ py: 8 }}>
                     <CircularProgress />
                     <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
                       Loading members...
@@ -473,7 +534,12 @@ const MembersPage: React.FC = () => {
                 </TableRow>
               )}
               {members && members.map((member) => (
-                <TableRow key={member.member_id}>
+                <TableRow
+                  key={member.member_id}
+                  hover
+                  sx={{ cursor: 'pointer' }}
+                  onClick={() => handleOpenDialog(member)}
+                >
                   <TableCell>
                     <Avatar
                       src={getMemberPictureUrl(member.member_id, member.picture) || undefined}
@@ -499,48 +565,58 @@ const MembersPage: React.FC = () => {
                       <Chip label="No" size="small" />
                     )}
                   </TableCell>
-                  <TableCell>
-                    <IconButton
-                      size="small"
-                      onClick={() => handleOpenDialog(member)}
-                    >
-                      <Edit />
-                    </IconButton>
-                    <IconButton
-                      size="small"
-                      onClick={() => handleDelete(member.member_id)}
-                      color="error"
-                    >
-                      <Delete />
-                    </IconButton>
-                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
         </TableContainer>
 
-        {/* Load More Button */}
+        {/* Infinite Scroll Sentinel */}
         {hasMore && members && members.length > 0 && (
-          <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2, mb: 2 }}>
-            <Button
-              variant="outlined"
-              onClick={handleLoadMore}
-              disabled={loadingMore}
-              startIcon={loadingMore ? <CircularProgress size={20} /> : null}
-            >
-              {loadingMore ? 'Loading...' : `Load More (${members.length} shown)`}
-            </Button>
+          <Box
+            ref={loadMoreRef}
+            sx={{
+              display: 'flex',
+              justifyContent: 'center',
+              py: 2,
+              minHeight: '60px'
+            }}
+          >
+            {loadingMore && (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <CircularProgress size={24} />
+                <Typography variant="body2" color="text.secondary">
+                  Loading more members...
+                </Typography>
+              </Box>
+            )}
           </Box>
         )}
 
         {/* Create/Edit Dialog */}
-        <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="md" fullWidth>
+        <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="lg" fullWidth>
           <DialogTitle>
-            {editingMember ? 'Edit Member' : 'Add New Member'}
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Typography variant="h6">
+                {editingMember ? 'Edit Member' : 'Add New Member'}
+              </Typography>
+              <IconButton onClick={handleCloseDialog} size="small">
+                <Close />
+              </IconButton>
+            </Box>
           </DialogTitle>
+          {editingMember && hasRole(Roles.SUPER_ADMIN) && (
+            <Box sx={{ borderBottom: 1, borderColor: 'divider', px: 3 }}>
+              <Tabs value={dialogTab} onChange={(_, v) => setDialogTab(v)}>
+                <Tab label="Details" />
+                <Tab label={`Change History (${memberHistory.length})`} />
+              </Tabs>
+            </Box>
+          )}
           <DialogContent>
-            <Grid container spacing={2} sx={{ mt: 1 }}>
+            {/* Details Tab */}
+            {(!editingMember || dialogTab === 0) && (
+              <Grid container spacing={2} sx={{ mt: 1 }}>
               {editingMember && (
                 <Grid item xs={12}>
                   <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 2 }}>
@@ -569,6 +645,13 @@ const MembersPage: React.FC = () => {
                             {editingMember.arabic_full_name}
                           </Typography>
                         )}
+                      </Box>
+                    )}
+                    {editingMember.age !== undefined && editingMember.age !== null && (
+                      <Box sx={{ mt: 1, textAlign: 'center' }}>
+                        <Typography variant="caption" color="text.secondary">
+                          Age: <strong>{editingMember.age} years</strong>
+                        </Typography>
                       </Box>
                     )}
                   </Box>
@@ -643,6 +726,20 @@ const MembersPage: React.FC = () => {
                   onChange={(e) =>
                     setFormData({ ...formData, profession: e.target.value })
                   }
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="Nicknames (comma-separated)"
+                  placeholder="e.g., Abu Ahmed, The Engineer"
+                  value={(formData.nicknames || []).join(', ')}
+                  onChange={(e) => {
+                    const value = e.target.value.trim();
+                    const nicknames = value ? value.split(',').map(n => n.trim()).filter(n => n !== '') : [];
+                    setFormData({ ...formData, nicknames });
+                  }}
+                  helperText="Separate multiple nicknames with commas"
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
@@ -875,12 +972,100 @@ const MembersPage: React.FC = () => {
                 </Grid>
               )}
             </Grid>
+            )}
+
+            {/* Change History Tab (Super Admin Only) */}
+            {editingMember && hasRole(Roles.SUPER_ADMIN) && dialogTab === 1 && (
+              <Box sx={{ mt: 2 }}>
+                {memberHistory.length === 0 ? (
+                  <Box sx={{ textAlign: 'center', py: 4 }}>
+                    <Typography variant="body2" color="text.secondary">
+                      No change history available for this member
+                    </Typography>
+                  </Box>
+                ) : (
+                  <TableContainer>
+                    <Table>
+                      <TableHead>
+                        <TableRow>
+                          <TableCell>Change Type</TableCell>
+                          <TableCell>User</TableCell>
+                          <TableCell>Date</TableCell>
+                          <TableCell>Version</TableCell>
+                          <TableCell>Actions</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {memberHistory.map((change) => (
+                          <TableRow key={change.history_id} hover>
+                            <TableCell>
+                              <Chip
+                                label={change.change_type}
+                                size="small"
+                                color={
+                                  change.change_type === 'INSERT' ? 'success' :
+                                  change.change_type === 'UPDATE' ? 'primary' :
+                                  'error'
+                                }
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Box>
+                                <Typography variant="body2">{change.user_full_name}</Typography>
+                                <Typography variant="caption" color="text.secondary">
+                                  {change.user_email}
+                                </Typography>
+                              </Box>
+                            </TableCell>
+                            <TableCell>
+                              <Box>
+                                <Typography variant="body2">{formatDateTime(change.changed_at)}</Typography>
+                                <Typography variant="caption" color="text.secondary">
+                                  {formatRelativeTime(change.changed_at)}
+                                </Typography>
+                              </Box>
+                            </TableCell>
+                            <TableCell>{change.member_version}</TableCell>
+                            <TableCell>
+                              <IconButton
+                                size="small"
+                                onClick={() => handleViewDiff(change)}
+                                color="primary"
+                              >
+                                <Visibility />
+                              </IconButton>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                )}
+              </Box>
+            )}
           </DialogContent>
-          <DialogActions>
-            <Button onClick={handleCloseDialog}>Cancel</Button>
-            <Button onClick={handleSubmit} variant="contained">
-              {editingMember ? 'Update' : 'Create'}
-            </Button>
+          <DialogActions sx={{ px: 3, py: 2 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
+              <Box>
+                {editingMember && (
+                  <Button
+                    onClick={() => handleDelete(editingMember.member_id)}
+                    color="error"
+                    startIcon={<Delete />}
+                  >
+                    Delete Member
+                  </Button>
+                )}
+              </Box>
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                <Button onClick={handleCloseDialog}>Cancel</Button>
+                {(!editingMember || dialogTab === 0) && (
+                  <Button onClick={handleSubmit} variant="contained">
+                    {editingMember ? 'Update' : 'Create'}
+                  </Button>
+                )}
+              </Box>
+            </Box>
           </DialogActions>
         </Dialog>
 
@@ -907,6 +1092,13 @@ const MembersPage: React.FC = () => {
             }}
           />
         )}
+
+        {/* History Diff Dialog */}
+        <HistoryDiffDialog
+          open={diffDialogOpen}
+          onClose={handleCloseDiff}
+          history={selectedHistory}
+        />
       </Box>
     </Layout>
   );

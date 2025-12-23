@@ -58,6 +58,10 @@ func (r *MemberRepository) GetByID(ctx context.Context, memberID int) (*domain.M
 	if err != nil {
 		return nil, domain.NewDatabaseError(err)
 	}
+	// Ensure nicknames is never nil, use empty array instead
+	if member.Nicknames == nil {
+		member.Nicknames = []string{}
+	}
 	return member, nil
 }
 

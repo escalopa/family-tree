@@ -49,6 +49,12 @@ func (h *memberHandler) CreateMember(c *gin.Context) {
 		dateOfDeath = req.DateOfDeath.ToTimePtr()
 	}
 
+	// Ensure nicknames is never nil, use empty array instead
+	nicknames := req.Nicknames
+	if nicknames == nil {
+		nicknames = []string{}
+	}
+
 	member := &domain.Member{
 		ArabicName:  req.ArabicName,
 		EnglishName: req.EnglishName,
@@ -57,7 +63,7 @@ func (h *memberHandler) CreateMember(c *gin.Context) {
 		DateOfDeath: dateOfDeath,
 		FatherID:    req.FatherID,
 		MotherID:    req.MotherID,
-		Nicknames:   req.Nicknames,
+		Nicknames:   nicknames,
 		Profession:  req.Profession,
 	}
 
@@ -91,6 +97,12 @@ func (h *memberHandler) UpdateMember(c *gin.Context) {
 		dateOfDeath = req.DateOfDeath.ToTimePtr()
 	}
 
+	// Ensure nicknames is never nil, use empty array instead
+	nicknames := req.Nicknames
+	if nicknames == nil {
+		nicknames = []string{}
+	}
+
 	member := &domain.Member{
 		MemberID:    memberID,
 		ArabicName:  req.ArabicName,
@@ -100,7 +112,7 @@ func (h *memberHandler) UpdateMember(c *gin.Context) {
 		DateOfDeath: dateOfDeath,
 		FatherID:    req.FatherID,
 		MotherID:    req.MotherID,
-		Nicknames:   req.Nicknames,
+		Nicknames:   nicknames,
 		Profession:  req.Profession,
 	}
 
@@ -313,9 +325,9 @@ func (h *memberHandler) SearchMembers(c *gin.Context) {
 	c.JSON(http.StatusOK, dto.Response{Success: true, Data: response})
 }
 
-// SearchParents godoc
-// @Summary Search for potential parents
-// @Description Search for members by name filtered by gender (for parent selection)
+// SearchMemberInfo godoc
+// @Summary Search for member info
+// @Description Search for members by name filtered by gender (for parent/spouse selection)
 // @Tags members
 // @Accept json
 // @Produce json
@@ -327,8 +339,8 @@ func (h *memberHandler) SearchMembers(c *gin.Context) {
 // @Failure 400 {object} dto.Response
 // @Failure 401 {object} dto.Response
 // @Failure 500 {object} dto.Response
-// @Router /api/members/search-parents [get]
-func (h *memberHandler) SearchParents(c *gin.Context) {
+// @Router /api/members/search-info [get]
+func (h *memberHandler) SearchMemberInfo(c *gin.Context) {
 	var query dto.ParentSearchQuery
 	if err := c.ShouldBindQuery(&query); err != nil {
 		c.JSON(http.StatusBadRequest, dto.Response{Success: false, Error: err.Error()})
@@ -346,7 +358,6 @@ func (h *memberHandler) SearchParents(c *gin.Context) {
 		return
 	}
 
-	// Convert to parent options
 	var options []dto.ParentOption
 	for _, member := range members {
 		options = append(options, dto.ParentOption{
@@ -441,7 +452,8 @@ func (h *memberHandler) DeletePicture(c *gin.Context) {
 		return
 	}
 
-	if err := h.memberUseCase.DeletePicture(c.Request.Context(), memberID); err != nil {
+	userID := middleware.GetUserID(c)
+	if err := h.memberUseCase.DeletePicture(c.Request.Context(), memberID, userID); err != nil {
 		c.JSON(http.StatusInternalServerError, dto.Response{Success: false, Error: err.Error()})
 		return
 	}

@@ -1,14 +1,12 @@
 # Fix
 
-## Logic's page
+## Security page
 
-- Cursor isn't being used correct, it must be send only if there is something more to fetch
-- Nicknames aren't shown in the UI and not stored correctly in the backend, i see changes where nicknames was empty and then became null and the otherway back
+- Update data to be encrypted even in DB (think if we need this)
 
-## Member's page
+## Extras
 
-- Age field isn't shown in the UI or not being sent from the backend on the member's page
-
-## User's page
-
-- Add a graph with time on X and points earned on Y, start and end
+- Add support for mobile/tablet
+- Add support for arabic language (and ideally to all languages)
+- Show generation level relative too root
+- Expand name feature to be avaliable for all languages, i.e. you can choose the language and set a name for this member in this specific language

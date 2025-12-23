@@ -6,12 +6,14 @@ import (
 )
 
 const (
-	ChangeTypeInsert       = "INSERT"
-	ChangeTypeUpdate       = "UPDATE"
-	ChangeTypeDelete       = "DELETE"
-	ChangeTypeAddSpouse    = "ADD_SPOUSE"
-	ChangeTypeRemoveSpouse = "REMOVE_SPOUSE"
-	ChangeTypeUpdateSpouse = "UPDATE_SPOUSE"
+	ChangeTypeInsert        = "INSERT"
+	ChangeTypeUpdate        = "UPDATE"
+	ChangeTypeDelete        = "DELETE"
+	ChangeTypeAddSpouse     = "ADD_SPOUSE"
+	ChangeTypeRemoveSpouse  = "REMOVE_SPOUSE"
+	ChangeTypeUpdateSpouse  = "UPDATE_SPOUSE"
+	ChangeTypeAddPicture    = "ADD_PICTURE"
+	ChangeTypeDeletePicture = "DELETE_PICTURE"
 )
 
 type History struct {
@@ -30,9 +32,3 @@ type HistoryWithUser struct {
 	UserFullName string `json:"user_full_name"`
 	UserEmail    string `json:"user_email"`
 }
-
-
-
-
-
-
