@@ -13,9 +13,6 @@ import {
   Chip,
   Alert,
   CircularProgress,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
   TextField,
   Grid,
   FormControl,
@@ -35,7 +32,6 @@ import {
   AccountTree,
   TableChart,
   Close,
-  ExpandMore,
   Refresh,
   AccountTreeOutlined,
   BubbleChart,
@@ -367,51 +363,6 @@ const TreePage: React.FC = () => {
             />
           </Box>
         )}
-
-        {/* Section 3: Tips & Instructions */}
-        <Accordion sx={{ mb: 3 }}>
-          <AccordionSummary expandIcon={<ExpandMore />}>
-            <Typography variant="h6">Tips & Instructions</Typography>
-          </AccordionSummary>
-          <AccordionDetails>
-            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
-              <Box>
-                <Typography variant="subtitle2" gutterBottom>
-                  Tree Diagram View:
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  • Click on any node to view detailed member information
-                  <br />
-                  • Right-click a node to set it as the tree root
-                  <br />
-                  • Drag to pan, scroll to zoom
-                  <br />
-                  • Pink lines connect spouses
-                  <br />
-                  • Black lines connect parents to children
-                  <br />
-                  • Gray dashed lines connect siblings
-                  <br />
-                  • Orange highlights show the relation path
-                  <br />• Toggle between Hierarchical and Force Directed layouts
-                </Typography>
-              </Box>
-              <Box>
-                <Typography variant="subtitle2" gutterBottom>
-                  Table View:
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  • Search members by name, nickname, or profession
-                  <br />
-                  • Click column headers to sort
-                  <br />
-                  • Click on any row to view details
-                  <br />• Use the tree icon to set member as root
-                </Typography>
-              </Box>
-      </Box>
-          </AccordionDetails>
-        </Accordion>
 
         {/* Error Display */}
         {error && (

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Box, Paper, IconButton, Tooltip, Slider, Typography } from '@mui/material';
-import { ZoomIn, ZoomOut, ZoomOutMap, PlayArrow, Pause } from '@mui/icons-material';
+import { Box, Paper, IconButton, Tooltip, Slider, Typography, Dialog, DialogTitle, DialogContent } from '@mui/material';
+import { ZoomIn, ZoomOut, ZoomOutMap, PlayArrow, Pause, Info } from '@mui/icons-material';
 import * as d3 from 'd3';
 import { TreeNode, Member } from '../types';
 import { getGenderColor, getMemberPictureUrl } from '../utils/helpers';
@@ -36,6 +36,7 @@ const ForceDirectedTree: React.FC<ForceDirectedTreeProps> = ({
   const [isPlaying, setIsPlaying] = useState(true);
   const [linkDistance, setLinkDistance] = useState(150);
   const [chargeStrength, setChargeStrength] = useState(-300);
+  const [infoDialogOpen, setInfoDialogOpen] = useState(false);
 
   useEffect(() => {
     if (!svgRef.current || !containerRef.current || !data) return;
@@ -200,28 +201,15 @@ const ForceDirectedTree: React.FC<ForceDirectedTreeProps> = ({
     // Path highlighting
     node.filter((d) => d.isInPath).select('circle').attr('fill', '#FFF3E0');
 
-    // Node images (only if picture exists)
+    // Show first letter (no avatars/images)
     node
-      .filter((d) => d.data.picture)
-      .append('image')
-      .attr('xlink:href', (d) => getMemberPictureUrl(d.id, d.data.picture) || '')
-      .attr('x', -20)
-      .attr('y', -20)
-      .attr('width', 40)
-      .attr('height', 40)
-      .attr('clip-path', 'circle(20px at 20px 20px)')
-      .style('pointer-events', 'none');
-
-    // Fallback: Show first letter for nodes without pictures
-    node
-      .filter((d) => !d.data.picture)
       .append('text')
       .text((d) => d.data.english_name.charAt(0).toUpperCase())
       .attr('text-anchor', 'middle')
       .attr('dy', '0.35em')
       .attr('font-size', '18px')
       .attr('font-weight', 'bold')
-      .attr('fill', 'white')
+      .attr('fill', (d) => getGenderColor(d.data.gender))
       .style('pointer-events', 'none');
 
     // Node labels
@@ -393,6 +381,11 @@ const ForceDirectedTree: React.FC<ForceDirectedTreeProps> = ({
           gap: 1,
         }}
       >
+        <Tooltip title="Info">
+          <IconButton onClick={() => setInfoDialogOpen(true)} sx={{ bgcolor: 'white' }}>
+            <Info />
+          </IconButton>
+        </Tooltip>
         <Tooltip title={isPlaying ? 'Pause' : 'Play'}>
           <IconButton onClick={() => setIsPlaying(!isPlaying)} sx={{ bgcolor: 'white' }}>
             {isPlaying ? <Pause /> : <PlayArrow />}
@@ -457,25 +450,44 @@ const ForceDirectedTree: React.FC<ForceDirectedTreeProps> = ({
         </Box>
       </Box>
 
-      {/* Instructions */}
-      <Box
-        sx={{
-          position: 'absolute',
-          bottom: 16,
-          left: 16,
-          bgcolor: 'white',
-          p: 2,
-          borderRadius: 1,
-          boxShadow: 2,
-        }}
-      >
-        <Box sx={{ fontSize: '12px', color: '#666' }}>
-          <div>• Click node to view details</div>
-          <div>• Right-click to set/unset as root</div>
-          <div>• Drag nodes to reposition</div>
-          <div>• Blue border = current root</div>
-        </Box>
-      </Box>
+      {/* Info Dialog */}
+      <Dialog open={infoDialogOpen} onClose={() => setInfoDialogOpen(false)}>
+        <DialogTitle>Force Directed Tree View - Instructions</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" paragraph>
+            <strong>Navigation:</strong>
+          </Typography>
+          <Typography variant="body2" component="div" sx={{ mb: 2, pl: 2 }}>
+            • Click on a node to view detailed member information<br />
+            • Right-click on a node to set/unset it as the tree root<br />
+            • Drag nodes to manually reposition them<br />
+            • Drag background to pan the view<br />
+            • Scroll to zoom in/out
+          </Typography>
+
+          <Typography variant="body2" paragraph>
+            <strong>Physics Controls:</strong>
+          </Typography>
+          <Typography variant="body2" component="div" sx={{ mb: 2, pl: 2 }}>
+            • Use the sliders to adjust link distance and node repulsion<br />
+            • Click Play/Pause to start/stop the physics simulation<br />
+            • Fine-tune the layout to your preference
+          </Typography>
+
+          <Typography variant="body2" paragraph>
+            <strong>Visual Indicators:</strong>
+          </Typography>
+          <Typography variant="body2" component="div" sx={{ pl: 2 }}>
+            • <span style={{ color: '#1976D2', fontWeight: 'bold' }}>Blue border</span> = Current root node<br />
+            • <span style={{ color: '#EC407A', fontWeight: 'bold' }}>Pink lines</span> = Spouse connections<br />
+            • <span style={{ color: '#424242', fontWeight: 'bold' }}>Black lines</span> = Parent-child relationships<br />
+            • <span style={{ color: '#9E9E9E', fontWeight: 'bold' }}>Gray dashed lines</span> = Sibling connections<br />
+            • <span style={{ color: '#FF9800', fontWeight: 'bold' }}>Orange highlights</span> = Relation path (when finding relations)<br />
+            • <span style={{ color: '#EC407A', fontWeight: 'bold' }}>Pink dot</span> = Married member<br />
+            • <span style={{ color: '#2196F3', fontWeight: 'bold' }}>Blue badge</span> = Generation level
+          </Typography>
+        </DialogContent>
+      </Dialog>
     </Paper>
   );
 };

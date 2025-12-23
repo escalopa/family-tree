@@ -44,21 +44,58 @@ func (uc *treeUseCase) GetTree(ctx context.Context, rootID *int, userRole int) (
 		memberMap[m.MemberID] = m
 	}
 
-	// Find root if not specified
-	if rootID == nil {
-		root := uc.findOldestRoot(members)
-		rootID = &root.MemberID
+	// If root is specified, build tree from that root
+	if rootID != nil {
+		// Validate root exists
+		if _, exists := memberMap[*rootID]; !exists {
+			return nil, fmt.Errorf("root member not found")
+		}
+
+		// Build tree with spouse support
+		visited := make(map[int]bool)
+		tree := uc.buildTreeWithSpouses(memberMap, spouseMap, *rootID, userRole, visited, nil, 0)
+		return tree, nil
 	}
 
-	// Validate root exists
-	if _, exists := memberMap[*rootID]; !exists {
-		return nil, fmt.Errorf("root member not found")
+	// Find all roots (members with no parents)
+	roots := uc.findAllRoots(members)
+	if len(roots) == 0 {
+		return nil, fmt.Errorf("no root members found")
 	}
 
-	// Build tree with spouse support
-	visited := make(map[int]bool)
-	tree := uc.buildTreeWithSpouses(memberMap, spouseMap, *rootID, userRole, visited, nil, 0)
-	return tree, nil
+	// If only one root, return it directly
+	if len(roots) == 1 {
+		visited := make(map[int]bool)
+		tree := uc.buildTreeWithSpouses(memberMap, spouseMap, roots[0].MemberID, userRole, visited, nil, 0)
+		return tree, nil
+	}
+
+	// Multiple roots: create a virtual root node containing all trees
+	virtualRoot := &domain.MemberTreeNode{
+		MemberWithComputed: domain.MemberWithComputed{
+			Member: domain.Member{
+				MemberID:    0, // Virtual root ID
+				ArabicName:  "All Trees",
+				EnglishName: "All Trees",
+				Gender:      "M",
+			},
+			GenerationLevel: -1,
+		},
+		Children:     []*domain.MemberTreeNode{},
+		SpouseNodes:  []*domain.MemberTreeNode{},
+		SiblingNodes: []*domain.MemberTreeNode{},
+	}
+
+	// Build each disconnected tree and add as children
+	for _, root := range roots {
+		visited := make(map[int]bool)
+		tree := uc.buildTreeWithSpouses(memberMap, spouseMap, root.MemberID, userRole, visited, nil, 0)
+		if tree != nil {
+			virtualRoot.Children = append(virtualRoot.Children, tree)
+		}
+	}
+
+	return virtualRoot, nil
 }
 
 func (uc *treeUseCase) GetListView(ctx context.Context, rootID *int, userRole int) ([]*domain.MemberWithComputed, error) {
@@ -206,20 +243,45 @@ func (uc *treeUseCase) getAncestors(memberMap map[int]*domain.Member, memberID i
 	return ancestors
 }
 
-func (uc *treeUseCase) findOldestRoot(members []*domain.Member) *domain.Member {
-	// Find member with no parents and oldest birth date
-	var oldest *domain.Member
+func (uc *treeUseCase) findAllRoots(members []*domain.Member) []*domain.Member {
+	// Find all members with no parents
+	var roots []*domain.Member
 	for _, m := range members {
 		if m.FatherID == nil && m.MotherID == nil {
-			if oldest == nil {
-				oldest = m
-			} else if m.DateOfBirth != nil && (oldest.DateOfBirth == nil || m.DateOfBirth.Before(*oldest.DateOfBirth)) {
-				oldest = m
-			}
+			roots = append(roots, m)
 		}
 	}
-	if oldest != nil {
-		return oldest
+
+	// Sort by birth date (oldest first)
+	sort.Slice(roots, func(i, j int) bool {
+		dateI := roots[i].DateOfBirth
+		dateJ := roots[j].DateOfBirth
+
+		// Handle nil dates (put them at the end)
+		if dateI == nil && dateJ == nil {
+			return roots[i].MemberID < roots[j].MemberID
+		}
+		if dateI == nil {
+			return false
+		}
+		if dateJ == nil {
+			return true
+		}
+
+		// Compare dates
+		if dateI.Equal(*dateJ) {
+			return roots[i].MemberID < roots[j].MemberID
+		}
+		return dateI.Before(*dateJ)
+	})
+
+	return roots
+}
+
+func (uc *treeUseCase) findOldestRoot(members []*domain.Member) *domain.Member {
+	roots := uc.findAllRoots(members)
+	if len(roots) > 0 {
+		return roots[0]
 	}
 	// Fallback: return first member
 	return members[0]

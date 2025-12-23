@@ -1,6 +1,6 @@
-import React, { useEffect, useRef } from 'react';
-import { Box, Paper, IconButton, Tooltip } from '@mui/material';
-import { ZoomIn, ZoomOut, ZoomOutMap } from '@mui/icons-material';
+import React, { useEffect, useRef, useState } from 'react';
+import { Box, Paper, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, Typography } from '@mui/material';
+import { ZoomIn, ZoomOut, ZoomOutMap, Info } from '@mui/icons-material';
 import * as d3 from 'd3';
 import { TreeNode, Member } from '../types';
 import { getGenderColor, getMemberPictureUrl } from '../utils/helpers';
@@ -19,6 +19,7 @@ interface D3Node extends d3.HierarchyPointNode<TreeNode> {
 const TreeVisualization: React.FC<TreeVisualizationProps> = ({ data, onNodeClick, onSetRoot, currentRootId }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const [infoDialogOpen, setInfoDialogOpen] = useState(false);
 
   useEffect(() => {
     if (!svgRef.current || !containerRef.current || !data) return;
@@ -198,73 +199,42 @@ const TreeVisualization: React.FC<TreeVisualizationProps> = ({ data, onNodeClick
         rect.attr('fill', '#FFF3E0');
       }
 
-      // Add picture or avatar
-      const pictureUrl = getMemberPictureUrl(
-        node.data.member.member_id,
-        node.data.member.picture
-      );
-
-      if (pictureUrl) {
-        nodeG
-          .append('image')
-          .attr('x', 10)
-          .attr('y', 10)
-          .attr('width', 50)
-          .attr('height', 50)
-          .attr('href', pictureUrl)
-          .attr('clip-path', 'circle(25px at 25px 25px)');
-      } else {
-        nodeG
-          .append('circle')
-          .attr('cx', 35)
-          .attr('cy', 35)
-          .attr('r', 25)
-          .attr('fill', getGenderColor(node.data.member.gender))
-          .attr('opacity', 0.3);
-
-        nodeG
-          .append('text')
-          .attr('x', 35)
-          .attr('y', 40)
-          .attr('text-anchor', 'middle')
-          .attr('fill', '#000')
-          .attr('font-size', '20px')
-          .attr('font-weight', 'bold')
-          .text(node.data.member.english_name.charAt(0));
-      }
-
-      // Add names
+      // Add names (without avatar)
       nodeG
         .append('text')
-        .attr('x', 75)
-        .attr('y', 25)
-        .attr('font-size', '12px')
+        .attr('x', nodeWidth / 2)
+        .attr('y', 30)
+        .attr('text-anchor', 'middle')
+        .attr('font-size', '13px')
         .attr('font-weight', 'bold')
         .attr('fill', '#000')
-        .text(truncateText(node.data.member.arabic_name, 15));
+        .text(truncateText(node.data.member.arabic_name, 20));
 
       nodeG
         .append('text')
-        .attr('x', 75)
-        .attr('y', 42)
-        .attr('font-size', '11px')
+        .attr('x', nodeWidth / 2)
+        .attr('y', 48)
+        .attr('text-anchor', 'middle')
+        .attr('font-size', '12px')
         .attr('fill', '#666')
-        .text(truncateText(node.data.member.english_name, 15));
+        .text(truncateText(node.data.member.english_name, 20));
 
       // Add generation level or age
       if (node.data.member.generation_level !== undefined) {
         nodeG
           .append('text')
-          .attr('x', 75)
-          .attr('y', 57)
+          .attr('x', nodeWidth / 2)
+          .attr('y', 65)
+          .attr('text-anchor', 'middle')
           .attr('font-size', '10px')
           .attr('fill', '#999')
           .text(`Gen: ${node.data.member.generation_level}`);
       } else if (node.data.member.age) {
         nodeG
           .append('text')
-          .attr('x', 75)
-          .attr('y', 57)
+          .attr('x', nodeWidth / 2)
+          .attr('y', 65)
+          .attr('text-anchor', 'middle')
           .attr('font-size', '10px')
           .attr('fill', '#999')
           .text(`Age: ${node.data.member.age}`);
@@ -369,7 +339,7 @@ const TreeVisualization: React.FC<TreeVisualizationProps> = ({ data, onNodeClick
     >
       <svg ref={svgRef} style={{ width: '100%', height: '100%' }} />
 
-      {/* Zoom controls */}
+      {/* Controls */}
       <Box
         sx={{
           position: 'absolute',
@@ -380,6 +350,11 @@ const TreeVisualization: React.FC<TreeVisualizationProps> = ({ data, onNodeClick
           gap: 1,
         }}
       >
+        <Tooltip title="Info">
+          <IconButton onClick={() => setInfoDialogOpen(true)} sx={{ bgcolor: 'white' }}>
+            <Info />
+          </IconButton>
+        </Tooltip>
         <Tooltip title="Zoom In">
           <IconButton onClick={handleZoomIn} sx={{ bgcolor: 'white' }}>
             <ZoomIn />
@@ -397,25 +372,33 @@ const TreeVisualization: React.FC<TreeVisualizationProps> = ({ data, onNodeClick
         </Tooltip>
       </Box>
 
-      {/* Instructions */}
-      <Box
-        sx={{
-          position: 'absolute',
-          bottom: 16,
-          left: 16,
-          bgcolor: 'white',
-          p: 2,
-          borderRadius: 1,
-          boxShadow: 2,
-        }}
-      >
-        <Box sx={{ fontSize: '12px', color: '#666' }}>
-          <div>• Click node to view details</div>
-          <div>• Right-click node to set/unset as root</div>
-          <div>• Blue border = current root</div>
-          <div>• Drag to pan • Scroll to zoom</div>
-        </Box>
-      </Box>
+      {/* Info Dialog */}
+      <Dialog open={infoDialogOpen} onClose={() => setInfoDialogOpen(false)}>
+        <DialogTitle>Hierarchical Tree View - Instructions</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" paragraph>
+            <strong>Navigation:</strong>
+          </Typography>
+          <Typography variant="body2" component="div" sx={{ mb: 2, pl: 2 }}>
+            • Click on a node to view detailed member information<br />
+            • Right-click on a node to set/unset it as the tree root<br />
+            • Drag to pan the view<br />
+            • Scroll to zoom in/out
+          </Typography>
+
+          <Typography variant="body2" paragraph>
+            <strong>Visual Indicators:</strong>
+          </Typography>
+          <Typography variant="body2" component="div" sx={{ pl: 2 }}>
+            • <span style={{ color: '#1976D2', fontWeight: 'bold' }}>Blue border</span> = Current root node<br />
+            • <span style={{ color: '#EC407A', fontWeight: 'bold' }}>Pink lines</span> = Spouse connections<br />
+            • <span style={{ color: '#424242', fontWeight: 'bold' }}>Black lines</span> = Parent-child relationships<br />
+            • <span style={{ color: '#9E9E9E', fontWeight: 'bold' }}>Gray dashed lines</span> = Sibling connections<br />
+            • <span style={{ color: '#FF9800', fontWeight: 'bold' }}>Orange highlights</span> = Relation path (when finding relations)<br />
+            • <span style={{ color: '#EC407A', fontWeight: 'bold' }}>Pink dot</span> = Married member
+          </Typography>
+        </DialogContent>
+      </Dialog>
     </Paper>
   );
 };
