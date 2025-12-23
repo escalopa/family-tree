@@ -26,6 +26,39 @@ services:
       postgres:
         condition: service_healthy
 
+  minio:
+    image: minio/minio:latest
+    container_name: minio
+    ports:
+      - "9000:9000"     # API port
+      - "9001:9001"     # Console UI port
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Create bucket on startup
+  createbuckets:
+    image: minio/mc:latest
+    container_name: minio-setup
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set myminio http://minio:9000 minioadmin minioadmin;
+      mc mb myminio/family-tree-images --ignore-existing;
+      mc anonymous set public myminio/family-tree-images;
+      echo 'Bucket created successfully';
+      "
+
   backend:
     build:
       context: ./be
@@ -41,6 +74,8 @@ services:
         condition: service_healthy
       migrate:
         condition: service_completed_successfully
+      minio:
+        condition: service_healthy
     volumes:
       - ./be:/app
       - /app/tmp
@@ -63,3 +98,4 @@ services:
 
 volumes:
   postgres_data:
+  minio_data:

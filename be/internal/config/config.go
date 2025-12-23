@@ -38,12 +38,7 @@ type CookieConfig struct {
 }
 
 type DatabaseConfig struct {
-	Host     string `mapstructure:"host" env:"DB_HOST" json:"host"`
-	Port     string `mapstructure:"port" env:"DB_PORT" json:"port"`
-	User     string `mapstructure:"user" env:"DB_USER" json:"user"`
-	Password string `mapstructure:"password" env:"DB_PASSWORD" json:"password"`
-	Name     string `mapstructure:"name" env:"DB_NAME" json:"name"`
-	SSLMode  string `mapstructure:"sslmode" env:"DB_SSLMODE" json:"sslmode"`
+	DSN string `mapstructure:"dsn" env:"DATABASE_DSN" json:"dsn"`
 }
 
 type OAuthConfig struct {
@@ -83,9 +78,46 @@ func maskSecret(secret string) string {
 	return string([]rune(secret)[:4]) + "****" + string([]rune(secret)[length-4:])
 }
 
+func maskDSN(dsn string) string {
+	if dsn == "" {
+		return ""
+	}
+
+	// Handle key=value format: "host=localhost password=secret dbname=test"
+	if strings.Contains(dsn, "password=") {
+		parts := strings.Split(dsn, " ")
+		for i, part := range parts {
+			if password, found := strings.CutPrefix(part, "password="); found {
+				parts[i] = "password=" + maskSecret(password)
+			}
+		}
+		return strings.Join(parts, " ")
+	}
+
+	// Handle URI format: "postgresql://user:password@host:port/dbname"
+	if strings.Contains(dsn, "://") && strings.Contains(dsn, ":") && strings.Contains(dsn, "@") {
+		// Find password between "://" and "@"
+		schemeEnd := strings.Index(dsn, "://")
+		atIndex := strings.Index(dsn, "@")
+		if schemeEnd != -1 && atIndex != -1 {
+			beforeAuth := dsn[:schemeEnd+3]
+			afterHost := dsn[atIndex:]
+			authPart := dsn[schemeEnd+3 : atIndex]
+
+			if colonIndex := strings.Index(authPart, ":"); colonIndex != -1 {
+				username := authPart[:colonIndex]
+				password := authPart[colonIndex+1:]
+				return beforeAuth + username + ":" + maskSecret(password) + afterHost
+			}
+		}
+	}
+
+	return dsn
+}
+
 func (c *Config) maskedConfig() Config {
 	masked := *c
-	masked.Database.Password = maskSecret(c.Database.Password)
+	masked.Database.DSN = maskDSN(c.Database.DSN)
 	masked.JWT.Secret = maskSecret(c.JWT.Secret)
 	masked.OAuth.Providers = make(map[string]OAuthProviderConfig)
 	for provider, config := range c.OAuth.Providers {
@@ -138,10 +170,7 @@ func Load() (*Config, error) {
 }
 
 func (c *DatabaseConfig) ConnectionString() string {
-	return fmt.Sprintf(
-		"host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
-		c.Host, c.Port, c.User, c.Password, c.Name, c.SSLMode,
-	)
+	return c.DSN
 }
 
 func (c *JWTConfig) ParseAccessExpiry() time.Duration {

@@ -15,12 +15,8 @@ server:
     http_only: true
 
 database:
-  host: "localhost"
-  port: "5432"
-  user: "familytree"
-  password: "secret"
-  name: "familytree"
-  sslmode: "disable"
+  dsn: "host=localhost port=5432 user=familytree password=secret dbname=familytree sslmode=disable"
+  # Alternative URI format: postgresql://familytree:secret@localhost:5432/familytree?sslmode=disable
 
 jwt:
   secret: "your-super-secret-key-change-in-production"
@@ -46,8 +42,8 @@ oauth:
   redirect_base_url: "http://localhost:5173"
 
 s3:
-  endpoint: "https://storage.yandexcloud.net"
-  region: "ru-central1"
+  endpoint: "http://minio:9000"  # Use http://localhost:9000 for local development outside Docker
+  region: "us-east-1"
   bucket: "family-tree-images"
-  access_key: "your-yandex-access-key"
-  secret_key: "your-yandex-secret-key"
+  access_key: "minioadmin"
+  secret_key: "minioadmin"
