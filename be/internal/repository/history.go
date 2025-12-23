@@ -44,7 +44,7 @@ func (r *HistoryRepository) GetByMemberID(ctx context.Context, memberID int, cur
 		LIMIT $3
 	`
 
-	rows, err := r.db.Query(ctx, query, memberID, cursor, limit+1)
+	rows, err := r.db.Query(ctx, query, memberID, cursor, limit)
 	if err != nil {
 		return nil, nil, domain.NewDatabaseError(err)
 	}
@@ -67,10 +67,8 @@ func (r *HistoryRepository) GetByMemberID(ctx context.Context, memberID int, cur
 		return nil, nil, domain.NewDatabaseError(err)
 	}
 
-	// Determine next cursor
 	var nextCursor *string
-	if len(histories) > limit {
-		histories = histories[:limit]
+	if len(histories) == limit {
 		lastChangedAt := histories[len(histories)-1].ChangedAt.Format(time.RFC3339Nano)
 		nextCursor = &lastChangedAt
 	}
@@ -90,7 +88,7 @@ func (r *HistoryRepository) GetByUserID(ctx context.Context, userID int, cursor 
 		LIMIT $3
 	`
 
-	rows, err := r.db.Query(ctx, query, userID, cursor, limit+1)
+	rows, err := r.db.Query(ctx, query, userID, cursor, limit)
 	if err != nil {
 		return nil, nil, domain.NewDatabaseError(err)
 	}
@@ -113,10 +111,8 @@ func (r *HistoryRepository) GetByUserID(ctx context.Context, userID int, cursor 
 		return nil, nil, domain.NewDatabaseError(err)
 	}
 
-	// Determine next cursor
 	var nextCursor *string
-	if len(histories) > limit {
-		histories = histories[:limit]
+	if len(histories) == limit && limit > 0 {
 		lastChangedAt := histories[len(histories)-1].ChangedAt.Format(time.RFC3339Nano)
 		nextCursor = &lastChangedAt
 	}

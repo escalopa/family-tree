@@ -18,6 +18,14 @@ type UserResponse struct {
 	TotalScore *int    `json:"total_score,omitempty"`
 }
 
+type UserFilterQuery struct {
+	Search   *string `form:"search"`
+	RoleID   *int    `form:"role_id"`
+	IsActive *bool   `form:"is_active"`
+	Cursor   *string `form:"cursor"`
+	Limit    int     `form:"limit,default=20" binding:"omitempty,min=1,max=100"`
+}
+
 type PaginatedUsersResponse struct {
 	Users      []UserResponse `json:"users"`
 	NextCursor *string        `json:"next_cursor,omitempty"`

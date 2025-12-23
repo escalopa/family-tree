@@ -10,9 +10,21 @@ import {
 } from '../types';
 
 export const usersApi = {
-  listUsers: async (cursor?: string, limit: number = 20): Promise<PaginatedUsersResponse> => {
+  listUsers: async (
+    cursor?: string,
+    limit: number = 20,
+    search?: string,
+    roleId?: number,
+    isActive?: boolean
+  ): Promise<PaginatedUsersResponse> => {
     const response = await apiClient.get('/api/users', {
-      params: { cursor, limit },
+      params: {
+        cursor,
+        limit,
+        search: search || undefined,
+        role_id: roleId !== undefined ? roleId : undefined,
+        is_active: isActive !== undefined ? isActive : undefined,
+      },
     });
     return response.data.data;
   },

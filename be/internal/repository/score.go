@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"time"
 
 	"github.com/escalopa/family-tree/internal/domain"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -42,12 +43,7 @@ func (r *ScoreRepository) GetByUserID(ctx context.Context, userID int, cursor *s
 		LIMIT $3
 	`
 
-	var cursorValue *string
-	if cursor != nil && *cursor != "" {
-		cursorValue = cursor
-	}
-
-	rows, err := r.db.Query(ctx, query, userID, cursorValue, limit+1)
+	rows, err := r.db.Query(ctx, query, userID, cursor, limit)
 	if err != nil {
 		return nil, nil, domain.NewDatabaseError(err)
 	}
@@ -70,12 +66,9 @@ func (r *ScoreRepository) GetByUserID(ctx context.Context, userID int, cursor *s
 		return nil, nil, domain.NewDatabaseError(err)
 	}
 
-	// Determine next cursor
 	var nextCursor *string
-	if len(scores) > limit {
-		// Remove the extra score and set cursor
-		scores = scores[:limit]
-		lastCreatedAt := scores[len(scores)-1].CreatedAt.Format("2006-01-02T15:04:05.999999Z07:00")
+	if len(scores) == limit {
+		lastCreatedAt := scores[len(scores)-1].CreatedAt.Format(time.RFC3339Nano)
 		nextCursor = &lastCreatedAt
 	}
 

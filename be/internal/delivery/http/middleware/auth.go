@@ -56,6 +56,13 @@ func (m *authMiddleware) Authenticate() gin.HandlerFunc {
 			}
 
 			m.cookieManager.SetTokenCookies(c, tokens.AccessToken, tokens.RefreshToken)
+
+			claims, err = m.tokenMgr.ValidateToken(tokens.AccessToken)
+			if err != nil {
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid refreshed token"})
+				c.Abort()
+				return
+			}
 		}
 
 		_, err = m.authUseCase.ValidateSession(c.Request.Context(), claims.SessionID)

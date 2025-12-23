@@ -8,5 +8,5 @@ type Response struct {
 
 type PaginationQuery struct {
 	Cursor *string `form:"cursor"`
-	Limit  int     `form:"limit" binding:"omitempty,min=1,max=100"`
+	Limit  int     `form:"limit,default=20" binding:"omitempty,min=1,max=100"`
 }

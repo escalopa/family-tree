@@ -16,3 +16,9 @@ type UserWithScore struct {
 	User
 	TotalScore int `json:"total_score"`
 }
+
+type UserFilter struct {
+	Search   *string
+	RoleID   *int
+	IsActive *bool
+}

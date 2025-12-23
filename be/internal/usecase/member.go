@@ -173,9 +173,6 @@ func (uc *memberUseCase) SearchMembers(ctx context.Context, filter domain.Member
 }
 
 func (uc *memberUseCase) GetMemberHistory(ctx context.Context, memberID int, cursor *string, limit int) ([]*domain.HistoryWithUser, *string, error) {
-	if limit <= 0 {
-		limit = 20
-	}
 	return uc.historyRepo.GetByMemberID(ctx, memberID, cursor, limit)
 }
 

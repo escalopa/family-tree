@@ -30,7 +30,7 @@ type MemberSearchQuery struct {
 	Gender  *string `form:"gender"`
 	Married *int    `form:"married"` // 0 = no, 1 = yes
 	Cursor  *string `form:"cursor"`
-	Limit   int     `form:"limit" binding:"omitempty,min=1,max=100"`
+	Limit   int     `form:"limit,default=20" binding:"omitempty,min=1,max=100"`
 }
 
 type MemberListItem struct {
@@ -84,7 +84,7 @@ type MemberResponse struct {
 type ParentSearchQuery struct {
 	Query  string `form:"q" binding:"required,min=1"`
 	Gender string `form:"gender" binding:"required,oneof=M F"`
-	Limit  int    `form:"limit" binding:"omitempty,min=1,max=100"`
+	Limit  int    `form:"limit,default=10" binding:"omitempty,min=1,max=100"`
 }
 
 type ParentOption struct {

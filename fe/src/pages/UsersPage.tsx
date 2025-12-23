@@ -23,8 +23,10 @@ import {
   MenuItem,
   Switch,
   FormControlLabel,
+  TextField,
+  Grid,
 } from '@mui/material';
-import { Edit, Visibility } from '@mui/icons-material';
+import { OpenInNew, Clear } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { usersApi } from '../api';
 import { User, Roles } from '../types';
@@ -45,23 +47,40 @@ const UsersPage: React.FC = () => {
   const [isActive, setIsActive] = useState(false);
   const isSuperAdmin = hasRole(Roles.SUPER_ADMIN);
 
+  // Filter states
+  const [searchQuery, setSearchQuery] = useState('');
+  const [roleFilter, setRoleFilter] = useState<number | 'all'>('all');
+  const [activeFilter, setActiveFilter] = useState<boolean | 'all'>('all');
+
   useEffect(() => {
     loadUsers();
-  }, []);
+  }, [searchQuery, roleFilter, activeFilter]);
 
   const loadUsers = async (cursor?: string) => {
     try {
       const isLoadingMore = !!cursor;
       if (isLoadingMore) {
         setLoadingMore(true);
+      } else {
+        setLoading(true);
       }
 
-      const response = await usersApi.listUsers(cursor, 20);
+      // Convert filter values for API
+      const roleIdFilter = roleFilter === 'all' ? undefined : roleFilter;
+      const activeFilterValue = activeFilter === 'all' ? undefined : activeFilter;
+
+      const response = await usersApi.listUsers(
+        cursor,
+        20,
+        searchQuery || undefined,
+        roleIdFilter,
+        activeFilterValue
+      );
 
       if (isLoadingMore) {
-        setUsers((prev) => [...prev, ...response.users]);
+        setUsers((prev) => [...prev, ...(response.users || [])]);
       } else {
-        setUsers(response.users);
+        setUsers(response.users || []);
       }
 
       setNextCursor(response.next_cursor);
@@ -112,6 +131,19 @@ const UsersPage: React.FC = () => {
     }
   };
 
+  const handleOpenProfile = (userId: number) => {
+    navigate(`/users/${userId}`);
+  };
+
+  const handleClearFilters = () => {
+    setSearchQuery('');
+    setRoleFilter('all');
+    setActiveFilter('all');
+  };
+
+  const hasActiveFilters = searchQuery || roleFilter !== 'all' || activeFilter !== 'all';
+
+
   return (
     <Layout>
       <Box>
@@ -121,6 +153,66 @@ const UsersPage: React.FC = () => {
         <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
           Manage user roles and access
         </Typography>
+
+        {/* Filters */}
+        <Paper sx={{ p: 2, mb: 3 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+            <Typography variant="h6">
+              Filters {!hasActiveFilters && '(Showing all users)'}
+            </Typography>
+            {hasActiveFilters && (
+              <Button
+                size="small"
+                startIcon={<Clear />}
+                onClick={handleClearFilters}
+                color="secondary"
+              >
+                Clear Filters
+              </Button>
+            )}
+          </Box>
+          <Grid container spacing={2}>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Search by name or email"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Type to search..."
+              />
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <FormControl fullWidth>
+                <InputLabel>Role</InputLabel>
+                <Select
+                  value={roleFilter}
+                  label="Role"
+                  onChange={(e) => setRoleFilter(e.target.value as number | 'all')}
+                >
+                  <MenuItem value="all">All Roles</MenuItem>
+                  <MenuItem value={Roles.NONE}>None</MenuItem>
+                  <MenuItem value={Roles.GUEST}>Guest</MenuItem>
+                  <MenuItem value={Roles.ADMIN}>Admin</MenuItem>
+                  <MenuItem value={Roles.SUPER_ADMIN}>Super Admin</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <FormControl fullWidth>
+                <InputLabel>Status</InputLabel>
+                <Select
+                  value={activeFilter}
+                  label="Status"
+                  onChange={(e) => setActiveFilter(e.target.value as boolean | 'all')}
+                >
+                  <MenuItem value="all">All Status</MenuItem>
+                  <MenuItem value={true as any}>Active</MenuItem>
+                  <MenuItem value={false as any}>Inactive</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+          </Grid>
+        </Paper>
 
         {loading ? (
           <Typography>Loading...</Typography>
@@ -135,12 +227,16 @@ const UsersPage: React.FC = () => {
                     <TableCell>Email</TableCell>
                     <TableCell>Role</TableCell>
                     <TableCell>Status</TableCell>
-                    <TableCell>Actions</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {users.map((user) => (
-                    <TableRow key={user.user_id}>
+                    <TableRow
+                      key={user.user_id}
+                      hover
+                      sx={{ cursor: isSuperAdmin ? 'pointer' : 'default' }}
+                      onClick={() => isSuperAdmin && handleOpenDialog(user)}
+                    >
                       <TableCell>
                         <Avatar src={user.avatar || undefined}>{user.full_name[0]}</Avatar>
                       </TableCell>
@@ -160,21 +256,17 @@ const UsersPage: React.FC = () => {
                           color={user.is_active ? 'success' : 'default'}
                         />
                       </TableCell>
-                      <TableCell>
-                        <IconButton
-                          size="small"
-                          onClick={() => navigate(`/users/${user.user_id}`)}
-                        >
-                          <Visibility />
-                        </IconButton>
-                        {isSuperAdmin && (
-                          <IconButton size="small" onClick={() => handleOpenDialog(user)}>
-                            <Edit />
-                          </IconButton>
-                        )}
-                      </TableCell>
                     </TableRow>
                   ))}
+                  {users.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
+                        <Typography variant="body2" color="text.secondary">
+                          No users found matching the filters
+                        </Typography>
+                      </TableCell>
+                    </TableRow>
+                  )}
                 </TableBody>
               </Table>
             </TableContainer>
@@ -195,16 +287,36 @@ const UsersPage: React.FC = () => {
 
         {/* Edit User Dialog */}
         <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
-          <DialogTitle>Edit User</DialogTitle>
+          <DialogTitle>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Typography variant="h6">Edit User</Typography>
+              {selectedUser && (
+                <IconButton
+                  onClick={() => handleOpenProfile(selectedUser.user_id)}
+                  color="primary"
+                  title="Open Profile"
+                >
+                  <OpenInNew />
+                </IconButton>
+              )}
+            </Box>
+          </DialogTitle>
           <DialogContent>
             {selectedUser && (
               <Box sx={{ mt: 2 }}>
-                <Typography variant="subtitle1" gutterBottom>
-                  {selectedUser.full_name}
-                </Typography>
-                <Typography variant="body2" color="text.secondary" gutterBottom>
-                  {selectedUser.email}
-                </Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+                  <Avatar src={selectedUser.avatar || undefined} sx={{ width: 56, height: 56 }}>
+                    {selectedUser.full_name[0]}
+                  </Avatar>
+                  <Box>
+                    <Typography variant="subtitle1">
+                      {selectedUser.full_name}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      {selectedUser.email}
+                    </Typography>
+                  </Box>
+                </Box>
 
                 <FormControl fullWidth sx={{ mt: 3 }}>
                   <InputLabel>Role</InputLabel>

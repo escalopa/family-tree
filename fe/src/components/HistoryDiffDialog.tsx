@@ -50,26 +50,54 @@ const HistoryDiffDialog: React.FC<HistoryDiffDialogProps> = ({ open, onClose, hi
   const formatValue = (value: any): string => {
     if (value === null || value === undefined) return '-';
     if (typeof value === 'boolean') return value ? 'Yes' : 'No';
-    if (Array.isArray(value)) return value.join(', ');
+    if (Array.isArray(value)) {
+      if (value.length === 0) return '-';
+      return value.join(', ');
+    }
     if (typeof value === 'object') return JSON.stringify(value);
     return String(value);
+  };
+
+  // Normalize values for comparison (treat empty arrays, null, undefined as equivalent)
+  const normalizeValue = (value: any): any => {
+    if (value === null || value === undefined) return null;
+    if (Array.isArray(value) && value.length === 0) return null;
+    return value;
+  };
+
+  // Check if two values are actually different (considering normalization)
+  const valuesAreDifferent = (oldValue: any, newValue: any): boolean => {
+    const normalizedOld = normalizeValue(oldValue);
+    const normalizedNew = normalizeValue(newValue);
+
+    // Both are null/empty - not different
+    if (normalizedOld === null && normalizedNew === null) return false;
+
+    // Compare using JSON.stringify for complex objects
+    return JSON.stringify(normalizedOld) !== JSON.stringify(normalizedNew);
   };
 
   const getChangedFields = (): Array<{ field: string; oldValue: any; newValue: any }> => {
     const changes: Array<{ field: string; oldValue: any; newValue: any }> = [];
 
     if (history.change_type === 'INSERT' || history.change_type === 'ADD_SPOUSE' || history.change_type === 'ADD_PICTURE') {
-      // For INSERT/ADD operations, show all new values
+      // For INSERT/ADD operations, show all new values (except empty ones)
       Object.entries(history.new_values || {}).forEach(([field, value]) => {
         if (field !== 'member_id' && field !== 'version' && field !== 'deleted_at') {
-          changes.push({ field, oldValue: null, newValue: value });
+          // Only show if value is not empty/null
+          if (normalizeValue(value) !== null) {
+            changes.push({ field, oldValue: null, newValue: value });
+          }
         }
       });
     } else if (history.change_type === 'DELETE' || history.change_type === 'REMOVE_SPOUSE' || history.change_type === 'DELETE_PICTURE') {
-      // For DELETE/REMOVE operations, show all old values
+      // For DELETE/REMOVE operations, show all old values (except empty ones)
       Object.entries(history.old_values || {}).forEach(([field, value]) => {
         if (field !== 'member_id' && field !== 'version' && field !== 'deleted_at') {
-          changes.push({ field, oldValue: value, newValue: null });
+          // Only show if value is not empty/null
+          if (normalizeValue(value) !== null) {
+            changes.push({ field, oldValue: value, newValue: null });
+          }
         }
       });
     } else if (history.change_type === 'UPDATE' || history.change_type === 'UPDATE_SPOUSE') {
@@ -83,8 +111,8 @@ const HistoryDiffDialog: React.FC<HistoryDiffDialogProps> = ({ open, onClose, hi
           const oldValue = oldValues[field];
           const newValue = newValues[field];
 
-          // Only show if values are different
-          if (JSON.stringify(oldValue) !== JSON.stringify(newValue)) {
+          // Only show if values are actually different (after normalization)
+          if (valuesAreDifferent(oldValue, newValue)) {
             changes.push({ field, oldValue, newValue });
           }
         }

@@ -15,7 +15,7 @@ import {
   TableRow,
   Tabs,
   Tab,
-  IconButton,
+  Button,
 } from '@mui/material';
 import '@mui/icons-material';
 import {
@@ -41,7 +41,9 @@ const UserProfilePage: React.FC = () => {
   const { hasRole } = useAuth();
   const [user, setUser] = useState<User | null>(null);
   const [scoreHistory, setScoreHistory] = useState<ScoreHistory[]>([]);
+  const [displayedScoreCount, setDisplayedScoreCount] = useState(10);
   const [userChanges, setUserChanges] = useState<HistoryRecord[]>([]);
+  const [displayedChangesCount, setDisplayedChangesCount] = useState(10);
   const [activeTab, setActiveTab] = useState(0);
   const [loading, setLoading] = useState(true);
   const [selectedHistory, setSelectedHistory] = useState<HistoryRecord | null>(null);
@@ -126,6 +128,7 @@ const UserProfilePage: React.FC = () => {
       }
 
       setScoreHistory(allScores);
+      setDisplayedScoreCount(10); // Reset pagination
       console.log(`Loaded ${allScores.length} score history records for user ${userId}`);
 
       // Only super admins can see user changes
@@ -147,6 +150,7 @@ const UserProfilePage: React.FC = () => {
         }
 
         setUserChanges(allChanges);
+        setDisplayedChangesCount(10); // Reset pagination
         console.log(`Loaded ${allChanges.length} change history records for user ${userId}`);
       }
     } catch (error) {
@@ -389,7 +393,7 @@ const UserProfilePage: React.FC = () => {
                         </TableCell>
                       </TableRow>
                     ) : (
-                      scoreHistory.map((score, idx) => (
+                      scoreHistory.slice(0, displayedScoreCount).map((score, idx) => (
                         <TableRow key={idx}>
                           <TableCell>
                             {score.member_arabic_name} ({score.member_english_name})
@@ -412,48 +416,78 @@ const UserProfilePage: React.FC = () => {
                   </TableBody>
                 </Table>
               </TableContainer>
+              {scoreHistory.length > displayedScoreCount && (
+                <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
+                  <Button
+                    variant="outlined"
+                    onClick={() => setDisplayedScoreCount(prev => prev + 10)}
+                  >
+                    Load More ({scoreHistory.length - displayedScoreCount} remaining)
+                  </Button>
+                </Box>
+              )}
             </Box>
           )}
 
           {/* Recent Changes Tab (Super Admin only) */}
           {activeTab === 1 && hasRole(Roles.SUPER_ADMIN) && (
             <Box sx={{ p: 2 }}>
-              <TableContainer>
-                <Table>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Change Type</TableCell>
-                      <TableCell>Member ID</TableCell>
-                      <TableCell>Date</TableCell>
-                      <TableCell>Version</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {userChanges.map((change) => (
-                      <TableRow
-                        key={change.history_id}
-                        hover
-                        sx={{ cursor: 'pointer' }}
-                        onClick={() => handleViewDiff(change)}
+              {userChanges.length === 0 ? (
+                <Box sx={{ textAlign: 'center', py: 4 }}>
+                  <Typography variant="body2" color="text.secondary">
+                    No recent changes available
+                  </Typography>
+                </Box>
+              ) : (
+                <>
+                  <TableContainer>
+                    <Table>
+                      <TableHead>
+                        <TableRow>
+                          <TableCell>Change Type</TableCell>
+                          <TableCell>Member ID</TableCell>
+                          <TableCell>Date</TableCell>
+                          <TableCell>Version</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {userChanges.slice(0, displayedChangesCount).map((change) => (
+                          <TableRow
+                            key={change.history_id}
+                            hover
+                            sx={{ cursor: 'pointer' }}
+                            onClick={() => handleViewDiff(change)}
+                          >
+                            <TableCell>
+                              <Chip label={change.change_type} size="small" />
+                            </TableCell>
+                            <TableCell>{change.member_id}</TableCell>
+                            <TableCell>
+                              <Box>
+                                <Typography variant="body2">{formatDateTime(change.changed_at)}</Typography>
+                                <Typography variant="caption" color="text.secondary">
+                                  {formatRelativeTime(change.changed_at)}
+                                </Typography>
+                              </Box>
+                            </TableCell>
+                            <TableCell>{change.member_version}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                  {userChanges.length > displayedChangesCount && (
+                    <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
+                      <Button
+                        variant="outlined"
+                        onClick={() => setDisplayedChangesCount(prev => prev + 10)}
                       >
-                        <TableCell>
-                          <Chip label={change.change_type} size="small" />
-                        </TableCell>
-                        <TableCell>{change.member_id}</TableCell>
-                        <TableCell>
-                          <Box>
-                            <Typography variant="body2">{formatDateTime(change.changed_at)}</Typography>
-                            <Typography variant="caption" color="text.secondary">
-                              {formatRelativeTime(change.changed_at)}
-                            </Typography>
-                          </Box>
-                        </TableCell>
-                        <TableCell>{change.member_version}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
+                        Load More ({userChanges.length - displayedChangesCount} remaining)
+                      </Button>
+                    </Box>
+                  )}
+                </>
+              )}
             </Box>
           )}
         </Paper>

@@ -13,8 +13,9 @@ type UserRepository interface {
 	Update(ctx context.Context, user *domain.User) error
 	UpdateRole(ctx context.Context, userID, roleID int) error
 	UpdateActive(ctx context.Context, userID int, isActive bool) error
-	List(ctx context.Context, cursor *string, limit int) ([]*domain.User, *string, error)
+	List(ctx context.Context, filter domain.UserFilter, cursor *string, limit int) ([]*domain.User, *string, error)
 	GetWithScore(ctx context.Context, userID int) (*domain.UserWithScore, error)
+	CreateRoleHistory(ctx context.Context, userID, oldRoleID, newRoleID, changedBy int, actionType string) error
 }
 
 type SessionRepository interface {

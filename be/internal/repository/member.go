@@ -3,8 +3,8 @@ package repository
 import (
 	"context"
 	"errors"
-	"fmt"
 	"log/slog"
+	"strconv"
 
 	"github.com/escalopa/family-tree/internal/domain"
 	"github.com/jackc/pgx/v5"
@@ -57,10 +57,6 @@ func (r *MemberRepository) GetByID(ctx context.Context, memberID int) (*domain.M
 	}
 	if err != nil {
 		return nil, domain.NewDatabaseError(err)
-	}
-	// Ensure nicknames is never nil, use empty array instead
-	if member.Nicknames == nil {
-		member.Nicknames = []string{}
 	}
 	return member, nil
 }
@@ -184,13 +180,11 @@ func (r *MemberRepository) Search(ctx context.Context, filter domain.MemberFilte
 		return nil, nil, domain.NewDatabaseError(err)
 	}
 
-	// Determine next cursor
 	var nextCursor *string
 	if len(members) > limit {
-		// Remove the extra member and set cursor
 		members = members[:limit]
 		if len(members) > 0 {
-			lastMemberID := fmt.Sprintf("%d", members[len(members)-1].MemberID)
+			lastMemberID := strconv.Itoa(members[len(members)-1].MemberID)
 			nextCursor = &lastMemberID
 		}
 	}

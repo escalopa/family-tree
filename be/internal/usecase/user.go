@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"fmt"
+	"log/slog"
 
 	"github.com/escalopa/family-tree/internal/domain"
 )
@@ -33,28 +34,41 @@ func (uc *userUseCase) GetUserWithScore(ctx context.Context, userID int) (*domai
 	return uc.userRepo.GetWithScore(ctx, userID)
 }
 
-func (uc *userUseCase) ListUsers(ctx context.Context, cursor *string, limit int) ([]*domain.User, *string, error) {
-	if limit <= 0 {
-		limit = 20
+func (uc *userUseCase) ListUsers(ctx context.Context, filter domain.UserFilter, cursor *string, limit int) ([]*domain.User, *string, error) {
+	return uc.userRepo.List(ctx, filter, cursor, limit)
+}
+
+func (uc *userUseCase) determineRoleActionType(oldRoleID, newRoleID int) string {
+	if newRoleID < oldRoleID {
+		return "REVOKE"
 	}
-	return uc.userRepo.List(ctx, cursor, limit)
+	return "GRANT"
 }
 
 func (uc *userUseCase) UpdateUserRole(ctx context.Context, userID, newRoleID, changedBy int) error {
-	// Get current user
 	user, err := uc.userRepo.GetByID(ctx, userID)
 	if err != nil {
 		return fmt.Errorf("get user: %w", err)
 	}
 
-	// Update role
+	oldRoleID := user.RoleID
+
 	if err := uc.userRepo.UpdateRole(ctx, userID, newRoleID); err != nil {
 		return fmt.Errorf("update role: %w", err)
 	}
 
-	// Note: Role history tracking could be implemented here if needed
-	_ = user
-	_ = changedBy
+	actionType := uc.determineRoleActionType(oldRoleID, newRoleID)
+
+	if err := uc.userRepo.CreateRoleHistory(ctx, userID, oldRoleID, newRoleID, changedBy, actionType); err != nil {
+		slog.Error("failed to record role change history",
+			"error", err,
+			"user_id", userID,
+			"old_role_id", oldRoleID,
+			"new_role_id", newRoleID,
+			"changed_by", changedBy,
+			"action_type", actionType,
+		)
+	}
 
 	return nil
 }
@@ -64,22 +78,13 @@ func (uc *userUseCase) UpdateUserActive(ctx context.Context, userID int, isActiv
 }
 
 func (uc *userUseCase) GetLeaderboard(ctx context.Context, limit int) ([]*domain.UserScore, error) {
-	if limit <= 0 {
-		limit = 10
-	}
 	return uc.scoreRepo.GetLeaderboard(ctx, limit)
 }
 
 func (uc *userUseCase) GetScoreHistory(ctx context.Context, userID int, cursor *string, limit int) ([]*domain.ScoreHistory, *string, error) {
-	if limit <= 0 {
-		limit = 20
-	}
 	return uc.scoreRepo.GetByUserID(ctx, userID, cursor, limit)
 }
 
 func (uc *userUseCase) GetUserChanges(ctx context.Context, userID int, cursor *string, limit int) ([]*domain.HistoryWithUser, *string, error) {
-	if limit <= 0 {
-		limit = 20
-	}
 	return uc.historyRepo.GetByUserID(ctx, userID, cursor, limit)
 }

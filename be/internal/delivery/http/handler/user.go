@@ -6,6 +6,7 @@ import (
 
 	"github.com/escalopa/family-tree/internal/delivery/http/dto"
 	"github.com/escalopa/family-tree/internal/delivery/http/middleware"
+	"github.com/escalopa/family-tree/internal/domain"
 	"github.com/gin-gonic/gin"
 )
 
@@ -58,11 +59,14 @@ func (h *userHandler) GetUser(c *gin.Context) {
 
 // ListUsers godoc
 // @Summary List all users
-// @Description Returns a paginated list of users
+// @Description Returns a paginated list of users with optional filters
 // @Tags users
 // @Accept json
 // @Produce json
 // @Security BearerAuth
+// @Param search query string false "Search by name or email"
+// @Param role_id query int false "Filter by role ID"
+// @Param is_active query bool false "Filter by active status"
 // @Param cursor query string false "Pagination cursor"
 // @Param limit query int false "Number of items to return (1-100)" default(20)
 // @Success 200 {object} dto.Response{data=dto.PaginatedUsersResponse}
@@ -71,13 +75,19 @@ func (h *userHandler) GetUser(c *gin.Context) {
 // @Failure 500 {object} dto.Response
 // @Router /api/users [get]
 func (h *userHandler) ListUsers(c *gin.Context) {
-	var query dto.PaginationQuery
+	var query dto.UserFilterQuery
 	if err := c.ShouldBindQuery(&query); err != nil {
 		c.JSON(http.StatusBadRequest, dto.Response{Success: false, Error: err.Error()})
 		return
 	}
 
-	users, nextCursor, err := h.userUseCase.ListUsers(c.Request.Context(), query.Cursor, query.Limit)
+	filter := domain.UserFilter{
+		Search:   query.Search,
+		RoleID:   query.RoleID,
+		IsActive: query.IsActive,
+	}
+
+	users, nextCursor, err := h.userUseCase.ListUsers(c.Request.Context(), filter, query.Cursor, query.Limit)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, dto.Response{Success: false, Error: err.Error()})
 		return

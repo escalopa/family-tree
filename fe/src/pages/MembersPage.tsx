@@ -28,8 +28,9 @@ import {
   Avatar,
   Tabs,
   Tab,
+  Autocomplete,
 } from '@mui/material';
-import { Add, Delete, FilterAlt, Clear, Close, Visibility } from '@mui/icons-material';
+import { Add, Delete, FilterAlt, Clear, Close } from '@mui/icons-material';
 import { membersApi } from '../api';
 import { Member, MemberListItem, MemberSearchQuery, CreateMemberRequest, UpdateMemberRequest, HistoryRecord, Roles } from '../types';
 import { formatDate, getMemberPictureUrl, formatDateTime, formatRelativeTime } from '../utils/helpers';
@@ -61,6 +62,7 @@ const MembersPage: React.FC = () => {
     gender: 'M',
   });
   const [memberHistory, setMemberHistory] = useState<HistoryRecord[]>([]);
+  const [displayedHistoryCount, setDisplayedHistoryCount] = useState(10);
   const [selectedHistory, setSelectedHistory] = useState<HistoryRecord | null>(null);
   const [diffDialogOpen, setDiffDialogOpen] = useState(false);
   const [dialogTab, setDialogTab] = useState(0);
@@ -183,6 +185,7 @@ const MembersPage: React.FC = () => {
   const handleOpenDialog = async (memberIdOrMember?: number | MemberListItem) => {
     setDialogTab(0); // Reset to first tab
     setMemberHistory([]); // Clear previous history
+    setDisplayedHistoryCount(10); // Reset pagination
 
     if (memberIdOrMember) {
       try {
@@ -242,6 +245,7 @@ const MembersPage: React.FC = () => {
     setEditingMember(null);
     setOriginalFormData(null);
     setMemberHistory([]);
+    setDisplayedHistoryCount(10);
     setDialogTab(0);
   };
 
@@ -729,17 +733,31 @@ const MembersPage: React.FC = () => {
                 />
               </Grid>
               <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label="Nicknames (comma-separated)"
-                  placeholder="e.g., Abu Ahmed, The Engineer"
-                  value={(formData.nicknames || []).join(', ')}
-                  onChange={(e) => {
-                    const value = e.target.value.trim();
-                    const nicknames = value ? value.split(',').map(n => n.trim()).filter(n => n !== '') : [];
-                    setFormData({ ...formData, nicknames });
+                <Autocomplete
+                  multiple
+                  freeSolo
+                  options={[]}
+                  value={formData.nicknames || []}
+                  onChange={(_, newValue) => {
+                    setFormData({ ...formData, nicknames: newValue });
                   }}
-                  helperText="Separate multiple nicknames with commas"
+                  renderTags={(value, getTagProps) =>
+                    value.map((option, index) => (
+                      <Chip
+                        label={option}
+                        {...getTagProps({ index })}
+                        key={index}
+                      />
+                    ))
+                  }
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Nicknames"
+                      placeholder="Type a nickname and press Enter"
+                      helperText="Press Enter to add a nickname, click X to remove"
+                    />
+                  )}
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
@@ -753,6 +771,7 @@ const MembersPage: React.FC = () => {
                       father_id: value || undefined,
                     })
                   }
+                  initialParent={editingMember?.father || null}
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
@@ -766,6 +785,7 @@ const MembersPage: React.FC = () => {
                       mother_id: value || undefined,
                     })
                   }
+                  initialParent={editingMember?.mother || null}
                 />
               </Grid>
 
@@ -984,62 +1004,69 @@ const MembersPage: React.FC = () => {
                     </Typography>
                   </Box>
                 ) : (
-                  <TableContainer>
-                    <Table>
-                      <TableHead>
-                        <TableRow>
-                          <TableCell>Change Type</TableCell>
-                          <TableCell>User</TableCell>
-                          <TableCell>Date</TableCell>
-                          <TableCell>Version</TableCell>
-                          <TableCell>Actions</TableCell>
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {memberHistory.map((change) => (
-                          <TableRow key={change.history_id} hover>
-                            <TableCell>
-                              <Chip
-                                label={change.change_type}
-                                size="small"
-                                color={
-                                  change.change_type === 'INSERT' ? 'success' :
-                                  change.change_type === 'UPDATE' ? 'primary' :
-                                  'error'
-                                }
-                              />
-                            </TableCell>
-                            <TableCell>
-                              <Box>
-                                <Typography variant="body2">{change.user_full_name}</Typography>
-                                <Typography variant="caption" color="text.secondary">
-                                  {change.user_email}
-                                </Typography>
-                              </Box>
-                            </TableCell>
-                            <TableCell>
-                              <Box>
-                                <Typography variant="body2">{formatDateTime(change.changed_at)}</Typography>
-                                <Typography variant="caption" color="text.secondary">
-                                  {formatRelativeTime(change.changed_at)}
-                                </Typography>
-                              </Box>
-                            </TableCell>
-                            <TableCell>{change.member_version}</TableCell>
-                            <TableCell>
-                              <IconButton
-                                size="small"
-                                onClick={() => handleViewDiff(change)}
-                                color="primary"
-                              >
-                                <Visibility />
-                              </IconButton>
-                            </TableCell>
+                  <>
+                    <TableContainer>
+                      <Table>
+                        <TableHead>
+                          <TableRow>
+                            <TableCell>Change Type</TableCell>
+                            <TableCell>User</TableCell>
+                            <TableCell>Date</TableCell>
+                            <TableCell>Version</TableCell>
                           </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </TableContainer>
+                        </TableHead>
+                        <TableBody>
+                          {memberHistory.slice(0, displayedHistoryCount).map((change) => (
+                            <TableRow
+                              key={change.history_id}
+                              hover
+                              sx={{ cursor: 'pointer' }}
+                              onClick={() => handleViewDiff(change)}
+                            >
+                              <TableCell>
+                                <Chip
+                                  label={change.change_type}
+                                  size="small"
+                                  color={
+                                    change.change_type === 'INSERT' ? 'success' :
+                                    change.change_type === 'UPDATE' ? 'primary' :
+                                    'error'
+                                  }
+                                />
+                              </TableCell>
+                              <TableCell>
+                                <Box>
+                                  <Typography variant="body2">{change.user_full_name}</Typography>
+                                  <Typography variant="caption" color="text.secondary">
+                                    {change.user_email}
+                                  </Typography>
+                                </Box>
+                              </TableCell>
+                              <TableCell>
+                                <Box>
+                                  <Typography variant="body2">{formatDateTime(change.changed_at)}</Typography>
+                                  <Typography variant="caption" color="text.secondary">
+                                    {formatRelativeTime(change.changed_at)}
+                                  </Typography>
+                                </Box>
+                              </TableCell>
+                              <TableCell>{change.member_version}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
+                    {memberHistory.length > displayedHistoryCount && (
+                      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
+                        <Button
+                          variant="outlined"
+                          onClick={() => setDisplayedHistoryCount(prev => prev + 10)}
+                        >
+                          Load More ({memberHistory.length - displayedHistoryCount} remaining)
+                        </Button>
+                      </Box>
+                    )}
+                  </>
                 )}
               </Box>
             )}

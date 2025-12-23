@@ -53,7 +53,7 @@ const TreePage: React.FC = () => {
   const handleSearch = async () => {
     try {
       const response = await membersApi.searchMembers(searchQuery);
-      setSearchResults(response.members);
+      setSearchResults(response.members as Member[]);
     } catch (error) {
       console.error('Search failed:', error);
     }

@@ -10,6 +10,7 @@ interface ParentAutocompleteProps {
   value: number | null;
   onChange: (value: number | null) => void;
   disabled?: boolean;
+  initialParent?: { member_id: number; arabic_name: string; english_name: string; picture: string | null } | null;
 }
 
 const ParentAutocomplete: React.FC<ParentAutocompleteProps> = ({
@@ -18,6 +19,7 @@ const ParentAutocomplete: React.FC<ParentAutocompleteProps> = ({
   value,
   onChange,
   disabled = false,
+  initialParent = null,
 }) => {
   const [options, setOptions] = useState<ParentOption[]>([]);
   const [loading, setLoading] = useState(false);
@@ -50,13 +52,21 @@ const ParentAutocomplete: React.FC<ParentAutocompleteProps> = ({
   // Load initial selected option
   useEffect(() => {
     if (value && !selectedOption) {
-      // Try to find in current options first
-      const found = options.find(opt => opt.member_id === value);
-      if (found) {
-        setSelectedOption(found);
+      // First check if we have an initial parent to display
+      if (initialParent && initialParent.member_id === value) {
+        setSelectedOption({ ...initialParent, gender } as ParentOption);
+      } else {
+        // Try to find in current options
+        const found = options.find(opt => opt.member_id === value);
+        if (found) {
+          setSelectedOption(found);
+        }
       }
+    } else if (!value && selectedOption) {
+      // Clear selection if value becomes null/undefined
+      setSelectedOption(null);
     }
-  }, [value, options, selectedOption]);
+  }, [value, options, selectedOption, initialParent, gender]);
 
   return (
     <Autocomplete

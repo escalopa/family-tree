@@ -27,7 +27,7 @@ type AuthUseCase interface {
 type UserUseCase interface {
 	GetUserByID(ctx context.Context, userID int) (*domain.User, error)
 	GetUserWithScore(ctx context.Context, userID int) (*domain.UserWithScore, error)
-	ListUsers(ctx context.Context, cursor *string, limit int) ([]*domain.User, *string, error)
+	ListUsers(ctx context.Context, filter domain.UserFilter, cursor *string, limit int) ([]*domain.User, *string, error)
 	UpdateUserRole(ctx context.Context, userID, newRoleID, changedBy int) error
 	UpdateUserActive(ctx context.Context, userID int, isActive bool) error
 	GetLeaderboard(ctx context.Context, limit int) ([]*domain.UserScore, error)

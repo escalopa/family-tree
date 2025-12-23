@@ -3,7 +3,7 @@ package repository
 import (
 	"context"
 	"errors"
-	"fmt"
+	"strconv"
 
 	"github.com/escalopa/family-tree/internal/domain"
 	"github.com/jackc/pgx/v5"
@@ -103,21 +103,19 @@ func (r *UserRepository) UpdateActive(ctx context.Context, userID int, isActive 
 	return nil
 }
 
-func (r *UserRepository) List(ctx context.Context, cursor *string, limit int) ([]*domain.User, *string, error) {
+func (r *UserRepository) List(ctx context.Context, filter domain.UserFilter, cursor *string, limit int) ([]*domain.User, *string, error) {
 	query := `
 		SELECT user_id, full_name, email, avatar, role_id, is_active, created_at
 		FROM users
 		WHERE (($1::text IS NULL) OR user_id > $1::int)
+		  AND (($2::text IS NULL) OR (full_name ILIKE '%' || $2 || '%' OR email ILIKE '%' || $2 || '%'))
+		  AND (($3::int IS NULL) OR role_id = $3)
+		  AND (($4::boolean IS NULL) OR is_active = $4)
 		ORDER BY user_id
-		LIMIT $2
+		LIMIT $5
 	`
 
-	var cursorValue *string
-	if cursor != nil && *cursor != "" {
-		cursorValue = cursor
-	}
-
-	rows, err := r.db.Query(ctx, query, cursorValue, limit+1)
+	rows, err := r.db.Query(ctx, query, cursor, filter.Search, filter.RoleID, filter.IsActive, limit)
 	if err != nil {
 		return nil, nil, domain.NewDatabaseError(err)
 	}
@@ -140,12 +138,9 @@ func (r *UserRepository) List(ctx context.Context, cursor *string, limit int) ([
 		return nil, nil, domain.NewDatabaseError(err)
 	}
 
-	// Determine next cursor
 	var nextCursor *string
-	if len(users) > limit {
-		// Remove the extra user and set cursor
-		users = users[:limit]
-		lastUserID := fmt.Sprintf("%d", users[len(users)-1].UserID)
+	if len(users) == limit {
+		lastUserID := strconv.Itoa(users[len(users)-1].UserID)
 		nextCursor = &lastUserID
 	}
 
@@ -173,4 +168,16 @@ func (r *UserRepository) GetWithScore(ctx context.Context, userID int) (*domain.
 		return nil, domain.NewDatabaseError(err)
 	}
 	return user, nil
+}
+
+func (r *UserRepository) CreateRoleHistory(ctx context.Context, userID, oldRoleID, newRoleID, changedBy int, actionType string) error {
+	query := `
+		INSERT INTO user_role_history (user_id, old_role_id, new_role_id, changed_by, action_type)
+		VALUES ($1, $2, $3, $4, $5)
+	`
+	_, err := r.db.Exec(ctx, query, userID, oldRoleID, newRoleID, changedBy, actionType)
+	if err != nil {
+		return domain.NewDatabaseError(err)
+	}
+	return nil
 }
