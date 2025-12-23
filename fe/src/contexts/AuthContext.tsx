@@ -6,6 +6,7 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   setUser: (user: User | null) => void;
+  refreshUser: () => Promise<void>;
   isAuthenticated: boolean;
   hasRole: (minRole: number) => boolean;
   isActive: boolean;
@@ -67,10 +68,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return user ? user.role_id >= minRole : false;
   };
 
+  const refreshUser = async () => {
+    console.log('[AuthContext] Manually refreshing user data...');
+    try {
+      const response = await authApi.getCurrentUser();
+      console.log('[AuthContext] User data refreshed:', response.user);
+      setUser(response.user);
+      localStorage.setItem('user', JSON.stringify(response.user));
+    } catch (error: any) {
+      console.log('[AuthContext] Refresh failed:', error.response?.status, error.message);
+      setUser(null);
+      localStorage.removeItem('user');
+      throw error;
+    }
+  };
+
   const value: AuthContextType = {
     user,
     loading,
     setUser: updateUser,
+    refreshUser,
     isAuthenticated: !!user,
     hasRole,
     isActive: user?.is_active ?? false,

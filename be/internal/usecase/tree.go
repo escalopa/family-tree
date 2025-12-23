@@ -70,11 +70,10 @@ func (uc *treeUseCase) GetTree(ctx context.Context, rootID *int, userRole int) (
 		return tree, nil
 	}
 
-	// Multiple roots: create a virtual root node containing all trees
 	virtualRoot := &domain.MemberTreeNode{
 		MemberWithComputed: domain.MemberWithComputed{
 			Member: domain.Member{
-				MemberID:    0, // Virtual root ID
+				MemberID:    0,
 				ArabicName:  "All Trees",
 				EnglishName: "All Trees",
 				Gender:      "M",
@@ -86,7 +85,6 @@ func (uc *treeUseCase) GetTree(ctx context.Context, rootID *int, userRole int) (
 		SiblingNodes: []*domain.MemberTreeNode{},
 	}
 
-	// Build each disconnected tree and add as children
 	for _, root := range roots {
 		visited := make(map[int]bool)
 		tree := uc.buildTreeWithSpouses(memberMap, spouseMap, root.MemberID, userRole, visited, nil, 0)
