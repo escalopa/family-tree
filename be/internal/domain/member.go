@@ -8,7 +8,7 @@ type Member struct {
 	MemberID    int        `json:"member_id"`
 	ArabicName  string     `json:"arabic_name"`
 	EnglishName string     `json:"english_name"`
-	Gender      string     `json:"gender"` // M, F
+	Gender      string     `json:"gender"`
 	Picture     *string    `json:"picture"`
 	DateOfBirth *time.Time `json:"date_of_birth"`
 	DateOfDeath *time.Time `json:"date_of_death"`
@@ -18,10 +18,9 @@ type Member struct {
 	Profession  *string    `json:"profession"`
 	Version     int        `json:"version"`
 	DeletedAt   *time.Time `json:"deleted_at"`
-	IsMarried   bool       `json:"is_married"` // Computed field for search results
+	IsMarried   bool       `json:"is_married"`
 }
 
-// Computed fields
 type MemberWithComputed struct {
 	Member
 	ArabicFullName  string                 `json:"arabic_full_name"`
@@ -34,7 +33,8 @@ type MemberWithComputed struct {
 
 type MemberTreeNode struct {
 	MemberWithComputed
-	Children    []*MemberTreeNode `json:"children,omitempty"`
-	SpouseNodes []*MemberTreeNode `json:"spouse_nodes,omitempty"` // Spouse nodes at same level
-	IsInPath    bool              `json:"is_in_path,omitempty"`   // For relation path highlighting
+	Children     []*MemberTreeNode `json:"children,omitempty"`
+	SpouseNodes  []*MemberTreeNode `json:"spouse_nodes,omitempty"`
+	SiblingNodes []*MemberTreeNode `json:"sibling_nodes,omitempty"`
+	IsInPath     bool              `json:"is_in_path,omitempty"`
 }

@@ -29,11 +29,12 @@ import {
   Tabs,
   Tab,
   Autocomplete,
+  Tooltip,
 } from '@mui/material';
 import { Add, Delete, FilterAlt, Clear, Close } from '@mui/icons-material';
 import { membersApi } from '../api';
 import { Member, MemberListItem, MemberSearchQuery, CreateMemberRequest, UpdateMemberRequest, HistoryRecord, Roles } from '../types';
-import { formatDate, formatDateOfBirth, getMemberPictureUrl, formatDateTime, formatRelativeTime } from '../utils/helpers';
+import { formatDateOfBirth, getMemberPictureUrl, formatDateTime, formatRelativeTime } from '../utils/helpers';
 import Layout from '../components/Layout/Layout';
 import MemberPhotoUpload from '../components/MemberPhotoUpload';
 import ParentAutocomplete from '../components/ParentAutocomplete';
@@ -114,6 +115,12 @@ const MembersPage: React.FC = () => {
       const validCursor = response.next_cursor && response.next_cursor.trim() !== '' ? response.next_cursor : null;
       setNextCursor(validCursor);
       setHasMore(!!validCursor);
+      console.log('MembersPage pagination:', {
+        nextCursor: response.next_cursor,
+        validCursor,
+        hasMore: !!validCursor,
+        membersCount: response.members?.length
+      });
     } catch (error) {
       console.error('Search failed:', error);
       if (!loadMore) {
@@ -154,6 +161,7 @@ const MembersPage: React.FC = () => {
   useEffect(() => {
     if (!loadMoreRef.current || !hasMore || loadingMore) return;
 
+    const currentRef = loadMoreRef.current;
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting && hasMore && !loadingMore) {
@@ -163,14 +171,14 @@ const MembersPage: React.FC = () => {
       { threshold: 0.1 }
     );
 
-    observer.observe(loadMoreRef.current);
+    observer.observe(currentRef);
 
     return () => {
-      if (loadMoreRef.current) {
-        observer.unobserve(loadMoreRef.current);
+      if (currentRef) {
+        observer.unobserve(currentRef);
       }
     };
-  }, [hasMore, loadingMore, nextCursor]);
+  }, [hasMore, loadingMore, nextCursor, handleLoadMore]);
 
   const handleClearFilters = () => {
     setSearchQuery({});
@@ -510,6 +518,7 @@ const MembersPage: React.FC = () => {
           <Table>
             <TableHead>
               <TableRow>
+                <TableCell>ID</TableCell>
                 <TableCell>Avatar</TableCell>
                 <TableCell>Arabic Name</TableCell>
                 <TableCell>English Name</TableCell>
@@ -521,7 +530,7 @@ const MembersPage: React.FC = () => {
             <TableBody>
               {(!members || members.length === 0) && !loading && (
                 <TableRow>
-                  <TableCell colSpan={6} align="center" sx={{ py: 4, color: 'text.secondary' }}>
+                  <TableCell colSpan={7} align="center" sx={{ py: 4, color: 'text.secondary' }}>
                     {searchQuery.name || searchQuery.gender || searchQuery.married !== undefined
                       ? 'No members found matching your filters'
                       : 'No members found'}
@@ -530,7 +539,7 @@ const MembersPage: React.FC = () => {
               )}
               {loading && members.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={6} align="center" sx={{ py: 8 }}>
+                  <TableCell colSpan={7} align="center" sx={{ py: 8 }}>
                     <CircularProgress />
                     <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
                       Loading members...
@@ -545,6 +554,11 @@ const MembersPage: React.FC = () => {
                   sx={{ cursor: 'pointer' }}
                   onClick={() => handleOpenDialog(member)}
                 >
+                  <TableCell>
+                    <Typography variant="body2" color="text.secondary">
+                      #{member.member_id}
+                    </Typography>
+                  </TableCell>
                   <TableCell>
                     <Avatar
                       src={getMemberPictureUrl(member.member_id, member.picture) || undefined}
@@ -576,24 +590,32 @@ const MembersPage: React.FC = () => {
           </Table>
         </TableContainer>
 
-        {/* Infinite Scroll Sentinel */}
+        {/* Load More Button */}
         {hasMore && members && members.length > 0 && (
           <Box
             ref={loadMoreRef}
             sx={{
               display: 'flex',
               justifyContent: 'center',
-              py: 2,
+              py: 3,
               minHeight: '60px'
             }}
           >
-            {loadingMore && (
+            {loadingMore ? (
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                 <CircularProgress size={24} />
                 <Typography variant="body2" color="text.secondary">
                   Loading more members...
                 </Typography>
               </Box>
+            ) : (
+              <Button
+                variant="outlined"
+                onClick={handleLoadMore}
+                size="large"
+              >
+                Load More Members
+              </Button>
             )}
           </Box>
         )}
@@ -790,10 +812,19 @@ const MembersPage: React.FC = () => {
                 />
               </Grid>
 
+              {/* Relationships Section - Group all related members */}
+              {editingMember && (editingMember.father || editingMember.mother || (editingMember.spouses && editingMember.spouses.length > 0) || (editingMember.children && editingMember.children.length > 0) || (editingMember.siblings && editingMember.siblings.length > 0)) && (
+                <Grid item xs={12}>
+                  <Typography variant="h5" sx={{ mt: 3, mb: 2, color: 'primary.main' }}>
+                    Family Relationships
+                  </Typography>
+                </Grid>
+              )}
+
               {/* Parents Display Section */}
               {editingMember && (editingMember.father || editingMember.mother) && (
                 <Grid item xs={12}>
-                  <Typography variant="h6" sx={{ mt: 2, mb: 1 }}>
+                  <Typography variant="h6" sx={{ mb: 1 }}>
                     Parents
                   </Typography>
                   <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
@@ -864,7 +895,7 @@ const MembersPage: React.FC = () => {
               {/* Spouses Section */}
               {editingMember && (
                 <Grid item xs={12}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2, mb: 1 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
                     <Typography variant="h6">
                       Spouses {editingMember.spouses && editingMember.spouses.length > 0 && `(${editingMember.spouses.length})`}
                     </Typography>
@@ -877,41 +908,45 @@ const MembersPage: React.FC = () => {
                       Add Spouse
                     </Button>
                   </Box>
-                  {editingMember.spouses && editingMember.spouses.length > 0 ? (
-                    editingMember.spouses.map((spouse) => (
-                      <SpouseCard
-                        key={spouse.member_id}
-                        spouse={spouse}
-                        currentMemberId={editingMember.member_id}
-                        onUpdate={async () => {
-                          performSearch(searchQuery);
-                          // Refetch member data after spouse update/delete
-                          try {
-                            const updated = await membersApi.getMember(editingMember.member_id);
-                            setEditingMember(updated);
-                          } catch (error) {
-                            console.error('Failed to refresh member after spouse update:', error);
-                          }
-                        }}
-                        editable={true}
-                        onMemberClick={() => handleOpenRelatedMember(spouse.member_id)}
-                      />
-                    ))
-                  ) : (
-                    <Typography variant="body2" color="text.secondary" sx={{ py: 2, textAlign: 'center' }}>
-                      No spouses added yet. Click "Add Spouse" to create a relationship.
-                    </Typography>
-                  )}
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    {editingMember.spouses && editingMember.spouses.length > 0 ? (
+                      editingMember.spouses.map((spouse) => (
+                        <SpouseCard
+                          key={spouse.member_id}
+                          spouse={spouse}
+                          currentMemberId={editingMember.member_id}
+                          onUpdate={async () => {
+                            performSearch(searchQuery);
+                            // Refetch member data after spouse update/delete
+                            try {
+                              const updated = await membersApi.getMember(editingMember.member_id);
+                              setEditingMember(updated);
+                            } catch (error) {
+                              console.error('Failed to refresh member after spouse update:', error);
+                            }
+                          }}
+                          editable={true}
+                          onMemberClick={() => handleOpenRelatedMember(spouse.member_id)}
+                        />
+                      ))
+                    ) : (
+                      <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'action.hover' }}>
+                        <Typography variant="body2" color="text.secondary">
+                          No spouses added yet. Click "Add Spouse" to create a relationship.
+                        </Typography>
+                      </Paper>
+                    )}
+                  </Box>
                 </Grid>
               )}
 
               {/* Children Section */}
               {editingMember && editingMember.children && editingMember.children.length > 0 && (
                 <Grid item xs={12}>
-                  <Typography variant="h6" sx={{ mt: 2, mb: 1 }}>
+                  <Typography variant="h6" sx={{ mb: 1 }}>
                     Children ({editingMember.children.length})
                   </Typography>
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
                     {editingMember.children.map((child) => (
                       <Paper
                         key={child.member_id}
@@ -950,10 +985,10 @@ const MembersPage: React.FC = () => {
               {/* Siblings Section */}
               {editingMember && editingMember.siblings && editingMember.siblings.length > 0 && (
                 <Grid item xs={12}>
-                  <Typography variant="h6" sx={{ mt: 2, mb: 1 }}>
+                  <Typography variant="h6" sx={{ mb: 1 }}>
                     Siblings ({editingMember.siblings.length})
                   </Typography>
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
                     {editingMember.siblings.map((sibling) => (
                       <Paper
                         key={sibling.member_id}
@@ -1073,16 +1108,18 @@ const MembersPage: React.FC = () => {
             )}
           </DialogContent>
           <DialogActions sx={{ px: 3, py: 2 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
               <Box>
                 {editingMember && (
-                  <Button
-                    onClick={() => handleDelete(editingMember.member_id)}
-                    color="error"
-                    startIcon={<Delete />}
-                  >
-                    Delete Member
-                  </Button>
+                  <Tooltip title="Delete this member permanently">
+                    <IconButton
+                      onClick={() => handleDelete(editingMember.member_id)}
+                      color="error"
+                      size="small"
+                    >
+                      <Delete />
+                    </IconButton>
+                  </Tooltip>
                 )}
               </Box>
               <Box sx={{ display: 'flex', gap: 1 }}>

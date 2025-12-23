@@ -82,9 +82,9 @@ type MemberResponse struct {
 }
 
 type ParentSearchQuery struct {
-	Query  string `form:"q" binding:"required,min=1"`
-	Gender string `form:"gender" binding:"required,oneof=M F"`
-	Limit  int    `form:"limit,default=10" binding:"omitempty,min=1,max=100"`
+	Query  string  `form:"q" binding:"required,min=1"`
+	Gender *string `form:"gender" binding:"omitempty,oneof=M F"`
+	Limit  int     `form:"limit,default=10" binding:"omitempty,min=1,max=100"`
 }
 
 type ParentOption struct {

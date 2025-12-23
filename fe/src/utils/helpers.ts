@@ -97,3 +97,15 @@ export const getMemberPictureUrl = (memberId: number, pictureKey: string | null,
   const versionParam = version ? `?v=${version}` : '';
   return `${apiUrl}/api/members/${memberId}/picture${versionParam}`;
 };
+
+export const debounce = <T extends (...args: any[]) => any>(
+  func: T,
+  wait: number
+): ((...args: Parameters<T>) => void) => {
+  let timeout: NodeJS.Timeout | null = null;
+
+  return (...args: Parameters<T>) => {
+    if (timeout) clearTimeout(timeout);
+    timeout = setTimeout(() => func(...args), wait);
+  };
+};

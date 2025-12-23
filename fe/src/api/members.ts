@@ -56,10 +56,12 @@ export const membersApi = {
     await apiClient.delete(`/api/members/${memberId}/picture`);
   },
 
-  searchMemberInfo: async (query: string, gender: 'M' | 'F'): Promise<ParentOption[]> => {
-    const response = await apiClient.get('/api/members/search-info', {
-      params: { q: query, gender, limit: 20 },
-    });
+  searchMemberInfo: async (query: string, gender?: 'M' | 'F'): Promise<ParentOption[]> => {
+    const params: any = { q: query, limit: 20 };
+    if (gender) {
+      params.gender = gender;
+    }
+    const response = await apiClient.get('/api/members/search-info', { params });
     return response.data.data;
   },
 };

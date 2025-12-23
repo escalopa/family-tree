@@ -99,6 +99,19 @@ const ParentAutocomplete: React.FC<ParentAutocompleteProps> = ({
           placeholder="Type to search..."
           InputProps={{
             ...params.InputProps,
+            startAdornment: selectedOption && (
+              <Avatar
+                src={getMemberPictureUrl(selectedOption.member_id, selectedOption.picture) || undefined}
+                sx={{
+                  width: 32,
+                  height: 32,
+                  bgcolor: gender === 'M' ? '#00BCD4' : '#E91E63',
+                  mr: 1,
+                }}
+              >
+                {selectedOption.english_name.charAt(0)}
+              </Avatar>
+            ),
             endAdornment: (
               <>
                 {loading ? <CircularProgress color="inherit" size={20} /> : null}
@@ -109,17 +122,16 @@ const ParentAutocomplete: React.FC<ParentAutocompleteProps> = ({
         />
       )}
       renderOption={(props, option) => (
-        <Box component="li" {...props} key={option.member_id}>
+        <Box component="li" {...props} key={option.member_id} sx={{ display: 'flex', gap: 1.5, alignItems: 'center' }}>
           <Avatar
             src={getMemberPictureUrl(option.member_id, option.picture) || undefined}
             sx={{
-              width: 32,
-              height: 32,
-              mr: 2,
+              width: 40,
+              height: 40,
               bgcolor: option.gender === 'M' ? '#00BCD4' : '#E91E63',
             }}
           >
-            {option.english_name[0]}
+            {option.english_name.charAt(0)}
           </Avatar>
           <Box>
             <Typography variant="body2">{option.arabic_name}</Typography>

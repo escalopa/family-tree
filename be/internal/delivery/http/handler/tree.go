@@ -91,7 +91,6 @@ func (h *treeHandler) GetRelation(c *gin.Context) {
 
 	userRole := middleware.GetUserRole(c)
 
-	// Get the tree with path highlighting
 	tree, err := h.treeUseCase.GetRelationTree(c.Request.Context(), query.Member1ID, query.Member2ID, userRole)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, dto.Response{Success: false, Error: err.Error()})
@@ -152,6 +151,10 @@ func (h *treeHandler) convertToTreeResponse(node *domain.MemberTreeNode) *dto.Tr
 
 	for _, spouse := range node.SpouseNodes {
 		response.SpouseNodes = append(response.SpouseNodes, h.convertToTreeResponse(spouse))
+	}
+
+	for _, sibling := range node.SiblingNodes {
+		response.SiblingNodes = append(response.SiblingNodes, h.convertToTreeResponse(sibling))
 	}
 
 	return response

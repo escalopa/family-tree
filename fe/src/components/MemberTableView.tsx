@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
   Box,
   Paper,
@@ -13,29 +13,40 @@ import {
   Chip,
   TextField,
   InputAdornment,
-  IconButton,
-  Tooltip,
   TablePagination,
+  CircularProgress,
+  Typography,
 } from '@mui/material';
-import { Search, Visibility, AccountTree } from '@mui/icons-material';
-import { Member } from '../types';
+import { Search } from '@mui/icons-material';
+import { MemberListItem } from '../types';
 import { getGenderColor, formatDate, getMemberPictureUrl } from '../utils/helpers';
 
 interface MemberTableViewProps {
-  members: Member[];
-  onViewMember: (member: Member) => void;
-  onSetRoot: (memberId: number) => void;
+  members: MemberListItem[];
+  onViewMember: (member: MemberListItem) => void;
+  loading?: boolean;
+  loadingMore?: boolean;
+  hasMore?: boolean;
+  onLoadMore?: () => void;
 }
 
-type SortField = 'arabic_name' | 'english_name' | 'gender' | 'date_of_birth' | 'age';
+type SortField = 'arabic_name' | 'english_name' | 'gender' | 'date_of_birth';
 type SortOrder = 'asc' | 'desc';
 
-const MemberTableView: React.FC<MemberTableViewProps> = ({ members, onViewMember, onSetRoot }) => {
+const MemberTableView: React.FC<MemberTableViewProps> = ({
+  members,
+  onViewMember,
+  loading = false,
+  loadingMore = false,
+  hasMore = false,
+  onLoadMore
+}) => {
   const [sortField, setSortField] = useState<SortField>('date_of_birth');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
   const [searchQuery, setSearchQuery] = useState('');
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(25);
+  const loadMoreRef = useRef<HTMLDivElement>(null);
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -54,9 +65,7 @@ const MemberTableView: React.FC<MemberTableViewProps> = ({ members, onViewMember
       filtered = members.filter(
         (member) =>
           member.arabic_name.toLowerCase().includes(query) ||
-          member.english_name.toLowerCase().includes(query) ||
-          (member.nicknames && member.nicknames.some((n) => n.toLowerCase().includes(query))) ||
-          (member.profession && member.profession.toLowerCase().includes(query))
+          member.english_name.toLowerCase().includes(query)
       );
     }
 
@@ -81,10 +90,6 @@ const MemberTableView: React.FC<MemberTableViewProps> = ({ members, onViewMember
         case 'date_of_birth':
           aValue = a.date_of_birth ? new Date(a.date_of_birth).getTime() : 0;
           bValue = b.date_of_birth ? new Date(b.date_of_birth).getTime() : 0;
-          break;
-        case 'age':
-          aValue = a.age || 0;
-          bValue = b.age || 0;
           break;
         default:
           aValue = a.member_id;
@@ -119,18 +124,41 @@ const MemberTableView: React.FC<MemberTableViewProps> = ({ members, onViewMember
     setPage(0);
   };
 
+  // Infinite scroll observer for cursor-based pagination
+  useEffect(() => {
+    if (!loadMoreRef.current || !hasMore || loadingMore || !onLoadMore) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !loadingMore) {
+          onLoadMore();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    observer.observe(loadMoreRef.current);
+
+    return () => {
+      if (loadMoreRef.current) {
+        observer.unobserve(loadMoreRef.current);
+      }
+    };
+  }, [hasMore, loadingMore, onLoadMore]);
+
   return (
-    <Paper sx={{ width: '100%' }}>
+    <Paper sx={{ width: '100%', position: 'relative', minHeight: '400px' }}>
       {/* Search Bar */}
       <Box sx={{ p: 2 }}>
         <TextField
           fullWidth
-          placeholder="Search by name, nickname, or profession..."
+          placeholder="Search by name..."
           value={searchQuery}
           onChange={(e) => {
             setSearchQuery(e.target.value);
             setPage(0); // Reset to first page on search
           }}
+          disabled={loading}
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
@@ -141,8 +169,28 @@ const MemberTableView: React.FC<MemberTableViewProps> = ({ members, onViewMember
         />
       </Box>
 
+      {/* Loading Indicator */}
+      {loading && members.length > 0 && (
+        <Box
+          sx={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            height: '4px',
+            bgcolor: 'primary.main',
+            animation: 'loading 1s ease-in-out infinite',
+            '@keyframes loading': {
+              '0%': { transform: 'translateX(-100%)' },
+              '100%': { transform: 'translateX(100%)' },
+            },
+            zIndex: 1,
+          }}
+        />
+      )}
+
       {/* Table */}
-      <TableContainer>
+      <TableContainer sx={{ opacity: loading && members.length === 0 ? 0.6 : 1 }}>
         <Table>
           <TableHead>
             <TableRow>
@@ -184,11 +232,28 @@ const MemberTableView: React.FC<MemberTableViewProps> = ({ members, onViewMember
                 </TableSortLabel>
               </TableCell>
               <TableCell>Status</TableCell>
-              <TableCell>Profession</TableCell>
-              <TableCell align="center">Actions</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
+            {(!members || members.length === 0) && !loading && (
+              <TableRow>
+                <TableCell colSpan={6} align="center" sx={{ py: 4, color: 'text.secondary' }}>
+                  {searchQuery
+                    ? 'No members found matching your search'
+                    : 'No members found'}
+                </TableCell>
+              </TableRow>
+            )}
+            {loading && members.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={6} align="center" sx={{ py: 8 }}>
+                  <CircularProgress />
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+                    Loading members...
+                  </Typography>
+                </TableCell>
+              </TableRow>
+            )}
             {paginatedMembers.map((member) => (
               <TableRow
                 key={member.member_id}
@@ -206,11 +271,6 @@ const MemberTableView: React.FC<MemberTableViewProps> = ({ members, onViewMember
                 </TableCell>
                 <TableCell>
                   <Box sx={{ fontWeight: 500 }}>{member.arabic_name}</Box>
-                  {member.nicknames && member.nicknames.length > 0 && (
-                    <Box sx={{ fontSize: '0.75rem', color: 'text.secondary', mt: 0.5 }}>
-                      {member.nicknames.join(', ')}
-                    </Box>
-                  )}
                 </TableCell>
                 <TableCell>{member.english_name}</TableCell>
                 <TableCell>
@@ -236,31 +296,6 @@ const MemberTableView: React.FC<MemberTableViewProps> = ({ members, onViewMember
                     />
                   )}
                 </TableCell>
-                <TableCell>{member.profession || '-'}</TableCell>
-                <TableCell align="center">
-                  <Tooltip title="View Details">
-                    <IconButton
-                      size="small"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onViewMember(member);
-                      }}
-                    >
-                      <Visibility fontSize="small" />
-                    </IconButton>
-                  </Tooltip>
-                  <Tooltip title="Set as Tree Root">
-                    <IconButton
-                      size="small"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onSetRoot(member.member_id);
-                      }}
-                    >
-                      <AccountTree fontSize="small" />
-                    </IconButton>
-                  </Tooltip>
-                </TableCell>
               </TableRow>
             ))}
           </TableBody>
@@ -277,6 +312,23 @@ const MemberTableView: React.FC<MemberTableViewProps> = ({ members, onViewMember
         onRowsPerPageChange={handleChangeRowsPerPage}
         rowsPerPageOptions={[10, 25, 50, 100]}
       />
+
+      {/* Load More Sentinel for cursor-based pagination */}
+      {hasMore && onLoadMore && (
+        <Box
+          ref={loadMoreRef}
+          sx={{ display: 'flex', justifyContent: 'center', py: 2, minHeight: '60px' }}
+        >
+          {loadingMore && (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <CircularProgress size={24} />
+              <Typography variant="body2" color="text.secondary">
+                Loading more members...
+              </Typography>
+            </Box>
+          )}
+        </Box>
+      )}
     </Paper>
   );
 };

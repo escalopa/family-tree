@@ -4,23 +4,21 @@ import {
   Paper,
   Typography,
   Button,
-  Autocomplete,
-  TextField,
   Alert,
   CircularProgress,
 } from '@mui/material';
 import { Search } from '@mui/icons-material';
-import { Member } from '../types';
+import { ParentOption } from '../types';
+import MemberAutocomplete from './MemberAutocomplete';
 
 interface RelationFinderProps {
-  members: Member[];
   onFindRelation: (member1Id: number, member2Id: number) => Promise<void>;
   loading?: boolean;
 }
 
-const RelationFinder: React.FC<RelationFinderProps> = ({ members, onFindRelation, loading }) => {
-  const [member1, setMember1] = useState<Member | null>(null);
-  const [member2, setMember2] = useState<Member | null>(null);
+const RelationFinder: React.FC<RelationFinderProps> = ({ onFindRelation, loading }) => {
+  const [member1, setMember1] = useState<ParentOption | null>(null);
+  const [member2, setMember2] = useState<ParentOption | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const handleFindRelation = async () => {
@@ -49,55 +47,31 @@ const RelationFinder: React.FC<RelationFinderProps> = ({ members, onFindRelation
       </Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
         Select two family members to see their relationship and the path connecting them in the
-        family tree.
+        family tree. Start typing to search.
       </Typography>
 
       <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
         <Box sx={{ flex: '1 1 300px', minWidth: 250 }}>
-          <Autocomplete
-            options={members}
+          <MemberAutocomplete
+            label="First Member"
             value={member1}
-            onChange={(_, newValue) => {
-              setMember1(newValue);
+            onChange={(value) => {
+              setMember1(value);
               setError(null);
             }}
-            getOptionLabel={(option) => `${option.arabic_name} (${option.english_name})`}
-            renderOption={(props, option) => (
-              <Box component="li" {...props}>
-                <Box>
-                  <Typography variant="body2">{option.arabic_name}</Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    {option.english_name}
-                  </Typography>
-                </Box>
-              </Box>
-            )}
-            renderInput={(params) => <TextField {...params} label="First Member" />}
-            isOptionEqualToValue={(option, value) => option.member_id === value.member_id}
+            disabled={loading}
           />
         </Box>
 
         <Box sx={{ flex: '1 1 300px', minWidth: 250 }}>
-          <Autocomplete
-            options={members}
+          <MemberAutocomplete
+            label="Second Member"
             value={member2}
-            onChange={(_, newValue) => {
-              setMember2(newValue);
+            onChange={(value) => {
+              setMember2(value);
               setError(null);
             }}
-            getOptionLabel={(option) => `${option.arabic_name} (${option.english_name})`}
-            renderOption={(props, option) => (
-              <Box component="li" {...props}>
-                <Box>
-                  <Typography variant="body2">{option.arabic_name}</Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    {option.english_name}
-                  </Typography>
-                </Box>
-              </Box>
-            )}
-            renderInput={(params) => <TextField {...params} label="Second Member" />}
-            isOptionEqualToValue={(option, value) => option.member_id === value.member_id}
+            disabled={loading}
           />
         </Box>
 
@@ -122,4 +96,3 @@ const RelationFinder: React.FC<RelationFinderProps> = ({ members, onFindRelation
 };
 
 export default RelationFinder;
-

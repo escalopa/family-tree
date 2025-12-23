@@ -188,9 +188,15 @@ const MemberPhotoUpload: React.FC<MemberPhotoUploadProps> = ({
     );
   }
 
+  const [isHovering, setIsHovering] = useState(false);
+
   return (
     <Box sx={{ textAlign: 'center' }}>
-      <Box sx={{ position: 'relative', display: 'inline-block', mb: 2 }}>
+      <Box
+        sx={{ position: 'relative', display: 'inline-block', mb: 2 }}
+        onMouseEnter={() => setIsHovering(true)}
+        onMouseLeave={() => setIsHovering(false)}
+      >
         <Avatar
           src={pictureUrl || undefined}
           sx={{
@@ -221,6 +227,50 @@ const MemberPhotoUpload: React.FC<MemberPhotoUploadProps> = ({
             <CircularProgress size={size / 3} sx={{ color: 'white' }} />
           </Box>
         )}
+
+        {/* Hover overlay with upload button */}
+        {isHovering && !uploading && !deleting && (
+          <Box
+            sx={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: size,
+              height: size,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              bgcolor: 'rgba(0, 0, 0, 0.6)',
+              borderRadius: '50%',
+              cursor: 'pointer',
+            }}
+            onClick={handleUploadClick}
+          >
+            <PhotoCamera sx={{ fontSize: size / 3, color: 'white' }} />
+          </Box>
+        )}
+
+        {/* Small delete button in corner */}
+        {currentPhoto && !uploading && !deleting && (
+          <Tooltip title="Delete photo">
+            <IconButton
+              size="small"
+              onClick={handleDelete}
+              sx={{
+                position: 'absolute',
+                bottom: 0,
+                right: 0,
+                bgcolor: 'error.main',
+                color: 'white',
+                width: 32,
+                height: 32,
+                '&:hover': { bgcolor: 'error.dark' },
+              }}
+            >
+              <Delete sx={{ fontSize: 18 }} />
+            </IconButton>
+          </Tooltip>
+        )}
       </Box>
 
       {showName && (
@@ -228,31 +278,6 @@ const MemberPhotoUpload: React.FC<MemberPhotoUploadProps> = ({
           {memberName}
         </Typography>
       )}
-
-      <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
-        <Button
-          variant="contained"
-          startIcon={<PhotoCamera />}
-          onClick={handleUploadClick}
-          disabled={uploading || deleting}
-          size="small"
-        >
-          Upload Photo
-        </Button>
-
-        {currentPhoto && (
-          <Button
-            variant="outlined"
-            color="error"
-            startIcon={<Delete />}
-            onClick={handleDelete}
-            disabled={uploading || deleting}
-            size="small"
-          >
-            Delete
-          </Button>
-        )}
-      </Box>
 
       <input
         ref={fileInputRef}
@@ -278,10 +303,6 @@ const MemberPhotoUpload: React.FC<MemberPhotoUploadProps> = ({
           {error}
         </Alert>
       )}
-
-      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
-        Max size: 3MB • Formats: JPG, PNG, GIF, WebP
-      </Typography>
     </Box>
   );
 };

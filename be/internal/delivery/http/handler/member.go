@@ -333,7 +333,7 @@ func (h *memberHandler) SearchMembers(c *gin.Context) {
 // @Produce json
 // @Security BearerAuth
 // @Param q query string true "Search query (name in Arabic or English)"
-// @Param gender query string true "Required gender filter (M or F)"
+// @Param gender query string false "Optional gender filter (M or F)"
 // @Param limit query int false "Number of results (max 20)" default(10)
 // @Success 200 {object} dto.Response{data=[]dto.ParentOption}
 // @Failure 400 {object} dto.Response
@@ -349,7 +349,7 @@ func (h *memberHandler) SearchMemberInfo(c *gin.Context) {
 
 	filter := domain.MemberFilter{
 		Name:   &query.Query,
-		Gender: &query.Gender,
+		Gender: query.Gender,
 	}
 
 	members, _, err := h.memberUseCase.SearchMembers(c.Request.Context(), filter, nil, query.Limit)

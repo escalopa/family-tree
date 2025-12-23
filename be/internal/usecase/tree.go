@@ -24,7 +24,6 @@ func NewTreeUseCase(
 }
 
 func (uc *treeUseCase) GetTree(ctx context.Context, rootID *int, userRole int) (*domain.MemberTreeNode, error) {
-	// Get all members
 	members, err := uc.memberRepo.GetAll(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("get members: %w", err)
@@ -34,7 +33,6 @@ func (uc *treeUseCase) GetTree(ctx context.Context, rootID *int, userRole int) (
 		return nil, fmt.Errorf("no members found")
 	}
 
-	// Get spouse relationships
 	spouseMap, err := uc.spouseRepo.GetAllSpouses(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("get spouses: %w", err)
@@ -59,30 +57,26 @@ func (uc *treeUseCase) GetTree(ctx context.Context, rootID *int, userRole int) (
 
 	// Build tree with spouse support
 	visited := make(map[int]bool)
-	tree := uc.buildTreeWithSpouses(memberMap, spouseMap, *rootID, userRole, visited, nil)
+	tree := uc.buildTreeWithSpouses(memberMap, spouseMap, *rootID, userRole, visited, nil, 0)
 	return tree, nil
 }
 
 func (uc *treeUseCase) GetListView(ctx context.Context, rootID *int, userRole int) ([]*domain.MemberWithComputed, error) {
-	// Get all members
 	members, err := uc.memberRepo.GetAll(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("get members: %w", err)
 	}
 
-	// Get spouse relationships
 	spouseMap, err := uc.spouseRepo.GetAllSpouses(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("get spouses: %w", err)
 	}
 
-	// Create member map for spouse lookup
 	memberMap := make(map[int]*domain.Member)
 	for _, m := range members {
 		memberMap[m.MemberID] = m
 	}
 
-	// Convert to MemberWithComputed
 	var result []*domain.MemberWithComputed
 	for _, m := range members {
 		spouseIDs := spouseMap[m.MemberID]
@@ -105,29 +99,6 @@ func (uc *treeUseCase) GetListView(ctx context.Context, rootID *int, userRole in
 
 		result = append(result, computed)
 	}
-
-	// Sort by date of birth (oldest first)
-	sort.Slice(result, func(i, j int) bool {
-		dateI := result[i].DateOfBirth
-		dateJ := result[j].DateOfBirth
-
-		// Handle nil dates (put them at the end)
-		if dateI == nil && dateJ == nil {
-			return result[i].MemberID < result[j].MemberID
-		}
-		if dateI == nil {
-			return false
-		}
-		if dateJ == nil {
-			return true
-		}
-
-		// Compare dates
-		if dateI.Equal(*dateJ) {
-			return result[i].MemberID < result[j].MemberID
-		}
-		return dateI.Before(*dateJ)
-	})
 
 	return result, nil
 }
@@ -183,7 +154,7 @@ func (uc *treeUseCase) GetRelationTree(ctx context.Context, member1ID, member2ID
 
 	// Build tree with path highlighting
 	visited := make(map[int]bool)
-	tree := uc.buildTreeWithSpouses(memberMap, spouseMap, root.MemberID, userRole, visited, pathMembers)
+	tree := uc.buildTreeWithSpouses(memberMap, spouseMap, root.MemberID, userRole, visited, pathMembers, 0)
 	return tree, nil
 }
 
@@ -254,7 +225,7 @@ func (uc *treeUseCase) findOldestRoot(members []*domain.Member) *domain.Member {
 	return members[0]
 }
 
-func (uc *treeUseCase) buildTreeWithSpouses(memberMap map[int]*domain.Member, spouseMap map[int][]int, rootID int, userRole int, visited map[int]bool, pathMembers map[int]bool) *domain.MemberTreeNode {
+func (uc *treeUseCase) buildTreeWithSpouses(memberMap map[int]*domain.Member, spouseMap map[int][]int, rootID int, userRole int, visited map[int]bool, pathMembers map[int]bool, generationLevel int) *domain.MemberTreeNode {
 	// Avoid circular references (spouse relationships)
 	if visited[rootID] {
 		return nil
@@ -271,13 +242,15 @@ func (uc *treeUseCase) buildTreeWithSpouses(memberMap map[int]*domain.Member, sp
 
 	node := &domain.MemberTreeNode{
 		MemberWithComputed: domain.MemberWithComputed{
-			Member:    *root,
-			IsMarried: len(spouseIDs) > 0,
-			Spouses:   spouses,
+			Member:          *root,
+			IsMarried:       len(spouseIDs) > 0,
+			Spouses:         spouses,
+			GenerationLevel: generationLevel,
 		},
-		Children:    []*domain.MemberTreeNode{},
-		SpouseNodes: []*domain.MemberTreeNode{},
-		IsInPath:    pathMembers != nil && pathMembers[rootID],
+		Children:     []*domain.MemberTreeNode{},
+		SpouseNodes:  []*domain.MemberTreeNode{},
+		SiblingNodes: []*domain.MemberTreeNode{},
+		IsInPath:     pathMembers != nil && pathMembers[rootID],
 	}
 
 	// Apply privacy rules
@@ -292,9 +265,70 @@ func (uc *treeUseCase) buildTreeWithSpouses(memberMap map[int]*domain.Member, sp
 	// Add spouse nodes (only those under the current root)
 	for _, spouseID := range spouseIDs {
 		if !visited[spouseID] {
-			spouseNode := uc.buildSpouseNode(memberMap, spouseMap, spouseID, userRole, pathMembers)
+			spouseNode := uc.buildSpouseNode(memberMap, spouseMap, spouseID, userRole, pathMembers, generationLevel)
 			if spouseNode != nil {
 				node.SpouseNodes = append(node.SpouseNodes, spouseNode)
+			}
+		}
+	}
+
+	// Add sibling nodes (if this is not the tree root, i.e., generationLevel > 0)
+	if generationLevel > 0 {
+		for _, m := range memberMap {
+			// Skip self and already visited
+			if m.MemberID == rootID || visited[m.MemberID] {
+				continue
+			}
+			// Check if sibling (same parents)
+			isSibling := false
+			if root.FatherID != nil && m.FatherID != nil && *root.FatherID == *m.FatherID {
+				isSibling = true
+			} else if root.MotherID != nil && m.MotherID != nil && *root.MotherID == *m.MotherID {
+				isSibling = true
+			}
+
+			if isSibling {
+				// Mark as visited to avoid duplicates
+				visited[m.MemberID] = true
+
+				// Build sibling node with their spouses
+				siblingSpouseIDs := spouseMap[m.MemberID]
+				siblingSpouses := uc.convertSpouseIDsToInfo(siblingSpouseIDs, memberMap)
+
+				siblingNode := &domain.MemberTreeNode{
+					MemberWithComputed: domain.MemberWithComputed{
+						Member:          *m,
+						IsMarried:       len(siblingSpouseIDs) > 0,
+						Spouses:         siblingSpouses,
+						GenerationLevel: generationLevel,
+					},
+					Children:     []*domain.MemberTreeNode{},
+					SpouseNodes:  []*domain.MemberTreeNode{},
+					SiblingNodes: []*domain.MemberTreeNode{},
+					IsInPath:     pathMembers != nil && pathMembers[m.MemberID],
+				}
+
+				// Apply privacy rules for sibling
+				if m.Gender == "F" && userRole < domain.RoleSuperAdmin {
+					siblingNode.DateOfBirth = nil
+					siblingNode.DateOfDeath = nil
+				}
+				if m.Gender == "F" && userRole < domain.RoleAdmin {
+					siblingNode.Picture = nil
+				}
+
+				// Add sibling's spouses
+				for _, siblingSpouseID := range siblingSpouseIDs {
+					if !visited[siblingSpouseID] {
+						siblingSpouseNode := uc.buildSpouseNode(memberMap, spouseMap, siblingSpouseID, userRole, pathMembers, generationLevel)
+						if siblingSpouseNode != nil {
+							siblingNode.SpouseNodes = append(siblingNode.SpouseNodes, siblingSpouseNode)
+							visited[siblingSpouseID] = true
+						}
+					}
+				}
+
+				node.SiblingNodes = append(node.SiblingNodes, siblingNode)
 			}
 		}
 	}
@@ -303,13 +337,13 @@ func (uc *treeUseCase) buildTreeWithSpouses(memberMap map[int]*domain.Member, sp
 	for _, m := range memberMap {
 		// Children branch from father node only, or mother if no father
 		if m.FatherID != nil && *m.FatherID == rootID {
-			child := uc.buildTreeWithSpouses(memberMap, spouseMap, m.MemberID, userRole, visited, pathMembers)
+			child := uc.buildTreeWithSpouses(memberMap, spouseMap, m.MemberID, userRole, visited, pathMembers, generationLevel+1)
 			if child != nil {
 				node.Children = append(node.Children, child)
 			}
 		} else if m.FatherID == nil && m.MotherID != nil && *m.MotherID == rootID {
 			// Only add if mother and father is unknown
-			child := uc.buildTreeWithSpouses(memberMap, spouseMap, m.MemberID, userRole, visited, pathMembers)
+			child := uc.buildTreeWithSpouses(memberMap, spouseMap, m.MemberID, userRole, visited, pathMembers, generationLevel+1)
 			if child != nil {
 				node.Children = append(node.Children, child)
 			}
@@ -343,7 +377,7 @@ func (uc *treeUseCase) buildTreeWithSpouses(memberMap map[int]*domain.Member, sp
 }
 
 // buildSpouseNode creates a spouse node without recursing into their children (to avoid duplication)
-func (uc *treeUseCase) buildSpouseNode(memberMap map[int]*domain.Member, spouseMap map[int][]int, spouseID int, userRole int, pathMembers map[int]bool) *domain.MemberTreeNode {
+func (uc *treeUseCase) buildSpouseNode(memberMap map[int]*domain.Member, spouseMap map[int][]int, spouseID int, userRole int, pathMembers map[int]bool, generationLevel int) *domain.MemberTreeNode {
 	spouse := memberMap[spouseID]
 	if spouse == nil {
 		return nil
@@ -354,9 +388,10 @@ func (uc *treeUseCase) buildSpouseNode(memberMap map[int]*domain.Member, spouseM
 
 	node := &domain.MemberTreeNode{
 		MemberWithComputed: domain.MemberWithComputed{
-			Member:    *spouse,
-			IsMarried: len(spouseSpouseIDs) > 0,
-			Spouses:   spouseSpouses,
+			Member:          *spouse,
+			IsMarried:       len(spouseSpouseIDs) > 0,
+			Spouses:         spouseSpouses,
+			GenerationLevel: generationLevel,
 		},
 		Children:    []*domain.MemberTreeNode{}, // Spouses don't show children (they're shown under main node)
 		SpouseNodes: []*domain.MemberTreeNode{},
