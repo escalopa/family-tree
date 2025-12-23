@@ -557,9 +557,15 @@ func (uc *memberUseCase) ComputeMemberWithExtras(ctx context.Context, member *do
 			computed.Picture = nil
 		}
 		if userRole < domain.RoleSuperAdmin {
-			// Hide birth/death dates for non-super-admins
-			computed.DateOfBirth = nil
-			computed.DateOfDeath = nil
+			// Hide year from birth/death dates for non-super-admins (keep month and day)
+			if computed.DateOfBirth != nil {
+				hiddenDate := time.Date(1, computed.DateOfBirth.Month(), computed.DateOfBirth.Day(), 0, 0, 0, 0, time.UTC)
+				computed.DateOfBirth = &hiddenDate
+			}
+			if computed.DateOfDeath != nil {
+				hiddenDate := time.Date(1, computed.DateOfDeath.Month(), computed.DateOfDeath.Day(), 0, 0, 0, 0, time.UTC)
+				computed.DateOfDeath = &hiddenDate
+			}
 			computed.Age = nil
 		}
 	}

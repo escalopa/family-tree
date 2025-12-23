@@ -20,6 +20,20 @@ export const formatDate = (dateString: string | null): string => {
   return new Date(dateString).toLocaleDateString();
 };
 
+export const formatDateHideYear = (dateString: string | null): string => {
+  if (!dateString) return '-';
+  const date = new Date(dateString);
+  return date.toLocaleDateString(undefined, { month: 'long', day: 'numeric' });
+};
+
+export const formatDateOfBirth = (dateString: string | null, isSuperAdmin: boolean): string => {
+  if (!dateString) return '-';
+  if (isSuperAdmin) {
+    return formatDate(dateString);
+  }
+  return formatDateHideYear(dateString);
+};
+
 export const formatDateTime = (dateTimeString: string | null): string => {
   if (!dateTimeString) return '-';
   const date = new Date(dateTimeString);
@@ -53,22 +67,6 @@ export const formatRelativeTime = (dateTimeString: string | null): string => {
   } else {
     return formatDateTime(dateTimeString);
   }
-};
-
-export const calculateAge = (dateOfBirth: string | null, dateOfDeath: string | null): number | null => {
-  if (!dateOfBirth) return null;
-
-  const birth = new Date(dateOfBirth);
-  const end = dateOfDeath ? new Date(dateOfDeath) : new Date();
-
-  const age = end.getFullYear() - birth.getFullYear();
-  const monthDiff = end.getMonth() - birth.getMonth();
-
-  if (monthDiff < 0 || (monthDiff === 0 && end.getDate() < birth.getDate())) {
-    return age - 1;
-  }
-
-  return age;
 };
 
 export const getGenderColor = (gender: 'M' | 'F' | 'N'): string => {

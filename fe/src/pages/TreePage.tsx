@@ -21,10 +21,14 @@ import {
 import { AccountTree, List as ListIcon, Search, Close } from '@mui/icons-material';
 import { treeApi, membersApi } from '../api';
 import { TreeNode, Member, MemberSearchQuery } from '../types';
-import { getGenderColor, formatDate, getMemberPictureUrl } from '../utils/helpers';
+import { getGenderColor, formatDate, formatDateOfBirth, getMemberPictureUrl } from '../utils/helpers';
 import Layout from '../components/Layout/Layout';
+import { useAuth } from '../contexts/AuthContext';
+import { Roles } from '../types';
 
 const TreePage: React.FC = () => {
+  const { hasRole } = useAuth();
+  const isSuperAdmin = hasRole(Roles.SUPER_ADMIN);
   const [viewStyle, setViewStyle] = useState<'tree' | 'list'>('tree');
   const [rootId, setRootId] = useState<number | undefined>(undefined);
   const [treeData, setTreeData] = useState<TreeNode | null>(null);
@@ -342,7 +346,7 @@ const TreePage: React.FC = () => {
                       Date of Birth
                     </Typography>
                     <Typography variant="body1" gutterBottom>
-                      {formatDate(selectedMember.date_of_birth)}
+                      {formatDateOfBirth(selectedMember.date_of_birth, isSuperAdmin)}
                     </Typography>
                   </>
                 )}

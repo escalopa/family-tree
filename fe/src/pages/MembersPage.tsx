@@ -33,7 +33,7 @@ import {
 import { Add, Delete, FilterAlt, Clear, Close } from '@mui/icons-material';
 import { membersApi } from '../api';
 import { Member, MemberListItem, MemberSearchQuery, CreateMemberRequest, UpdateMemberRequest, HistoryRecord, Roles } from '../types';
-import { formatDate, getMemberPictureUrl, formatDateTime, formatRelativeTime } from '../utils/helpers';
+import { formatDate, formatDateOfBirth, getMemberPictureUrl, formatDateTime, formatRelativeTime } from '../utils/helpers';
 import Layout from '../components/Layout/Layout';
 import MemberPhotoUpload from '../components/MemberPhotoUpload';
 import ParentAutocomplete from '../components/ParentAutocomplete';
@@ -46,6 +46,7 @@ const PAGE_SIZE = 10;
 
 const MembersPage: React.FC = () => {
   const { hasRole } = useAuth();
+  const isSuperAdmin = hasRole(Roles.SUPER_ADMIN);
   const [searchParams, setSearchParams] = useSearchParams();
   const [members, setMembers] = useState<MemberListItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -561,7 +562,7 @@ const MembersPage: React.FC = () => {
                   <TableCell>
                     {member.gender === 'M' ? 'Male' : 'Female'}
                   </TableCell>
-                  <TableCell>{formatDate(member.date_of_birth)}</TableCell>
+                  <TableCell>{formatDateOfBirth(member.date_of_birth, isSuperAdmin)}</TableCell>
                   <TableCell>
                     {member.is_married ? (
                       <Chip label="Yes" color="primary" size="small" />

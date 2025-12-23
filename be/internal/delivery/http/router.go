@@ -90,7 +90,7 @@ func (r *Router) Setup(engine *gin.Engine) {
 			memberGroup.GET("/search", r.memberHandler.SearchMembers)
 			memberGroup.GET("/search-info", r.memberHandler.SearchMemberInfo)
 			memberGroup.GET("/history", middleware.RequireRole(domain.RoleSuperAdmin), r.memberHandler.GetMemberHistory)
-			memberGroup.GET("/:member_id/picture", r.memberHandler.GetPicture)
+			memberGroup.GET("/:member_id/picture", middleware.RequireRole(domain.RoleAdmin), r.memberHandler.GetPicture)
 
 			memberGroup.POST("", middleware.RequireRole(domain.RoleAdmin), r.memberHandler.CreateMember)
 			memberGroup.PUT("/:member_id", middleware.RequireRole(domain.RoleAdmin), r.memberHandler.UpdateMember)
