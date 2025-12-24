@@ -3,6 +3,7 @@ package dto
 import (
 	"database/sql/driver"
 	"fmt"
+	"strconv"
 	"time"
 )
 
@@ -20,8 +21,9 @@ func (d *Date) UnmarshalJSON(b []byte) error {
 		return nil
 	}
 
-	if len(s) >= 2 && s[0] == '"' && s[len(s)-1] == '"' {
-		s = s[1 : len(s)-1]
+	s, err := strconv.Unquote(s)
+	if err != nil {
+		return fmt.Errorf("invalid date format, expected YYYY-MM-DD: %w", err)
 	}
 
 	t, err := time.Parse(dateLayout, s)

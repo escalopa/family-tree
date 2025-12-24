@@ -15,7 +15,7 @@ import LeaderboardPage from './pages/LeaderboardPage';
 import MembersPage from './pages/MembersPage';
 import UsersPage from './pages/UsersPage';
 import UserProfilePage from './pages/UserProfilePage';
-import ConfigurationPage from './pages/ConfigurationPage';
+import ProfilePage from './pages/ProfilePage';
 
 import { Roles } from './types';
 
@@ -70,10 +70,10 @@ const App: React.FC = () => {
                 }
               />
               <Route
-                path="/configuration"
+                path="/profile"
                 element={
                   <ProtectedRoute requireActive>
-                    <ConfigurationPage />
+                    <ProfilePage />
                   </ProtectedRoute>
                 }
               />

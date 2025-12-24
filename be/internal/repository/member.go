@@ -120,7 +120,7 @@ func (r *MemberRepository) Create(ctx context.Context, member *domain.Member) er
 	return nil
 }
 
-func (r *MemberRepository) GetByID(ctx context.Context, memberID int) (*domain.Member, error) {
+func (r *MemberRepository) Get(ctx context.Context, memberID int) (*domain.Member, error) {
 	query := `
 		SELECT member_id, gender, picture, date_of_birth, date_of_death,
 		       father_id, mother_id, nicknames, profession, version, deleted_at
@@ -134,7 +134,7 @@ func (r *MemberRepository) GetByID(ctx context.Context, memberID int) (*domain.M
 		&member.MotherID, &member.Nicknames, &member.Profession, &member.Version, &member.DeletedAt,
 	)
 	if errors.Is(err, pgx.ErrNoRows) {
-		slog.Warn("MemberRepository.GetByID: member not found", "member_id", memberID)
+		slog.Warn("MemberRepository.Get: member not found", "member_id", memberID)
 		return nil, domain.NewNotFoundError("member")
 	}
 	if err != nil {
@@ -275,7 +275,7 @@ func (r *MemberRepository) DeletePicture(ctx context.Context, memberID int) erro
 	return nil
 }
 
-func (r *MemberRepository) Search(ctx context.Context, filter domain.MemberFilter, cursor *string, limit int) ([]*domain.Member, *string, error) {
+func (r *MemberRepository) List(ctx context.Context, filter domain.MemberFilter, cursor *string, limit int) ([]*domain.Member, *string, error) {
 	query := `
 		SELECT DISTINCT m.member_id, m.gender, m.picture, m.date_of_birth,
 		       m.date_of_death, m.father_id, m.mother_id, m.nicknames, m.profession, m.version, m.deleted_at,
@@ -382,52 +382,6 @@ func (r *MemberRepository) GetAll(ctx context.Context) ([]*domain.Member, error)
 		}
 		members = append(members, member)
 		memberIDs = append(memberIDs, member.MemberID)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, domain.NewDatabaseError(err)
-	}
-
-	namesMap, err := r.GetMemberNamesByIDs(ctx, memberIDs)
-	if err != nil {
-		return nil, err
-	}
-	for _, member := range members {
-		member.Names = namesMap[member.MemberID]
-	}
-
-	return members, nil
-}
-
-func (r *MemberRepository) GetByIDs(ctx context.Context, memberIDs []int) ([]*domain.Member, error) {
-	if len(memberIDs) == 0 {
-		return []*domain.Member{}, nil
-	}
-
-	query := `
-		SELECT member_id, gender, picture, date_of_birth, date_of_death,
-		       father_id, mother_id, nicknames, profession, version, deleted_at
-		FROM members
-		WHERE member_id = ANY($1) AND deleted_at IS NULL
-	`
-
-	rows, err := r.db.Query(ctx, query, memberIDs)
-	if err != nil {
-		return nil, domain.NewDatabaseError(err)
-	}
-	defer rows.Close()
-
-	var members []*domain.Member
-	for rows.Next() {
-		member := &domain.Member{}
-		err := rows.Scan(
-			&member.MemberID, &member.Gender,
-			&member.Picture, &member.DateOfBirth, &member.DateOfDeath, &member.FatherID,
-			&member.MotherID, &member.Nicknames, &member.Profession, &member.Version, &member.DeletedAt,
-		)
-		if err != nil {
-			return nil, domain.NewDatabaseError(err)
-		}
-		members = append(members, member)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, domain.NewDatabaseError(err)

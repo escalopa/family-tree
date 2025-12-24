@@ -23,14 +23,14 @@ func NewTreeUseCase(
 	}
 }
 
-func (uc *treeUseCase) GetTree(ctx context.Context, rootID *int, userRole int) (*domain.MemberTreeNode, error) {
+func (uc *treeUseCase) Get(ctx context.Context, rootID *int, userRole int) (*domain.MemberTreeNode, error) {
 	members, err := uc.memberRepo.GetAll(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("get members: %w", err)
 	}
 
 	if len(members) == 0 {
-		return nil, fmt.Errorf("no members found")
+		return nil, nil
 	}
 
 	spouseMap, err := uc.spouseRepo.GetAllSpouses(ctx)
@@ -60,7 +60,7 @@ func (uc *treeUseCase) GetTree(ctx context.Context, rootID *int, userRole int) (
 	// Find all roots (members with no parents)
 	roots := uc.findAllRoots(members)
 	if len(roots) == 0 {
-		return nil, fmt.Errorf("no root members found")
+		return nil, nil
 	}
 
 	// If only one root, return it directly
@@ -95,7 +95,7 @@ func (uc *treeUseCase) GetTree(ctx context.Context, rootID *int, userRole int) (
 	return virtualRoot, nil
 }
 
-func (uc *treeUseCase) GetListView(ctx context.Context, rootID *int, userRole int) ([]*domain.MemberWithComputed, error) {
+func (uc *treeUseCase) List(ctx context.Context, rootID *int, userRole int) ([]*domain.MemberWithComputed, error) {
 	members, err := uc.memberRepo.GetAll(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("get members: %w", err)
@@ -137,15 +137,14 @@ func (uc *treeUseCase) GetListView(ctx context.Context, rootID *int, userRole in
 	return result, nil
 }
 
-func (uc *treeUseCase) GetRelationTree(ctx context.Context, member1ID, member2ID int, userRole int) (*domain.MemberTreeNode, error) {
-	// Get all members
+func (uc *treeUseCase) GetRelation(ctx context.Context, member1ID, member2ID int, userRole int) (*domain.MemberTreeNode, error) {
 	members, err := uc.memberRepo.GetAll(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("get members: %w", err)
 	}
 
 	if len(members) == 0 {
-		return nil, fmt.Errorf("no members found")
+		return nil, nil
 	}
 
 	// Get spouse relationships

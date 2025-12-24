@@ -15,7 +15,7 @@ import {
   TextField,
   Grid,
 } from '@mui/material';
-import { Edit, Favorite, HeartBroken, Delete } from '@mui/icons-material';
+import { Edit, HeartBroken, Delete } from '@mui/icons-material';
 import { SpouseInfo } from '../types';
 import { formatDate, getMemberPictureUrl } from '../utils/helpers';
 import { spousesApi } from '../api';
@@ -30,7 +30,6 @@ interface SpouseCardProps {
 
 const SpouseCard: React.FC<SpouseCardProps> = ({
   spouse,
-  currentMemberId,
   onUpdate,
   editable = true,
   onMemberClick,
@@ -55,7 +54,7 @@ const SpouseCard: React.FC<SpouseCardProps> = ({
   const handleSave = async () => {
     setSaving(true);
     try {
-      await spousesApi.updateSpouseByMember({
+      await spousesApi.updateSpouse({
         spouse_id: spouse.spouse_id,
         marriage_date: marriageDate || undefined,
         divorce_date: divorceDate || undefined,
@@ -65,7 +64,7 @@ const SpouseCard: React.FC<SpouseCardProps> = ({
         onUpdate();
       }
     } catch (error) {
-      console.error('Failed to update spouse:', error);
+      console.error('update spouse:', error);
       alert('Failed to update spouse information');
     } finally {
       setSaving(false);
@@ -81,7 +80,7 @@ const SpouseCard: React.FC<SpouseCardProps> = ({
         onUpdate();
       }
     } catch (error: any) {
-      console.error('Failed to delete spouse:', error);
+      console.error('delete spouse:', error);
       const errorMessage = error?.response?.data?.error || 'Failed to delete spouse relationship';
       alert(errorMessage);
     } finally {

@@ -77,8 +77,7 @@ const LanguageSettings: React.FC<LanguageSettingsProps> = ({ onSave }) => {
           Language Preference
         </Typography>
         <Typography variant="body2" color="text.secondary" paragraph>
-          Choose your preferred language for member names in tree view and avatar initials.
-          In list views, all names will be displayed.
+          Choose your preferred language for member names in tree view, avatar initials and member list.
         </Typography>
 
         {error && !preferences && (

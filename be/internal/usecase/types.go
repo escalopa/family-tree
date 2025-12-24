@@ -8,7 +8,7 @@ import (
 
 type UserRepository interface {
 	Create(ctx context.Context, user *domain.User) error
-	GetByID(ctx context.Context, userID int) (*domain.User, error)
+	Get(ctx context.Context, userID int) (*domain.User, error)
 	GetByEmail(ctx context.Context, email string) (*domain.User, error)
 	Update(ctx context.Context, user *domain.User) error
 	UpdateRole(ctx context.Context, userID, roleID int) error
@@ -20,7 +20,7 @@ type UserRepository interface {
 
 type SessionRepository interface {
 	Create(ctx context.Context, session *domain.Session) error
-	GetByID(ctx context.Context, sessionID string) (*domain.Session, error)
+	Get(ctx context.Context, sessionID string) (*domain.Session, error)
 	Revoke(ctx context.Context, sessionID string) error
 	RevokeAllByUser(ctx context.Context, userID int) error
 	CleanExpired(ctx context.Context) error
@@ -28,14 +28,13 @@ type SessionRepository interface {
 
 type MemberRepository interface {
 	Create(ctx context.Context, member *domain.Member) error
-	GetByID(ctx context.Context, memberID int) (*domain.Member, error)
+	Get(ctx context.Context, memberID int) (*domain.Member, error)
 	Update(ctx context.Context, member *domain.Member, expectedVersion int) error
 	Delete(ctx context.Context, memberID int) (*string, error)
 	UpdatePicture(ctx context.Context, memberID int, pictureURL string) error
 	DeletePicture(ctx context.Context, memberID int) error
-	Search(ctx context.Context, filter domain.MemberFilter, cursor *string, limit int) ([]*domain.Member, *string, error)
+	List(ctx context.Context, filter domain.MemberFilter, cursor *string, limit int) ([]*domain.Member, *string, error)
 	GetAll(ctx context.Context) ([]*domain.Member, error)
-	GetByIDs(ctx context.Context, memberIDs []int) ([]*domain.Member, error)
 	GetChildrenByParentID(ctx context.Context, parentID int) ([]*domain.Member, error)
 	GetSiblingsByMemberID(ctx context.Context, memberID int) ([]*domain.Member, error)
 	HasChildrenWithParents(ctx context.Context, fatherID, motherID int) (bool, error)
@@ -43,19 +42,17 @@ type MemberRepository interface {
 
 type SpouseRepository interface {
 	Create(ctx context.Context, spouse *domain.Spouse) error
-	GetByID(ctx context.Context, spouseID int) (*domain.Spouse, error)
-	Get(ctx context.Context, fatherID, motherID int) (*domain.Spouse, error)
-	UpdateByID(ctx context.Context, spouse *domain.Spouse) error
+	Get(ctx context.Context, spouseID int) (*domain.Spouse, error)
+	GetByParents(ctx context.Context, fatherID, motherID int) (*domain.Spouse, error)
 	Update(ctx context.Context, spouse *domain.Spouse) error
-	Delete(ctx context.Context, fatherID, motherID int) error
-	DeleteByID(ctx context.Context, spouseID int) error
-	GetSpousesByMemberID(ctx context.Context, memberID int) ([]int, error)
+	Delete(ctx context.Context, spouseID int) error
 	GetAllSpouses(ctx context.Context) (map[int][]int, error)
-	GetSpousesWithMemberInfo(ctx context.Context, memberID int) ([]domain.SpouseWithMemberInfo, error)
+	GetByMemberID(ctx context.Context, memberID int) ([]domain.SpouseWithMemberInfo, error)
 }
 
 type HistoryRepository interface {
 	Create(ctx context.Context, history *domain.History) error
+	CreateBatch(ctx context.Context, histories ...*domain.History) error
 	GetByMemberID(ctx context.Context, memberID int, cursor *string, limit int) ([]*domain.HistoryWithUser, *string, error)
 	GetByUserID(ctx context.Context, userID int, cursor *string, limit int) ([]*domain.HistoryWithUser, *string, error)
 }
@@ -69,7 +66,7 @@ type ScoreRepository interface {
 }
 
 type RoleRepository interface {
-	GetByID(ctx context.Context, roleID int) (*domain.Role, error)
+	Get(ctx context.Context, roleID int) (*domain.Role, error)
 	GetAll(ctx context.Context) ([]*domain.Role, error)
 }
 

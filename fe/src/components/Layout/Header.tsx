@@ -6,10 +6,7 @@ import {
   Button,
   IconButton,
   Avatar,
-  Menu,
-  MenuItem,
   Box,
-  Divider,
 } from '@mui/material';
 import {
   AccountTree,
@@ -17,59 +14,14 @@ import {
   SupervisorAccount,
   Leaderboard,
   AccountCircle,
-  Settings,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { authApi } from '../../api';
 import { Roles } from '../../types';
 
 const Header: React.FC = () => {
   const navigate = useNavigate();
-  const { user, setUser, hasRole, isActive } = useAuth();
-  const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
-
-  const handleMenu = (event: React.MouseEvent<HTMLElement>) => {
-    setAnchorEl(event.currentTarget);
-  };
-
-  const handleClose = () => {
-    setAnchorEl(null);
-  };
-
-  const handleLogout = async () => {
-    try {
-      await authApi.logout();
-      setUser(null);
-      navigate('/login');
-    } catch (error) {
-      console.error('Logout failed:', error);
-    }
-    handleClose();
-  };
-
-  const handleLogoutAll = async () => {
-    try {
-      await authApi.logoutAll();
-      setUser(null);
-      navigate('/login');
-    } catch (error) {
-      console.error('Logout from all devices failed:', error);
-    }
-    handleClose();
-  };
-
-  const handleProfile = () => {
-    if (user) {
-      navigate(`/users/${user.user_id}`);
-    }
-    handleClose();
-  };
-
-  const handleConfiguration = () => {
-    navigate('/configuration');
-    handleClose();
-  };
+  const { user, hasRole, isActive } = useAuth();
 
   return (
     <AppBar position="static">
@@ -117,52 +69,19 @@ const Header: React.FC = () => {
         )}
 
         {user ? (
-          <>
-            <IconButton
-              size="large"
-              aria-label="account of current user"
-              aria-controls="menu-appbar"
-              aria-haspopup="true"
-              onClick={handleMenu}
-              color="inherit"
-              sx={{ ml: 2 }}
-            >
-              {user.avatar ? (
-                <Avatar src={user.avatar} alt={user.full_name} />
-              ) : (
-                <AccountCircle />
-              )}
-            </IconButton>
-            <Menu
-              id="menu-appbar"
-              anchorEl={anchorEl}
-              anchorOrigin={{
-                vertical: 'top',
-                horizontal: 'right',
-              }}
-              keepMounted
-              transformOrigin={{
-                vertical: 'top',
-                horizontal: 'right',
-              }}
-              open={Boolean(anchorEl)}
-              onClose={handleClose}
-            >
-              <MenuItem onClick={handleProfile}>
-                <AccountCircle sx={{ mr: 1 }} fontSize="small" />
-                Profile
-              </MenuItem>
-              <MenuItem onClick={handleConfiguration}>
-                <Settings sx={{ mr: 1 }} fontSize="small" />
-                Configuration
-              </MenuItem>
-              <Divider />
-              <MenuItem onClick={handleLogout}>Logout</MenuItem>
-              <MenuItem onClick={handleLogoutAll} sx={{ color: 'error.main' }}>
-                Logout from all devices
-              </MenuItem>
-            </Menu>
-          </>
+          <IconButton
+            size="large"
+            aria-label="profile"
+            onClick={() => navigate('/profile')}
+            color="inherit"
+            sx={{ ml: 2 }}
+          >
+            {user.avatar ? (
+              <Avatar src={user.avatar} alt={user.full_name} />
+            ) : (
+              <AccountCircle />
+            )}
+          </IconButton>
         ) : (
           <Button color="inherit" onClick={() => navigate('/login')}>
             Login

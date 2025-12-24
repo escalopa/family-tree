@@ -11,9 +11,8 @@ import {
   Autocomplete,
   CircularProgress,
 } from '@mui/material';
-import { ParentOption } from '../types';
+import { MemberListItem } from '../types';
 import { membersApi, spousesApi } from '../api';
-import { useLanguage } from '../contexts/LanguageContext';
 
 interface AddSpouseDialogProps {
   open: boolean;
@@ -32,9 +31,8 @@ const AddSpouseDialog: React.FC<AddSpouseDialogProps> = ({
   memberGender,
   onSuccess,
 }) => {
-  const { getPreferredName, getAllNamesFormatted } = useLanguage();
-  const [selectedSpouse, setSelectedSpouse] = useState<ParentOption | null>(null);
-  const [spouseOptions, setSpouseOptions] = useState<ParentOption[]>([]);
+  const [selectedSpouse, setSelectedSpouse] = useState<MemberListItem | null>(null);
+  const [spouseOptions, setSpouseOptions] = useState<MemberListItem[]>([]);
   const [loadingSpouses, setLoadingSpouses] = useState(false);
   const [marriageDate, setMarriageDate] = useState('');
   const [divorceDate, setDivorceDate] = useState('');
@@ -50,11 +48,15 @@ const AddSpouseDialog: React.FC<AddSpouseDialogProps> = ({
 
     setLoadingSpouses(true);
     try {
-      const results = await membersApi.searchMemberInfo(query, oppositeGender);
+      const result = await membersApi.searchMembers({
+        name: query,
+        gender: oppositeGender,
+        limit: 20,
+      });
       // Filter out the current member
-      setSpouseOptions(results.filter(option => option.member_id !== memberId));
+      setSpouseOptions(result.members.filter(option => option.member_id !== memberId));
     } catch (error) {
-      console.error('Failed to search for spouse:', error);
+      console.error('search for spouse:', error);
     } finally {
       setLoadingSpouses(false);
     }
@@ -81,7 +83,7 @@ const AddSpouseDialog: React.FC<AddSpouseDialogProps> = ({
       onSuccess();
       handleClose();
     } catch (error: any) {
-      console.error('Failed to add spouse:', error);
+      console.error('add spouse:', error);
       const errorMessage = error?.response?.data?.error || 'Failed to add spouse relationship. They may already be connected.';
       alert(errorMessage);
     } finally {
@@ -110,7 +112,7 @@ const AddSpouseDialog: React.FC<AddSpouseDialogProps> = ({
           <Grid item xs={12}>
             <Autocomplete
               options={spouseOptions}
-              getOptionLabel={(option) => getPreferredName(option)}
+              getOptionLabel={(option) => option.name}
               loading={loadingSpouses}
               value={selectedSpouse}
               onChange={(_, newValue) => setSelectedSpouse(newValue)}
@@ -137,7 +139,7 @@ const AddSpouseDialog: React.FC<AddSpouseDialogProps> = ({
               renderOption={(props, option) => (
                 <li {...props} key={option.member_id}>
                   <div>
-                    <div>{getAllNamesFormatted(option)}</div>
+                    <div>{option.name}</div>
                   </div>
                 </li>
               )}

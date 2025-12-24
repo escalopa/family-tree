@@ -136,7 +136,7 @@ const TreePage: React.FC = () => {
       const data = await treeApi.getTree({ root: rootId, style: 'tree' });
       setTreeData(data);
     } catch (error) {
-      console.error('Failed to load tree:', error);
+      console.error('load tree:', error);
       setError('Failed to load family tree. Please try again.');
     } finally {
       setLoading(false);
@@ -176,7 +176,7 @@ const TreePage: React.FC = () => {
       setHasMore(!!validCursor);
 
     } catch (error) {
-      console.error('Failed to load list view:', error);
+      console.error('load list view:', error);
       setError('Failed to load member list. Please try again.');
       if (!loadMore) {
         setListMembers([]);
@@ -232,7 +232,7 @@ const TreePage: React.FC = () => {
       setRelationTree(data);
       setViewMode('relation');
     } catch (error) {
-      console.error('Failed to find relation:', error);
+      console.error('find relation:', error);
       setError('No relation found between the selected members.');
     } finally {
       setRelationLoading(false);
@@ -245,7 +245,7 @@ const TreePage: React.FC = () => {
       setSelectedMember(fullMember);
       setDrawerOpen(true);
     } catch (error) {
-      console.error('Failed to load member details:', error);
+      console.error('load member details:', error);
     }
   };
 

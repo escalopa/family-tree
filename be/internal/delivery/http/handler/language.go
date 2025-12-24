@@ -30,10 +30,10 @@ func NewLanguageHandler(languageUC LanguageUseCase) *LanguageHandler {
 // @Success 200 {array} dto.LanguageResponse
 // @Failure 500 {object} dto.Response
 // @Router /languages [get]
-func (h *LanguageHandler) GetLanguages(c *gin.Context) {
+func (h *LanguageHandler) List(c *gin.Context) {
 	activeOnly, _ := strconv.ParseBool(c.Query("active")) // default to false
 
-	languages, err := h.languageUC.GetAllLanguages(c.Request.Context(), activeOnly)
+	languages, err := h.languageUC.List(c.Request.Context(), activeOnly)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, dto.Response{Error: err.Error()})
 		return
@@ -63,10 +63,10 @@ func (h *LanguageHandler) GetLanguages(c *gin.Context) {
 // @Failure 404 {object} dto.Response
 // @Failure 500 {object} dto.Response
 // @Router /languages/{code} [get]
-func (h *LanguageHandler) GetLanguage(c *gin.Context) {
+func (h *LanguageHandler) Get(c *gin.Context) {
 	code := c.Param("code")
 
-	language, err := h.languageUC.GetLanguage(c.Request.Context(), code)
+	language, err := h.languageUC.Get(c.Request.Context(), code)
 	if err != nil {
 		c.JSON(http.StatusNotFound, dto.Response{Error: err.Error()})
 		return
@@ -96,7 +96,7 @@ func (h *LanguageHandler) GetLanguage(c *gin.Context) {
 // @Failure 500 {object} dto.Response
 // @Router /languages [post]
 // @Security BearerAuth
-func (h *LanguageHandler) CreateLanguage(c *gin.Context) {
+func (h *LanguageHandler) Create(c *gin.Context) {
 	var req dto.CreateLanguageRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, dto.Response{Error: err.Error()})
@@ -110,7 +110,7 @@ func (h *LanguageHandler) CreateLanguage(c *gin.Context) {
 		DisplayOrder: req.DisplayOrder,
 	}
 
-	if err := h.languageUC.CreateLanguage(c.Request.Context(), language); err != nil {
+	if err := h.languageUC.Create(c.Request.Context(), language); err != nil {
 		c.JSON(http.StatusBadRequest, dto.Response{Error: err.Error()})
 		return
 	}
@@ -141,7 +141,7 @@ func (h *LanguageHandler) CreateLanguage(c *gin.Context) {
 // @Failure 500 {object} dto.Response
 // @Router /languages/{code} [put]
 // @Security BearerAuth
-func (h *LanguageHandler) UpdateLanguage(c *gin.Context) {
+func (h *LanguageHandler) Update(c *gin.Context) {
 	code := c.Param("code")
 
 	var req dto.UpdateLanguageRequest
@@ -157,7 +157,7 @@ func (h *LanguageHandler) UpdateLanguage(c *gin.Context) {
 		DisplayOrder: req.DisplayOrder,
 	}
 
-	if err := h.languageUC.UpdateLanguage(c.Request.Context(), language); err != nil {
+	if err := h.languageUC.Update(c.Request.Context(), language); err != nil {
 		c.JSON(http.StatusBadRequest, dto.Response{Error: err.Error()})
 		return
 	}
@@ -182,7 +182,7 @@ func (h *LanguageHandler) UpdateLanguage(c *gin.Context) {
 // @Failure 401 {object} dto.Response
 // @Router /users/me/preferences/languages [get]
 // @Security BearerAuth
-func (h *LanguageHandler) GetUserLanguagePreference(c *gin.Context) {
+func (h *LanguageHandler) GetPreference(c *gin.Context) {
 	// Get preferred language from middleware (already loaded with user)
 	preferredLang := middleware.GetPreferredLanguage(c)
 
@@ -206,7 +206,7 @@ func (h *LanguageHandler) GetUserLanguagePreference(c *gin.Context) {
 // @Failure 500 {object} dto.Response
 // @Router /users/me/preferences/languages [put]
 // @Security BearerAuth
-func (h *LanguageHandler) UpdateUserLanguagePreference(c *gin.Context) {
+func (h *LanguageHandler) UpdatePreference(c *gin.Context) {
 	userID := c.GetInt("user_id")
 
 	var req dto.UpdateUserLanguagePreferenceRequest
@@ -220,7 +220,7 @@ func (h *LanguageHandler) UpdateUserLanguagePreference(c *gin.Context) {
 		PreferredLanguage: req.PreferredLanguage,
 	}
 
-	if err := h.languageUC.UpdateUserLanguagePreference(c.Request.Context(), pref); err != nil {
+	if err := h.languageUC.UpdatePreference(c.Request.Context(), pref); err != nil {
 		c.JSON(http.StatusBadRequest, dto.Response{Error: err.Error()})
 		return
 	}

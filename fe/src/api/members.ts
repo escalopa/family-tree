@@ -1,22 +1,26 @@
 import { apiClient } from './client';
 import {
   Member,
-  ParentOption,
-  PaginatedMembersResponse,
+  MemberListItem,
   PaginatedHistoryResponse,
   CreateMemberRequest,
   UpdateMemberRequest,
-  MemberSearchQuery,
 } from '../types';
 
 export const membersApi = {
   getMember: async (memberId: number): Promise<Member> => {
-    const response = await apiClient.get(`/api/members/info/${memberId}`);
+    const response = await apiClient.get(`/api/members/${memberId}`);
     return response.data.data;
   },
 
-  searchMembers: async (query: MemberSearchQuery): Promise<PaginatedMembersResponse> => {
-    const response = await apiClient.get('/api/members/search', { params: query });
+  searchMembers: async (params: {
+    name?: string;
+    gender?: 'M' | 'F';
+    married?: 0 | 1;
+    cursor?: string;
+    limit?: number;
+  }): Promise<{ members: MemberListItem[]; next_cursor?: string }> => {
+    const response = await apiClient.get('/api/members', { params });
     return response.data.data;
   },
 
@@ -53,15 +57,6 @@ export const membersApi = {
   },
 
   deletePicture: async (memberId: number): Promise<void> => {
-    await apiClient.delete(`/api/members/${memberId}/picture`);
-  },
-
-  searchMemberInfo: async (query: string, gender?: 'M' | 'F'): Promise<ParentOption[]> => {
-    const params: any = { q: query, limit: 20 };
-    if (gender) {
-      params.gender = gender;
-    }
-    const response = await apiClient.get('/api/members/search-info', { params });
-    return response.data.data;
+    await apiClient.delete(`/api/members/${memberId}`);
   },
 };

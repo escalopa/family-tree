@@ -63,7 +63,7 @@ const LoginPage: React.FC = () => {
         const availableProviders = await authApi.getProviders();
         setProviders(availableProviders);
       } catch (error) {
-        console.error('Failed to fetch providers:', error);
+        console.error('fetch providers:', error);
         // Fallback to google if API fails
         setProviders(['google']);
       } finally {

@@ -25,5 +25,5 @@ type AuthUseCase interface {
 }
 
 type UserRepository interface {
-	GetByID(ctx context.Context, userID int) (*domain.User, error)
+	Get(ctx context.Context, userID int) (*domain.User, error)
 }

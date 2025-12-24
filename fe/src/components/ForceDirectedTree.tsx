@@ -3,8 +3,7 @@ import { Box, Paper, IconButton, Tooltip, Slider, Typography, Dialog, DialogTitl
 import { ZoomIn, ZoomOut, ZoomOutMap, PlayArrow, Pause, Info } from '@mui/icons-material';
 import * as d3 from 'd3';
 import { TreeNode, Member } from '../types';
-import { getGenderColor, getMemberPictureUrl } from '../utils/helpers';
-import { useLanguage } from '../contexts/LanguageContext';
+import { getGenderColor } from '../utils/helpers';
 
 interface ForceDirectedTreeProps {
   data: TreeNode;
@@ -38,7 +37,6 @@ const ForceDirectedTree: React.FC<ForceDirectedTreeProps> = ({
   const [linkDistance, setLinkDistance] = useState(150);
   const [chargeStrength, setChargeStrength] = useState(-300);
   const [infoDialogOpen, setInfoDialogOpen] = useState(false);
-  const { getPreferredName } = useLanguage();
 
   useEffect(() => {
     if (!svgRef.current || !containerRef.current || !data) return;
@@ -186,7 +184,7 @@ const ForceDirectedTree: React.FC<ForceDirectedTreeProps> = ({
             if (!event.active) sim.alphaTarget(0);
             d.fx = null;
             d.fy = null;
-          })
+          }) as any
       );
 
     // Node circles
@@ -201,13 +199,13 @@ const ForceDirectedTree: React.FC<ForceDirectedTreeProps> = ({
       .style('cursor', 'pointer');
 
     // Path highlighting
-    node.filter((d) => d.isInPath).select('circle').attr('fill', '#FFF3E0');
+    node.filter((d) => d.isInPath === true).select('circle').attr('fill', '#FFF3E0');
 
     // Show first letter (no avatars/images)
     node
       .append('text')
       .text((d) => {
-        const name = getPreferredName(d.data);
+        const name = d.data.name || '';
         return name.charAt(0).toUpperCase();
       })
       .attr('text-anchor', 'middle')
@@ -220,7 +218,7 @@ const ForceDirectedTree: React.FC<ForceDirectedTreeProps> = ({
     // Node labels
     node
       .append('text')
-      .text((d) => getPreferredName(d.data))
+      .text((d) => d.data.name || 'Unknown')
       .attr('text-anchor', 'middle')
       .attr('dy', 45)
       .attr('font-size', '12px')

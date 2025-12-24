@@ -50,11 +50,15 @@ type MemberInfo struct {
 	MemberID int     `json:"member_id"`
 	Name     string  `json:"name"`
 	Picture  *string `json:"picture"`
+	Gender   string  `json:"gender"`
 }
 
 type MemberResponse struct {
 	MemberID        int               `json:"member_id"`
-	Names           map[string]string `json:"names"` // language_code -> name
+	Name            string            `json:"name"`                 // Name in user's preferred language
+	Names           map[string]string `json:"names"`                // language_code -> name (for editing)
+	FullName        string            `json:"full_name,omitempty"`  // Full name in user's preferred language
+	FullNames       map[string]string `json:"full_names,omitempty"` // language_code -> full_name (for editing)
 	Gender          string            `json:"gender"`
 	Picture         *string           `json:"picture"`
 	DateOfBirth     *Date             `json:"date_of_birth"`
@@ -66,24 +70,10 @@ type MemberResponse struct {
 	Nicknames       []string          `json:"nicknames"`
 	Profession      *string           `json:"profession"`
 	Version         int               `json:"version"`
-	FullNames       map[string]string `json:"full_names,omitempty"` // language_code -> full_name
 	Age             *int              `json:"age,omitempty"`
 	GenerationLevel int               `json:"generation_level,omitempty"`
 	IsMarried       bool              `json:"is_married"`
 	Spouses         []SpouseInfo      `json:"spouses,omitempty"`
 	Children        []MemberInfo      `json:"children,omitempty"`
 	Siblings        []MemberInfo      `json:"siblings,omitempty"`
-}
-
-type ParentSearchQuery struct {
-	Query  string  `form:"q" binding:"required,min=1"`
-	Gender *string `form:"gender" binding:"omitempty,oneof=M F"`
-	Limit  int     `form:"limit,default=10" binding:"omitempty,min=1,max=100"`
-}
-
-type ParentOption struct {
-	MemberID int               `json:"member_id"`
-	Names    map[string]string `json:"names"` // language_code -> name
-	Picture  *string           `json:"picture"`
-	Gender   string            `json:"gender"`
 }

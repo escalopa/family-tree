@@ -1,10 +1,10 @@
 package handler
 
 import (
+	"fmt"
 	"io"
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/escalopa/family-tree/internal/delivery/http/dto"
 	"github.com/escalopa/family-tree/internal/delivery/http/middleware"
@@ -24,6 +24,26 @@ func NewMemberHandler(memberUseCase MemberUseCase, languageUseCase LanguageUseCa
 	}
 }
 
+func (h *memberHandler) validateNames(c *gin.Context, names map[string]string) error {
+	activeLanguages, err := h.languageUseCase.List(c.Request.Context(), true)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, dto.Response{Success: false, Error: "fetch active languages"})
+	}
+
+	for _, lang := range activeLanguages {
+		name, exists := names[lang.LanguageCode]
+		if !exists || name == "" {
+			c.JSON(http.StatusBadRequest, dto.Response{
+				Success: false,
+				Error:   "name for language '" + lang.LanguageName + "' (" + lang.LanguageCode + ") is required",
+			})
+			return fmt.Errorf("name for language %s is required", lang.LanguageCode)
+		}
+	}
+
+	return nil
+}
+
 // CreateMember godoc
 // @Summary Create a new family member
 // @Description Creates a new member in the family tree (requires Admin role)
@@ -38,39 +58,16 @@ func NewMemberHandler(memberUseCase MemberUseCase, languageUseCase LanguageUseCa
 // @Failure 403 {object} dto.Response
 // @Failure 500 {object} dto.Response
 // @Router /api/members [post]
-func (h *memberHandler) CreateMember(c *gin.Context) {
+func (h *memberHandler) Create(c *gin.Context) {
 	var req dto.CreateMemberRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, dto.Response{Success: false, Error: err.Error()})
 		return
 	}
 
-	// Validate that all active languages have names
-	activeLanguages, err := h.languageUseCase.GetAllLanguages(c.Request.Context(), true)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, dto.Response{Success: false, Error: "failed to fetch active languages"})
+	if err := h.validateNames(c, req.Names); err != nil {
 		return
 	}
-
-	for _, lang := range activeLanguages {
-		name, exists := req.Names[lang.LanguageCode]
-		if !exists || name == "" {
-			c.JSON(http.StatusBadRequest, dto.Response{
-				Success: false,
-				Error:   "name for language '" + lang.LanguageName + "' (" + lang.LanguageCode + ") is required",
-			})
-			return
-		}
-	}
-
-	var dateOfBirth, dateOfDeath *time.Time
-	if req.DateOfBirth != nil {
-		dateOfBirth = req.DateOfBirth.ToTimePtr()
-	}
-	if req.DateOfDeath != nil {
-		dateOfDeath = req.DateOfDeath.ToTimePtr()
-	}
-
 	// Ensure nicknames is never nil, use empty array instead
 	nicknames := req.Nicknames
 	if nicknames == nil {
@@ -80,8 +77,8 @@ func (h *memberHandler) CreateMember(c *gin.Context) {
 	member := &domain.Member{
 		Names:       req.Names,
 		Gender:      req.Gender,
-		DateOfBirth: dateOfBirth,
-		DateOfDeath: dateOfDeath,
+		DateOfBirth: req.DateOfBirth.ToTimePtr(),
+		DateOfDeath: req.DateOfDeath.ToTimePtr(),
 		FatherID:    req.FatherID,
 		MotherID:    req.MotherID,
 		Nicknames:   nicknames,
@@ -89,7 +86,7 @@ func (h *memberHandler) CreateMember(c *gin.Context) {
 	}
 
 	userID := middleware.GetUserID(c)
-	if err := h.memberUseCase.CreateMember(c.Request.Context(), member, userID); err != nil {
+	if err := h.memberUseCase.Create(c.Request.Context(), member, userID); err != nil {
 		c.JSON(http.StatusInternalServerError, dto.Response{Success: false, Error: err.Error()})
 		return
 	}
@@ -97,7 +94,7 @@ func (h *memberHandler) CreateMember(c *gin.Context) {
 	c.JSON(http.StatusCreated, dto.Response{Success: true, Data: gin.H{"member_id": member.MemberID, "version": member.Version}})
 }
 
-func (h *memberHandler) UpdateMember(c *gin.Context) {
+func (h *memberHandler) Update(c *gin.Context) {
 	memberID, err := strconv.Atoi(c.Param("member_id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, dto.Response{Success: false, Error: "invalid member_id"})
@@ -110,26 +107,11 @@ func (h *memberHandler) UpdateMember(c *gin.Context) {
 		return
 	}
 
-	// Validate that all active languages have names
-	activeLanguages, err := h.languageUseCase.GetAllLanguages(c.Request.Context(), true)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, dto.Response{Success: false, Error: "failed to fetch active languages"})
+	if err := h.validateNames(c, req.Names); err != nil {
 		return
 	}
 
-	for _, lang := range activeLanguages {
-		name, exists := req.Names[lang.LanguageCode]
-		if !exists || name == "" {
-			c.JSON(http.StatusBadRequest, dto.Response{
-				Success: false,
-				Error:   "name for language '" + lang.LanguageName + "' (" + lang.LanguageCode + ") is required",
-			})
-			return
-		}
-	}
-
-	// Fetch existing member to preserve picture and other fields
-	existingMember, err := h.memberUseCase.GetMemberByID(c.Request.Context(), memberID)
+	existingMember, err := h.memberUseCase.Get(c.Request.Context(), memberID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, dto.Response{Success: false, Error: "member not found"})
 		return
@@ -154,7 +136,7 @@ func (h *memberHandler) UpdateMember(c *gin.Context) {
 	}
 
 	userID := middleware.GetUserID(c)
-	if err := h.memberUseCase.UpdateMember(c.Request.Context(), member, req.Version, userID); err != nil {
+	if err := h.memberUseCase.Update(c.Request.Context(), member, req.Version, userID); err != nil {
 		c.JSON(http.StatusConflict, dto.Response{Success: false, Error: err.Error()})
 		return
 	}
@@ -162,7 +144,7 @@ func (h *memberHandler) UpdateMember(c *gin.Context) {
 	c.JSON(http.StatusOK, dto.Response{Success: true, Data: gin.H{"version": member.Version}})
 }
 
-func (h *memberHandler) DeleteMember(c *gin.Context) {
+func (h *memberHandler) Delete(c *gin.Context) {
 	memberID, err := strconv.Atoi(c.Param("member_id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, dto.Response{Success: false, Error: "invalid member_id"})
@@ -170,26 +152,12 @@ func (h *memberHandler) DeleteMember(c *gin.Context) {
 	}
 
 	userID := middleware.GetUserID(c)
-	if err := h.memberUseCase.DeleteMember(c.Request.Context(), memberID, userID); err != nil {
+	if err := h.memberUseCase.Delete(c.Request.Context(), memberID, userID); err != nil {
 		c.JSON(http.StatusInternalServerError, dto.Response{Success: false, Error: err.Error()})
 		return
 	}
 
 	c.JSON(http.StatusOK, dto.Response{Success: true, Data: "member deleted successfully"})
-}
-
-func extractName(names map[string]string, preferredLang string) string {
-	name := names[preferredLang]
-	if name == "" {
-		// Fallback to any available name
-		for _, n := range names {
-			if n != "" {
-				name = n
-				break
-			}
-		}
-	}
-	return name
 }
 
 // GetMember godoc
@@ -205,21 +173,21 @@ func extractName(names map[string]string, preferredLang string) string {
 // @Failure 401 {object} dto.Response
 // @Failure 404 {object} dto.Response
 // @Router /api/members/info/{member_id} [get]
-func (h *memberHandler) GetMember(c *gin.Context) {
+func (h *memberHandler) Get(c *gin.Context) {
 	memberID, err := strconv.Atoi(c.Param("member_id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, dto.Response{Success: false, Error: "invalid member_id"})
 		return
 	}
 
-	member, err := h.memberUseCase.GetMemberByID(c.Request.Context(), memberID)
+	member, err := h.memberUseCase.Get(c.Request.Context(), memberID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, dto.Response{Success: false, Error: err.Error()})
 		return
 	}
 
 	userRole := middleware.GetUserRole(c)
-	computed := h.memberUseCase.ComputeMemberWithExtras(c.Request.Context(), member, userRole)
+	computed := h.memberUseCase.Compute(c.Request.Context(), member, userRole)
 
 	preferredLang := middleware.GetPreferredLanguage(c)
 
@@ -239,7 +207,7 @@ func (h *memberHandler) GetMember(c *gin.Context) {
 
 	var fatherInfo, motherInfo *dto.MemberInfo
 	if computed.FatherID != nil {
-		father, err := h.memberUseCase.GetMemberByID(c.Request.Context(), *computed.FatherID)
+		father, err := h.memberUseCase.Get(c.Request.Context(), *computed.FatherID)
 		if err == nil {
 			fatherInfo = &dto.MemberInfo{
 				MemberID: father.MemberID,
@@ -249,7 +217,7 @@ func (h *memberHandler) GetMember(c *gin.Context) {
 		}
 	}
 	if computed.MotherID != nil {
-		mother, err := h.memberUseCase.GetMemberByID(c.Request.Context(), *computed.MotherID)
+		mother, err := h.memberUseCase.Get(c.Request.Context(), *computed.MotherID)
 		if err == nil {
 			motherInfo = &dto.MemberInfo{
 				MemberID: mother.MemberID,
@@ -260,7 +228,7 @@ func (h *memberHandler) GetMember(c *gin.Context) {
 	}
 
 	var childrenInfo []dto.MemberInfo
-	children, err := h.memberUseCase.GetChildrenByParentID(c.Request.Context(), memberID)
+	children, err := h.memberUseCase.ListChildren(c.Request.Context(), memberID)
 	if err == nil {
 		for _, child := range children {
 			childrenInfo = append(childrenInfo, dto.MemberInfo{
@@ -272,7 +240,7 @@ func (h *memberHandler) GetMember(c *gin.Context) {
 	}
 
 	var siblingsInfo []dto.MemberInfo
-	siblings, err := h.memberUseCase.GetSiblingsByMemberID(c.Request.Context(), memberID)
+	siblings, err := h.memberUseCase.ListSiblings(c.Request.Context(), memberID)
 	if err == nil {
 		for _, sibling := range siblings {
 			siblingsInfo = append(siblingsInfo, dto.MemberInfo{
@@ -285,7 +253,10 @@ func (h *memberHandler) GetMember(c *gin.Context) {
 
 	response := dto.MemberResponse{
 		MemberID:        computed.MemberID,
+		Name:            extractName(computed.Names, preferredLang),
 		Names:           computed.Names,
+		FullName:        extractName(computed.FullNames, preferredLang),
+		FullNames:       computed.FullNames,
 		Gender:          computed.Gender,
 		Picture:         computed.Picture,
 		DateOfBirth:     dto.FromTimePtr(computed.DateOfBirth),
@@ -297,7 +268,6 @@ func (h *memberHandler) GetMember(c *gin.Context) {
 		Nicknames:       computed.Nicknames,
 		Profession:      computed.Profession,
 		Version:         computed.Version,
-		FullNames:       computed.FullNames,
 		Age:             computed.Age,
 		GenerationLevel: computed.GenerationLevel,
 		IsMarried:       computed.IsMarried,
@@ -327,7 +297,7 @@ func (h *memberHandler) GetMember(c *gin.Context) {
 // @Failure 401 {object} dto.Response
 // @Failure 500 {object} dto.Response
 // @Router /api/members/search [get]
-func (h *memberHandler) SearchMembers(c *gin.Context) {
+func (h *memberHandler) List(c *gin.Context) {
 	var query dto.MemberSearchQuery
 	if err := c.ShouldBindQuery(&query); err != nil {
 		c.JSON(http.StatusBadRequest, dto.Response{Success: false, Error: err.Error()})
@@ -343,7 +313,7 @@ func (h *memberHandler) SearchMembers(c *gin.Context) {
 		filter.IsMarried = &married
 	}
 
-	members, nextCursor, err := h.memberUseCase.SearchMembers(c.Request.Context(), filter, query.Cursor, query.Limit)
+	members, nextCursor, err := h.memberUseCase.List(c.Request.Context(), filter, query.Cursor, query.Limit)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, dto.Response{Success: false, Error: err.Error()})
 		return
@@ -372,53 +342,7 @@ func (h *memberHandler) SearchMembers(c *gin.Context) {
 	c.JSON(http.StatusOK, dto.Response{Success: true, Data: response})
 }
 
-// SearchMemberInfo godoc
-// @Summary Search for member info
-// @Description Search for members by name filtered by gender (for parent/spouse selection)
-// @Tags members
-// @Accept json
-// @Produce json
-// @Security BearerAuth
-// @Param q query string true "Search query (name in Arabic or English)"
-// @Param gender query string false "Optional gender filter (M or F)"
-// @Param limit query int false "Number of results (max 20)" default(10)
-// @Success 200 {object} dto.Response{data=[]dto.ParentOption}
-// @Failure 400 {object} dto.Response
-// @Failure 401 {object} dto.Response
-// @Failure 500 {object} dto.Response
-// @Router /api/members/search-info [get]
-func (h *memberHandler) SearchMemberInfo(c *gin.Context) {
-	var query dto.ParentSearchQuery
-	if err := c.ShouldBindQuery(&query); err != nil {
-		c.JSON(http.StatusBadRequest, dto.Response{Success: false, Error: err.Error()})
-		return
-	}
-
-	filter := domain.MemberFilter{
-		Name:   &query.Query,
-		Gender: query.Gender,
-	}
-
-	members, _, err := h.memberUseCase.SearchMembers(c.Request.Context(), filter, nil, query.Limit)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, dto.Response{Success: false, Error: err.Error()})
-		return
-	}
-
-	var options []dto.ParentOption
-	for _, member := range members {
-		options = append(options, dto.ParentOption{
-			MemberID: member.MemberID,
-			Names:    member.Names,
-			Picture:  member.Picture,
-			Gender:   member.Gender,
-		})
-	}
-
-	c.JSON(http.StatusOK, dto.Response{Success: true, Data: options})
-}
-
-func (h *memberHandler) GetMemberHistory(c *gin.Context) {
+func (h *memberHandler) ListHistory(c *gin.Context) {
 	memberID, err := strconv.Atoi(c.Query("member_id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, dto.Response{Success: false, Error: "invalid member_id"})
@@ -431,17 +355,20 @@ func (h *memberHandler) GetMemberHistory(c *gin.Context) {
 		return
 	}
 
-	history, nextCursor, err := h.memberUseCase.GetMemberHistory(c.Request.Context(), memberID, query.Cursor, query.Limit)
+	history, nextCursor, err := h.memberUseCase.ListHistory(c.Request.Context(), memberID, query.Cursor, query.Limit)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, dto.Response{Success: false, Error: err.Error()})
 		return
 	}
+
+	preferredLang := middleware.GetPreferredLanguage(c)
 
 	var historyResponse []dto.HistoryResponse
 	for _, h := range history {
 		historyResponse = append(historyResponse, dto.HistoryResponse{
 			HistoryID:     h.HistoryID,
 			MemberID:      h.MemberID,
+			MemberName:    extractName(h.MemberNames, preferredLang),
 			UserID:        h.UserID,
 			UserFullName:  h.UserFullName,
 			UserEmail:     h.UserEmail,
@@ -477,7 +404,7 @@ func (h *memberHandler) UploadPicture(c *gin.Context) {
 
 	data, err := io.ReadAll(file)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, dto.Response{Success: false, Error: "failed to read file"})
+		c.JSON(http.StatusInternalServerError, dto.Response{Success: false, Error: "read file"})
 		return
 	}
 

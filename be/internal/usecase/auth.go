@@ -35,7 +35,7 @@ func NewAuthUseCase(
 	}
 }
 
-func (uc *authUseCase) GetAuthURL(ctx context.Context, provider string) (string, error) {
+func (uc *authUseCase) GetURL(ctx context.Context, provider string) (string, error) {
 	state, err := uc.generateState()
 	if err != nil {
 		return "", domain.NewInternalError("generate state", err)
@@ -171,7 +171,7 @@ func (uc *authUseCase) RefreshTokens(ctx context.Context, refreshToken string) (
 		return nil, domain.NewUnauthorizedError("invalid refresh token", err)
 	}
 
-	session, err := uc.sessionRepo.GetByID(ctx, claims.SessionID)
+	session, err := uc.sessionRepo.Get(ctx, claims.SessionID)
 	if err != nil {
 		return nil, err
 	}
@@ -180,7 +180,7 @@ func (uc *authUseCase) RefreshTokens(ctx context.Context, refreshToken string) (
 		return nil, domain.NewUnauthorizedError("session expired or revoked", nil)
 	}
 
-	user, err := uc.userRepo.GetByID(ctx, claims.UserID)
+	user, err := uc.userRepo.Get(ctx, claims.UserID)
 	if err != nil {
 		return nil, err
 	}
@@ -212,7 +212,7 @@ func (uc *authUseCase) LogoutAll(ctx context.Context, userID int) error {
 }
 
 func (uc *authUseCase) ValidateSession(ctx context.Context, sessionID string) (*domain.Session, error) {
-	session, err := uc.sessionRepo.GetByID(ctx, sessionID)
+	session, err := uc.sessionRepo.Get(ctx, sessionID)
 	if err != nil {
 		return nil, err
 	}
@@ -223,6 +223,6 @@ func (uc *authUseCase) ValidateSession(ctx context.Context, sessionID string) (*
 	return session, nil
 }
 
-func (uc *authUseCase) GetSupportedProviders(ctx context.Context) []string {
+func (uc *authUseCase) ListProviders(ctx context.Context) []string {
 	return uc.oauthMgr.GetSupportedProviders()
 }

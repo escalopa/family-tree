@@ -30,7 +30,7 @@ func (r *SessionRepository) Create(ctx context.Context, session *domain.Session)
 	return nil
 }
 
-func (r *SessionRepository) GetByID(ctx context.Context, sessionID string) (*domain.Session, error) {
+func (r *SessionRepository) Get(ctx context.Context, sessionID string) (*domain.Session, error) {
 	query := `
 		SELECT session_id, user_id, issued_at, expires_at, revoked
 		FROM user_sessions

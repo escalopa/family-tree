@@ -32,7 +32,7 @@ func (r *UserRepository) Create(ctx context.Context, user *domain.User) error {
 	return nil
 }
 
-func (r *UserRepository) GetByID(ctx context.Context, userID int) (*domain.User, error) {
+func (r *UserRepository) Get(ctx context.Context, userID int) (*domain.User, error) {
 	query := `
 		SELECT
 			u.user_id, u.full_name, u.email, u.avatar, u.role_id, u.is_active, u.created_at,

@@ -8,7 +8,7 @@ import {
   CircularProgress,
 } from '@mui/material';
 import { Search } from '@mui/icons-material';
-import { ParentOption } from '../types';
+import { MemberListItem } from '../types';
 import MemberAutocomplete from './MemberAutocomplete';
 
 interface RelationFinderProps {
@@ -17,8 +17,8 @@ interface RelationFinderProps {
 }
 
 const RelationFinder: React.FC<RelationFinderProps> = ({ onFindRelation, loading }) => {
-  const [member1, setMember1] = useState<ParentOption | null>(null);
-  const [member2, setMember2] = useState<ParentOption | null>(null);
+  const [member1, setMember1] = useState<MemberListItem | null>(null);
+  const [member2, setMember2] = useState<MemberListItem | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const handleFindRelation = async () => {

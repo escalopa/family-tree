@@ -15,7 +15,7 @@ func NewRoleRepository(db *pgxpool.Pool) *RoleRepository {
 	return &RoleRepository{db: db}
 }
 
-func (r *RoleRepository) GetByID(ctx context.Context, roleID int) (*domain.Role, error) {
+func (r *RoleRepository) Get(ctx context.Context, roleID int) (*domain.Role, error) {
 	query := `SELECT role_id, name FROM roles WHERE role_id = $1`
 	role := &domain.Role{}
 	err := r.db.QueryRow(ctx, query, roleID).Scan(&role.RoleID, &role.Name)

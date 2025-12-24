@@ -48,7 +48,7 @@ export const LanguageProvider: React.FC<LanguageProviderProps> = ({ children }) 
       setLanguages(langs);
     } catch (err: any) {
       setError(err?.response?.data?.error || 'Failed to load languages');
-      console.error('Failed to load languages:', err);
+      console.error('load languages:', err);
     } finally {
       setLoading(false);
     }
@@ -77,7 +77,7 @@ export const LanguageProvider: React.FC<LanguageProviderProps> = ({ children }) 
       }
 
       setError(err?.response?.data?.error || 'Failed to load preferences');
-      console.error('Failed to load language preferences:', err);
+      console.error('load language preferences:', err);
     } finally {
       setLoading(false);
     }
@@ -97,7 +97,7 @@ export const LanguageProvider: React.FC<LanguageProviderProps> = ({ children }) 
       localStorage.setItem('language_preferences', JSON.stringify(updated));
     } catch (err: any) {
       setError(err?.response?.data?.error || 'Failed to update preferences');
-      console.error('Failed to update language preferences:', err);
+      console.error('update language preferences:', err);
       throw err;
     } finally {
       setLoading(false);
@@ -107,7 +107,13 @@ export const LanguageProvider: React.FC<LanguageProviderProps> = ({ children }) 
   // Extract names from object or use directly if it's a record
   const extractNames = (obj: NameProvider): Record<string, string> | undefined => {
     if (!obj) return undefined;
-    if ('names' in obj) return obj.names;
+
+    // Check if it has a 'names' property (it's a Member or similar object)
+    if (typeof obj === 'object' && 'names' in obj) {
+      return obj.names as Record<string, string> | undefined;
+    }
+
+    // Otherwise, treat obj as Record<string, string> directly
     return obj as Record<string, string>;
   };
 

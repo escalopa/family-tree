@@ -31,7 +31,7 @@ const InactivePage: React.FC = () => {
       }
       // If user is active, the useEffect above will redirect
     } catch (err: any) {
-      console.error('Failed to refresh user data:', err);
+      console.error('refresh user data:', err);
       setError('Failed to check account status. Please try again.');
     } finally {
       setChecking(false);

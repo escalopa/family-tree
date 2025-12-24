@@ -2,8 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Autocomplete, TextField, Avatar, Box, Typography, CircularProgress } from '@mui/material';
 import { membersApi } from '../api';
 import { getMemberPictureUrl } from '../utils/helpers';
-import { ParentOption } from '../types';
-import { useLanguage } from '../contexts/LanguageContext';
+import { MemberListItem, MemberInfo } from '../types';
 
 interface ParentAutocompleteProps {
   label: string;
@@ -11,7 +10,7 @@ interface ParentAutocompleteProps {
   value: number | null;
   onChange: (value: number | null) => void;
   disabled?: boolean;
-  initialParent?: { member_id: number; names: Record<string, string>; picture: string | null } | null;
+  initialParent?: MemberInfo | null;
 }
 
 const ParentAutocomplete: React.FC<ParentAutocompleteProps> = ({
@@ -22,26 +21,39 @@ const ParentAutocomplete: React.FC<ParentAutocompleteProps> = ({
   disabled = false,
   initialParent = null,
 }) => {
-  const { getPreferredName, getAllNamesFormatted } = useLanguage();
-  const [options, setOptions] = useState<ParentOption[]>([]);
+  const [options, setOptions] = useState<MemberListItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [inputValue, setInputValue] = useState('');
-  const [selectedOption, setSelectedOption] = useState<ParentOption | null>(null);
+  const [selectedOption, setSelectedOption] = useState<MemberListItem | MemberInfo | null>(null);
+  const [initialized, setInitialized] = useState(false);
 
   // Debounced search
   useEffect(() => {
     if (inputValue.length < 2) {
-      setOptions([]);
+      // Don't clear options immediately - let user see previous results
+      if (inputValue.length === 0) {
+        setOptions([]);
+      }
       return;
     }
 
     const timer = setTimeout(async () => {
       setLoading(true);
       try {
-        const results = await membersApi.searchMemberInfo(inputValue, gender);
-        setOptions(results || []);
+        const result = await membersApi.searchMembers({
+          name: inputValue,
+          gender,
+          limit: 20,
+        });
+        console.log('Parent search results:', result); // Debug log
+        if (Array.isArray(result.members)) {
+          setOptions(result.members);
+        } else {
+          console.warn('Search results is not an array:', result);
+          setOptions([]);
+        }
       } catch (error) {
-        console.error('Failed to search parents:', error);
+        console.error('search parents:', error);
         setOptions([]);
       } finally {
         setLoading(false);
@@ -51,28 +63,33 @@ const ParentAutocomplete: React.FC<ParentAutocompleteProps> = ({
     return () => clearTimeout(timer);
   }, [inputValue, gender]);
 
-  // Load initial selected option
+  // Initialize selected option on mount or when value changes
   useEffect(() => {
-    if (value && !selectedOption) {
-      // First check if we have an initial parent to display
-      if (initialParent && initialParent.member_id === value) {
-        setSelectedOption({ ...initialParent, gender } as ParentOption);
-      } else {
-        // Try to find in current options
-        const found = options.find(opt => opt.member_id === value);
-        if (found) {
-          setSelectedOption(found);
-        }
-      }
+    if (value && initialParent && initialParent.member_id === value && !initialized) {
+      setSelectedOption(initialParent);
+      setInitialized(true);
     } else if (!value && selectedOption) {
       // Clear selection if value becomes null/undefined
       setSelectedOption(null);
+      setInputValue('');
+      setInitialized(false);
     }
-  }, [value, options, selectedOption, initialParent, gender]);
+  }, [value, initialParent, initialized, selectedOption]);
+
+  // Update selected option from search results
+  useEffect(() => {
+    if (value && !selectedOption && options.length > 0) {
+      const found = options.find(opt => opt.member_id === value);
+      if (found) {
+        setSelectedOption(found);
+        setInitialized(true);
+      }
+    }
+  }, [value, options, selectedOption]);
 
   return (
     <Autocomplete
-      options={options || []}
+      options={options}
       value={selectedOption}
       onChange={(_, newValue) => {
         setSelectedOption(newValue);
@@ -84,21 +101,26 @@ const ParentAutocomplete: React.FC<ParentAutocompleteProps> = ({
         if (reason === 'clear') {
           setSelectedOption(null);
           onChange(null);
+          setInputValue('');
+        } else {
+          setInputValue(newInputValue);
         }
-        setInputValue(newInputValue);
       }}
-      getOptionLabel={(option) => getPreferredName(option)}
+      getOptionLabel={(option) => option.name}
       isOptionEqualToValue={(option, value) => option.member_id === value.member_id}
+      filterOptions={(x) => x} // Don't filter options - backend already filtered them
       loading={loading}
       disabled={disabled}
       freeSolo={false}
       clearOnEscape
       clearOnBlur={false}
+      disableClearable={false} // Make sure clear button is enabled
       renderInput={(params) => (
         <TextField
           {...params}
           label={label}
-          placeholder="Type to search..."
+          placeholder={selectedOption ? '' : 'Type to search...'}
+          helperText={selectedOption ? `Selected: ${selectedOption.name}` : undefined}
           InputProps={{
             ...params.InputProps,
             startAdornment: selectedOption && (
@@ -111,7 +133,7 @@ const ParentAutocomplete: React.FC<ParentAutocompleteProps> = ({
                   mr: 1,
                 }}
               >
-                {getPreferredName(selectedOption).charAt(0) || '?'}
+                {selectedOption.name.charAt(0) || '?'}
               </Avatar>
             ),
             endAdornment: (
@@ -133,17 +155,19 @@ const ParentAutocomplete: React.FC<ParentAutocompleteProps> = ({
               bgcolor: option.gender === 'M' ? '#00BCD4' : '#E91E63',
             }}
           >
-            {getPreferredName(option).charAt(0) || '?'}
+            {option.name.charAt(0) || '?'}
           </Avatar>
           <Box>
-            <Typography variant="body2">{getAllNamesFormatted(option)}</Typography>
+            <Typography variant="body2">{option.name}</Typography>
           </Box>
         </Box>
       )}
       noOptionsText={
-        inputValue.length < 2
+        loading
+          ? 'Searching...'
+          : inputValue.length < 2
           ? 'Type at least 2 characters to search'
-          : 'No results found'
+          : `No ${gender === 'M' ? 'male' : 'female'} members found matching "${inputValue}"`
       }
     />
   );

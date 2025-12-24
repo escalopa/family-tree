@@ -29,6 +29,7 @@ type History struct {
 
 type HistoryWithUser struct {
 	History
-	UserFullName string `json:"user_full_name"`
-	UserEmail    string `json:"user_email"`
+	MemberNames  map[string]string `json:"member_names,omitempty"`
+	UserFullName string            `json:"user_full_name"`
+	UserEmail    string            `json:"user_email"`
 }

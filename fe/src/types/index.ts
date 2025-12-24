@@ -41,6 +41,7 @@ export interface MemberInfo {
   member_id: number;
   name: string; // Name in user's preferred language
   picture: string | null;
+  gender: 'M' | 'F';
 }
 
 // Minimal member data for list views
@@ -56,7 +57,10 @@ export interface MemberListItem {
 
 export interface Member {
   member_id: number;
-  names: Record<string, string>; // language_code -> name
+  name: string; // Name in user's preferred language
+  names: Record<string, string>; // All language translations (for editing)
+  full_name?: string; // Full name in user's preferred language
+  full_names?: Record<string, string>; // All full name translations (for editing)
   gender: 'M' | 'F';
   picture: string | null;
   date_of_birth: string | null;
@@ -68,20 +72,12 @@ export interface Member {
   nicknames: string[];
   profession: string | null;
   version: number;
-  full_names?: Record<string, string>; // language_code -> full_name
   age?: number;
   generation_level?: number;
   is_married: boolean;
   spouses?: SpouseInfo[];
   children?: MemberInfo[];
   siblings?: MemberInfo[];
-}
-
-export interface ParentOption {
-  member_id: number;
-  names: Record<string, string>; // language_code -> name
-  picture: string | null;
-  gender: 'M' | 'F';
 }
 
 export interface TreeNode {
@@ -95,6 +91,7 @@ export interface TreeNode {
 export interface HistoryRecord {
   history_id: number;
   member_id: number;
+  member_name?: string; // Member name in user's preferred language (may be missing for deleted members)
   user_id: number;
   user_full_name: string;
   user_email: string;
@@ -108,7 +105,7 @@ export interface HistoryRecord {
 export interface ScoreHistory {
   user_id: number;
   member_id: number;
-  member_names: Record<string, string>; // All member names
+  member_name: string; // Member name in user's preferred language
   field_name: string;
   points: number;
   member_version: number;
@@ -147,9 +144,7 @@ export interface CreateSpouseRequest {
   divorce_date?: string;
 }
 
-export interface UpdateSpouseRequest extends CreateSpouseRequest {}
-
-export interface UpdateSpouseByMemberRequest {
+export interface UpdateSpouseRequest {
   spouse_id: number;
   marriage_date?: string;
   divorce_date?: string;
@@ -167,8 +162,8 @@ export interface UpdateActiveRequest {
 
 export interface MemberSearchQuery {
   name?: string; // Searches both Arabic and English names
-  gender?: string;
-  married?: number;
+  gender?: 'M' | 'F';
+  married?: 0 | 1;
   cursor?: string;
   limit?: number;
 }

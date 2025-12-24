@@ -26,13 +26,6 @@ type CreateSpouseRequest struct {
 }
 
 type UpdateSpouseRequest struct {
-	FatherID     int   `json:"father_id" binding:"required"`
-	MotherID     int   `json:"mother_id" binding:"required"`
-	MarriageDate *Date `json:"marriage_date"`
-	DivorceDate  *Date `json:"divorce_date"`
-}
-
-type UpdateSpouseByMemberRequest struct {
 	SpouseID     int   `json:"spouse_id" binding:"required"`
 	MarriageDate *Date `json:"marriage_date"`
 	DivorceDate  *Date `json:"divorce_date"`

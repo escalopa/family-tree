@@ -12,33 +12,31 @@ type AuthHandler interface {
 }
 
 type UserHandler interface {
-	GetUser(c *gin.Context)
-	ListUsers(c *gin.Context)
+	Get(c *gin.Context)
+	List(c *gin.Context)
 	UpdateRole(c *gin.Context)
 	UpdateActive(c *gin.Context)
-	GetLeaderboard(c *gin.Context)
-	GetScoreHistory(c *gin.Context)
-	GetUserChanges(c *gin.Context)
+	ListLeaderboard(c *gin.Context)
+	ListScoreHistory(c *gin.Context)
+	ListChanges(c *gin.Context)
 }
 
 type MemberHandler interface {
-	CreateMember(c *gin.Context)
-	UpdateMember(c *gin.Context)
-	DeleteMember(c *gin.Context)
-	GetMember(c *gin.Context)
-	SearchMembers(c *gin.Context)
-	SearchMemberInfo(c *gin.Context)
-	GetMemberHistory(c *gin.Context)
+	Get(c *gin.Context)
+	List(c *gin.Context)
+	Create(c *gin.Context)
+	Update(c *gin.Context)
+	Delete(c *gin.Context)
+	ListHistory(c *gin.Context)
 	UploadPicture(c *gin.Context)
 	DeletePicture(c *gin.Context)
 	GetPicture(c *gin.Context)
 }
 
 type SpouseHandler interface {
-	AddSpouse(c *gin.Context)
-	UpdateSpouse(c *gin.Context)
-	UpdateSpouseByID(c *gin.Context)
-	RemoveSpouse(c *gin.Context)
+	Create(c *gin.Context)
+	Update(c *gin.Context)
+	Delete(c *gin.Context)
 }
 
 type TreeHandler interface {
@@ -47,12 +45,12 @@ type TreeHandler interface {
 }
 
 type LanguageHandler interface {
-	GetLanguages(c *gin.Context)
-	GetLanguage(c *gin.Context)
-	CreateLanguage(c *gin.Context)
-	UpdateLanguage(c *gin.Context)
-	GetUserLanguagePreference(c *gin.Context)
-	UpdateUserLanguagePreference(c *gin.Context)
+	Get(c *gin.Context)
+	List(c *gin.Context)
+	Create(c *gin.Context)
+	Update(c *gin.Context)
+	GetPreference(c *gin.Context)
+	UpdatePreference(c *gin.Context)
 }
 
 type AuthMiddleware interface {

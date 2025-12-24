@@ -28,7 +28,7 @@ func (h *treeHandler) GetTree(c *gin.Context) {
 
 	// Check style
 	if query.Style == "list" {
-		members, err := h.treeUseCase.GetListView(c.Request.Context(), query.RootID, userRole)
+		members, err := h.treeUseCase.List(c.Request.Context(), query.RootID, userRole)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, dto.Response{Success: false, Error: err.Error()})
 			return
@@ -37,26 +37,11 @@ func (h *treeHandler) GetTree(c *gin.Context) {
 		// Get user's preferred language from middleware
 		preferredLang := middleware.GetPreferredLanguage(c)
 
-		// Helper function to extract name in preferred language
-		extractName := func(names map[string]string) string {
-			name := names[preferredLang]
-			if name == "" {
-				// Fallback to any available name
-				for _, n := range names {
-					if n != "" {
-						name = n
-						break
-					}
-				}
-			}
-			return name
-		}
-
 		var response []dto.MemberListItem
 		for _, m := range members {
 			response = append(response, dto.MemberListItem{
 				MemberID:    m.MemberID,
-				Name:        extractName(m.Names),
+				Name:        extractName(m.Names, preferredLang),
 				Gender:      m.Gender,
 				Picture:     m.Picture,
 				DateOfBirth: dto.FromTimePtr(m.DateOfBirth),
@@ -69,9 +54,14 @@ func (h *treeHandler) GetTree(c *gin.Context) {
 		return
 	}
 
-	tree, err := h.treeUseCase.GetTree(c.Request.Context(), query.RootID, userRole)
+	tree, err := h.treeUseCase.Get(c.Request.Context(), query.RootID, userRole)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, dto.Response{Success: false, Error: err.Error()})
+		return
+	}
+
+	if tree == nil {
+		c.JSON(http.StatusOK, dto.Response{Success: true, Data: nil})
 		return
 	}
 
@@ -88,9 +78,14 @@ func (h *treeHandler) GetRelation(c *gin.Context) {
 
 	userRole := middleware.GetUserRole(c)
 
-	tree, err := h.treeUseCase.GetRelationTree(c.Request.Context(), query.Member1ID, query.Member2ID, userRole)
+	tree, err := h.treeUseCase.GetRelation(c.Request.Context(), query.Member1ID, query.Member2ID, userRole)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, dto.Response{Success: false, Error: err.Error()})
+		return
+	}
+
+	if tree == nil {
+		c.JSON(http.StatusOK, dto.Response{Success: true, Data: nil})
 		return
 	}
 
@@ -103,27 +98,12 @@ func (h *treeHandler) convertToTreeResponse(node *domain.MemberTreeNode, preferr
 		return nil
 	}
 
-	// Helper function to extract name in preferred language
-	extractName := func(names map[string]string) string {
-		name := names[preferredLang]
-		if name == "" {
-			// Fallback to any available name
-			for _, n := range names {
-				if n != "" {
-					name = n
-					break
-				}
-			}
-		}
-		return name
-	}
-
 	spousesDTO := make([]dto.SpouseInfo, len(node.Spouses))
 	for i, spouse := range node.Spouses {
 		spousesDTO[i] = dto.SpouseInfo{
 			SpouseID:     spouse.SpouseID,
 			MemberID:     spouse.MemberID,
-			Name:         extractName(spouse.Names),
+			Name:         extractName(spouse.Names, preferredLang),
 			Gender:       spouse.Gender,
 			Picture:      spouse.Picture,
 			MarriageDate: dto.FromTimePtr(spouse.MarriageDate),
@@ -135,7 +115,9 @@ func (h *treeHandler) convertToTreeResponse(node *domain.MemberTreeNode, preferr
 	response := &dto.TreeNodeResponse{
 		Member: dto.MemberResponse{
 			MemberID:        node.MemberID,
+			Name:            extractName(node.Names, preferredLang),
 			Names:           node.Names,
+			FullName:        extractName(node.FullNames, preferredLang),
 			FullNames:       node.FullNames,
 			Gender:          node.Gender,
 			Picture:         node.Picture,

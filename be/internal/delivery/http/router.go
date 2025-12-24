@@ -70,11 +70,11 @@ func (r *Router) Setup(engine *gin.Engine) {
 		userGroup := api.Group("/users")
 		userGroup.Use(middleware.RequireActive())
 		{
-			userGroup.GET("", r.userHandler.ListUsers)
-			userGroup.GET("/leaderboard", r.userHandler.GetLeaderboard)
-			userGroup.GET("/score/:user_id", r.userHandler.GetScoreHistory)
-			userGroup.GET("/members/:user_id", middleware.RequireRole(domain.RoleAdmin), r.userHandler.GetUserChanges)
-			userGroup.GET("/:user_id", r.userHandler.GetUser)
+			userGroup.GET("", r.userHandler.List)
+			userGroup.GET("/leaderboard", r.userHandler.ListLeaderboard)
+			userGroup.GET("/score/:user_id", r.userHandler.ListScoreHistory)
+			userGroup.GET("/members/:user_id", middleware.RequireRole(domain.RoleAdmin), r.userHandler.ListChanges)
+			userGroup.GET("/:user_id", r.userHandler.Get)
 
 			userGroup.PUT("/:user_id/role", middleware.RequireRole(domain.RoleSuperAdmin), r.userHandler.UpdateRole)
 			userGroup.PUT("/:user_id/active", middleware.RequireRole(domain.RoleSuperAdmin), r.userHandler.UpdateActive)
@@ -90,15 +90,14 @@ func (r *Router) Setup(engine *gin.Engine) {
 		memberGroup := api.Group("/members")
 		memberGroup.Use(middleware.RequireActive())
 		{
-			memberGroup.GET("/info/:member_id", r.memberHandler.GetMember)
-			memberGroup.GET("/search", r.memberHandler.SearchMembers)
-			memberGroup.GET("/search-info", r.memberHandler.SearchMemberInfo)
-			memberGroup.GET("/history", middleware.RequireRole(domain.RoleSuperAdmin), r.memberHandler.GetMemberHistory)
+			memberGroup.GET("", r.memberHandler.List)
+			memberGroup.GET("/history", middleware.RequireRole(domain.RoleSuperAdmin), r.memberHandler.ListHistory)
+			memberGroup.GET("/:member_id", r.memberHandler.Get)
 			memberGroup.GET("/:member_id/picture", middleware.RequireRole(domain.RoleAdmin), r.memberHandler.GetPicture)
 
-			memberGroup.POST("", middleware.RequireRole(domain.RoleAdmin), r.memberHandler.CreateMember)
-			memberGroup.PUT("/:member_id", middleware.RequireRole(domain.RoleAdmin), r.memberHandler.UpdateMember)
-			memberGroup.DELETE("/:member_id", middleware.RequireRole(domain.RoleSuperAdmin), r.memberHandler.DeleteMember)
+			memberGroup.POST("", middleware.RequireRole(domain.RoleAdmin), r.memberHandler.Create)
+			memberGroup.PUT("/:member_id", middleware.RequireRole(domain.RoleAdmin), r.memberHandler.Update)
+			memberGroup.DELETE("/:member_id", middleware.RequireRole(domain.RoleSuperAdmin), r.memberHandler.Delete)
 			memberGroup.POST("/:member_id/picture", middleware.RequireRole(domain.RoleAdmin), r.memberHandler.UploadPicture)
 			memberGroup.DELETE("/:member_id/picture", middleware.RequireRole(domain.RoleAdmin), r.memberHandler.DeletePicture)
 		}
@@ -106,26 +105,25 @@ func (r *Router) Setup(engine *gin.Engine) {
 		spouseGroup := api.Group("/spouses")
 		spouseGroup.Use(middleware.RequireActive(), middleware.RequireRole(domain.RoleAdmin))
 		{
-			spouseGroup.POST("", r.spouseHandler.AddSpouse)
-			spouseGroup.PUT("", r.spouseHandler.UpdateSpouse)
-			spouseGroup.PUT("/member", r.spouseHandler.UpdateSpouseByID)
-			spouseGroup.DELETE("", r.spouseHandler.RemoveSpouse)
+			spouseGroup.POST("", r.spouseHandler.Create)
+			spouseGroup.PUT("", r.spouseHandler.Update)
+			spouseGroup.DELETE("", r.spouseHandler.Delete)
 		}
 
 		languageGroup := api.Group("/languages")
 		{
-			languageGroup.GET("", r.languageHandler.GetLanguages)
-			languageGroup.GET("/:code", r.languageHandler.GetLanguage)
+			languageGroup.GET("", r.languageHandler.List)
+			languageGroup.GET("/:code", r.languageHandler.Get)
 
-			languageGroup.POST("", middleware.RequireActive(), middleware.RequireRole(domain.RoleSuperAdmin), r.languageHandler.CreateLanguage)
-			languageGroup.PUT("/:code", middleware.RequireActive(), middleware.RequireRole(domain.RoleSuperAdmin), r.languageHandler.UpdateLanguage)
+			languageGroup.POST("", middleware.RequireActive(), middleware.RequireRole(domain.RoleSuperAdmin), r.languageHandler.Create)
+			languageGroup.PUT("/:code", middleware.RequireActive(), middleware.RequireRole(domain.RoleSuperAdmin), r.languageHandler.Update)
 		}
 
 		userPrefsGroup := api.Group("/users/me/preferences")
 		userPrefsGroup.Use(middleware.RequireActive())
 		{
-			userPrefsGroup.GET("/languages", r.languageHandler.GetUserLanguagePreference)
-			userPrefsGroup.PUT("/languages", r.languageHandler.UpdateUserLanguagePreference)
+			userPrefsGroup.GET("/languages", r.languageHandler.GetPreference)
+			userPrefsGroup.PUT("/languages", r.languageHandler.UpdatePreference)
 		}
 	}
 }

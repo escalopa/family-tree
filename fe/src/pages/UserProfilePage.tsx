@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import {
   Box,
   Paper,
@@ -30,24 +30,28 @@ import {
 } from 'recharts';
 import { usersApi } from '../api';
 import { User, ScoreHistory, HistoryRecord } from '../types';
-import { getRoleName, formatDateTime, formatRelativeTime } from '../utils/helpers';
+import { getRoleName, formatDateTime, formatRelativeTime, getChangeTypeColor } from '../utils/helpers';
 import Layout from '../components/Layout/Layout';
 import { useAuth } from '../contexts/AuthContext';
-import { useLanguage } from '../contexts/LanguageContext';
 import { Roles } from '../types';
 import HistoryDiffDialog from '../components/HistoryDiffDialog';
 
 const UserProfilePage: React.FC = () => {
   const { userId } = useParams<{ userId: string }>();
   const { hasRole } = useAuth();
-  const { getPreferredName, getAllNamesFormatted } = useLanguage();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [user, setUser] = useState<User | null>(null);
   const [scoreHistory, setScoreHistory] = useState<ScoreHistory[]>([]);
   const [displayedScoreCount, setDisplayedScoreCount] = useState(10);
   const [userChanges, setUserChanges] = useState<HistoryRecord[]>([]);
   const [displayedChangesCount, setDisplayedChangesCount] = useState(10);
-  const [activeTab, setActiveTab] = useState(0);
+  const [activeTab, setActiveTab] = useState(() => {
+    const tab = searchParams.get('tab');
+    return tab === 'changes' && hasRole(Roles.SUPER_ADMIN) ? 1 : 0;
+  });
   const [loading, setLoading] = useState(true);
+  const [loadingScoreHistory, setLoadingScoreHistory] = useState(false);
+  const [loadingUserChanges, setLoadingUserChanges] = useState(false);
   const [selectedHistory, setSelectedHistory] = useState<HistoryRecord | null>(null);
   const [diffDialogOpen, setDiffDialogOpen] = useState(false);
 
@@ -96,11 +100,11 @@ const UserProfilePage: React.FC = () => {
         points: score.points,
         cumulative: cumulativeScore,
         timestamp: date.getTime(),
-        memberName: getPreferredName({ names: score.member_names }),
+        memberName: score.member_name,
         fieldName: score.field_name,
       };
     });
-  }, [scoreHistory, getPreferredName]);
+  }, [scoreHistory]);
 
   useEffect(() => {
     if (userId) {
@@ -108,11 +112,33 @@ const UserProfilePage: React.FC = () => {
     }
   }, [userId]);
 
+  useEffect(() => {
+    // Load data based on active tab
+    if (userId && user) {
+      if (activeTab === 0 && scoreHistory.length === 0) {
+        loadScoreHistory();
+      } else if (activeTab === 1 && hasRole(Roles.SUPER_ADMIN) && userChanges.length === 0) {
+        loadUserChanges();
+      }
+    }
+  }, [activeTab, userId, user]);
+
   const loadUserData = async () => {
     try {
       const userResponse = await usersApi.getUser(Number(userId));
       setUser(userResponse);
+    } catch (error) {
+      console.error('load user data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  const loadScoreHistory = async () => {
+    if (!userId) return;
+
+    setLoadingScoreHistory(true);
+    try {
       // Fetch ALL score history pages
       let allScores: ScoreHistory[] = [];
       let cursor: string | undefined = undefined;
@@ -131,32 +157,40 @@ const UserProfilePage: React.FC = () => {
 
       setScoreHistory(allScores);
       setDisplayedScoreCount(10); // Reset pagination
-
-      // Only super admins can see user changes
-      if (hasRole(Roles.SUPER_ADMIN)) {
-        // Fetch ALL user changes pages
-        let allChanges: HistoryRecord[] = [];
-        let changeCursor: string | undefined = undefined;
-        let hasMoreChanges = true;
-
-        while (hasMoreChanges) {
-          const changesResponse = await usersApi.getUserChanges(Number(userId), changeCursor);
-          allChanges = [...allChanges, ...changesResponse.history];
-
-          if (changesResponse.next_cursor) {
-            changeCursor = changesResponse.next_cursor;
-          } else {
-            hasMoreChanges = false;
-          }
-        }
-
-        setUserChanges(allChanges);
-        setDisplayedChangesCount(10); // Reset pagination
-      }
     } catch (error) {
-      console.error('Failed to load user data:', error);
+      console.error('load score history:', error);
     } finally {
-      setLoading(false);
+      setLoadingScoreHistory(false);
+    }
+  };
+
+  const loadUserChanges = async () => {
+    if (!userId || !hasRole(Roles.SUPER_ADMIN)) return;
+
+    setLoadingUserChanges(true);
+    try {
+      // Fetch ALL user changes pages
+      let allChanges: HistoryRecord[] = [];
+      let changeCursor: string | undefined = undefined;
+      let hasMoreChanges = true;
+
+      while (hasMoreChanges) {
+        const changesResponse = await usersApi.getUserChanges(Number(userId), changeCursor);
+        allChanges = [...allChanges, ...changesResponse.history];
+
+        if (changesResponse.next_cursor) {
+          changeCursor = changesResponse.next_cursor;
+        } else {
+          hasMoreChanges = false;
+        }
+      }
+
+      setUserChanges(allChanges);
+      setDisplayedChangesCount(10); // Reset pagination
+    } catch (error) {
+      console.error('load user changes:', error);
+    } finally {
+      setLoadingUserChanges(false);
     }
   };
 
@@ -239,7 +273,19 @@ const UserProfilePage: React.FC = () => {
 
         {/* Tabs */}
         <Paper>
-          <Tabs value={activeTab} onChange={(_, v) => setActiveTab(v)}>
+          <Tabs
+            value={activeTab}
+            onChange={(_, v) => {
+              setActiveTab(v);
+              const params = new URLSearchParams(searchParams);
+              if (v === 0) {
+                params.delete('tab');
+              } else {
+                params.set('tab', 'changes');
+              }
+              setSearchParams(params, { replace: true });
+            }}
+          >
             <Tab label="Score History" />
             {hasRole(Roles.SUPER_ADMIN) && <Tab label="Recent Changes" />}
           </Tabs>
@@ -247,6 +293,12 @@ const UserProfilePage: React.FC = () => {
           {/* Score History Tab */}
           {activeTab === 0 && (
             <Box sx={{ p: 2 }}>
+              {loadingScoreHistory ? (
+                <Box sx={{ textAlign: 'center', py: 4 }}>
+                  <Typography>Loading score history...</Typography>
+                </Box>
+              ) : (
+                <>
               {/* Score History Chart */}
               {chartData.length > 0 && (
                 <Box sx={{ mb: 4 }}>
@@ -396,7 +448,7 @@ const UserProfilePage: React.FC = () => {
                       scoreHistory.slice(0, displayedScoreCount).map((score, idx) => (
                         <TableRow key={idx}>
                           <TableCell>
-                            {getAllNamesFormatted({ names: score.member_names })}
+                            {score.member_name}
                           </TableCell>
                           <TableCell>{score.field_name}</TableCell>
                           <TableCell>
@@ -426,13 +478,19 @@ const UserProfilePage: React.FC = () => {
                   </Button>
                 </Box>
               )}
+                </>
+              )}
             </Box>
           )}
 
           {/* Recent Changes Tab (Super Admin only) */}
           {activeTab === 1 && hasRole(Roles.SUPER_ADMIN) && (
             <Box sx={{ p: 2 }}>
-              {userChanges.length === 0 ? (
+              {loadingUserChanges ? (
+                <Box sx={{ textAlign: 'center', py: 4 }}>
+                  <Typography>Loading user changes...</Typography>
+                </Box>
+              ) : userChanges.length === 0 ? (
                 <Box sx={{ textAlign: 'center', py: 4 }}>
                   <Typography variant="body2" color="text.secondary">
                     No recent changes available
@@ -445,7 +503,7 @@ const UserProfilePage: React.FC = () => {
                       <TableHead>
                         <TableRow>
                           <TableCell>Change Type</TableCell>
-                          <TableCell>Member ID</TableCell>
+                          <TableCell>Member</TableCell>
                           <TableCell>Date</TableCell>
                           <TableCell>Version</TableCell>
                         </TableRow>
@@ -459,9 +517,19 @@ const UserProfilePage: React.FC = () => {
                             onClick={() => handleViewDiff(change)}
                           >
                             <TableCell>
-                              <Chip label={change.change_type} size="small" />
+                              <Chip
+                                label={change.change_type}
+                                size="small"
+                                color={getChangeTypeColor(change.change_type)}
+                              />
                             </TableCell>
-                            <TableCell>{change.member_id}</TableCell>
+                            <TableCell>
+                              {change.member_name || (
+                                <Typography variant="body2" color="text.secondary">
+                                  ID: {change.member_id} (deleted)
+                                </Typography>
+                              )}
+                            </TableCell>
                             <TableCell>
                               <Box>
                                 <Typography variant="body2">{formatDateTime(change.changed_at)}</Typography>

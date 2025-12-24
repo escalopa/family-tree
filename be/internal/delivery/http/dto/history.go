@@ -13,6 +13,7 @@ type HistoryQuery struct {
 type HistoryResponse struct {
 	HistoryID     int             `json:"history_id"`
 	MemberID      int             `json:"member_id"`
+	MemberName    string          `json:"member_name,omitempty"`
 	UserID        int             `json:"user_id"`
 	UserFullName  string          `json:"user_full_name"`
 	UserEmail     string          `json:"user_email"`

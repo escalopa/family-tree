@@ -109,3 +109,26 @@ export const debounce = <T extends (...args: any[]) => any>(
     timeout = setTimeout(() => func(...args), wait);
   };
 };
+
+export const getChangeTypeColor = (changeType: string): 'default' | 'primary' | 'secondary' | 'success' | 'error' | 'info' | 'warning' => {
+  switch (changeType) {
+    case 'INSERT':
+      return 'success';
+    case 'UPDATE':
+      return 'info';
+    case 'DELETE':
+      return 'error';
+    case 'ADD_SPOUSE':
+      return 'secondary';
+    case 'REMOVE_SPOUSE':
+      return 'warning';
+    case 'UPDATE_SPOUSE':
+      return 'primary';
+    case 'ADD_PICTURE':
+      return 'success';
+    case 'DELETE_PICTURE':
+      return 'warning';
+    default:
+      return 'default';
+  }
+};

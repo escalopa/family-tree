@@ -37,7 +37,7 @@ func NewAuthHandler(authUseCase AuthUseCase, userUseCase UserUseCase, cookieMana
 func (h *authHandler) GetAuthURL(c *gin.Context) {
 	provider := c.Param("provider")
 
-	url, err := h.authUseCase.GetAuthURL(c.Request.Context(), provider)
+	url, err := h.authUseCase.GetURL(c.Request.Context(), provider)
 	if err != nil {
 		httpErrors.HandleError(c, err)
 		return
@@ -174,7 +174,7 @@ func (h *authHandler) GetCurrentUser(c *gin.Context) {
 		return
 	}
 
-	user, err := h.userUseCase.GetUserByID(c.Request.Context(), userID)
+	user, err := h.userUseCase.Get(c.Request.Context(), userID)
 	if err != nil {
 		httpErrors.HandleError(c, err)
 		return
@@ -203,7 +203,7 @@ func (h *authHandler) GetCurrentUser(c *gin.Context) {
 // @Success 200 {object} dto.Response{data=dto.ProvidersResponse}
 // @Router /auth/providers [get]
 func (h *authHandler) GetProviders(c *gin.Context) {
-	providers := h.authUseCase.GetSupportedProviders(c.Request.Context())
+	providers := h.authUseCase.ListProviders(c.Request.Context())
 
 	c.JSON(http.StatusOK, dto.Response{
 		Success: true,

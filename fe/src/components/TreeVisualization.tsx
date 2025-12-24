@@ -3,8 +3,7 @@ import { Box, Paper, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, Ty
 import { ZoomIn, ZoomOut, ZoomOutMap, Info } from '@mui/icons-material';
 import * as d3 from 'd3';
 import { TreeNode, Member } from '../types';
-import { getGenderColor, getMemberPictureUrl } from '../utils/helpers';
-import { useLanguage } from '../contexts/LanguageContext';
+import { getGenderColor } from '../utils/helpers';
 
 interface TreeVisualizationProps {
   data: TreeNode;
@@ -21,7 +20,6 @@ const TreeVisualization: React.FC<TreeVisualizationProps> = ({ data, onNodeClick
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [infoDialogOpen, setInfoDialogOpen] = useState(false);
-  const { getPreferredName, getAllNamesFormatted } = useLanguage();
 
   useEffect(() => {
     if (!svgRef.current || !containerRef.current || !data) return;
@@ -202,8 +200,8 @@ const TreeVisualization: React.FC<TreeVisualizationProps> = ({ data, onNodeClick
       }
 
       // Add names (without avatar)
-      const preferredName = getPreferredName(node.data.member);
-      const allNames = getAllNamesFormatted(node.data.member);
+      const name = node.data.member.name || 'Unknown';
+      const fullName = node.data.member.full_name || '';
 
       nodeG
         .append('text')
@@ -213,16 +211,18 @@ const TreeVisualization: React.FC<TreeVisualizationProps> = ({ data, onNodeClick
         .attr('font-size', '13px')
         .attr('font-weight', 'bold')
         .attr('fill', '#000')
-        .text(truncateText(preferredName, 20));
+        .text(truncateText(name, 20));
 
-      nodeG
-        .append('text')
-        .attr('x', nodeWidth / 2)
-        .attr('y', 48)
-        .attr('text-anchor', 'middle')
-        .attr('font-size', '12px')
-        .attr('fill', '#666')
-        .text(truncateText(allNames, 25));
+      if (fullName) {
+        nodeG
+          .append('text')
+          .attr('x', nodeWidth / 2)
+          .attr('y', 48)
+          .attr('text-anchor', 'middle')
+          .attr('font-size', '12px')
+          .attr('fill', '#666')
+          .text(truncateText(fullName, 25));
+      }
 
       // Add generation level or age
       if (node.data.member.generation_level !== undefined) {

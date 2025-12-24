@@ -1,5 +1,5 @@
 import { apiClient } from './client';
-import { CreateSpouseRequest, UpdateSpouseRequest, UpdateSpouseByMemberRequest } from '../types';
+import { CreateSpouseRequest, UpdateSpouseRequest } from '../types';
 
 export const spousesApi = {
   addSpouse: async (data: CreateSpouseRequest): Promise<void> => {
@@ -8,10 +8,6 @@ export const spousesApi = {
 
   updateSpouse: async (data: UpdateSpouseRequest): Promise<void> => {
     await apiClient.put('/api/spouses', data);
-  },
-
-  updateSpouseByMember: async (data: UpdateSpouseByMemberRequest): Promise<void> => {
-    await apiClient.put('/api/spouses/member', data);
   },
 
   removeSpouse: async (spouseId: number): Promise<void> => {

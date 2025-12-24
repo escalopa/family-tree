@@ -54,7 +54,7 @@ const LanguageManagement: React.FC = () => {
       setLanguages(langs.sort((a, b) => a.display_order - b.display_order));
     } catch (err: any) {
       setError(err?.response?.data?.error || 'Failed to load languages');
-      console.error('Failed to load languages:', err);
+      console.error('load languages:', err);
     } finally {
       setLoading(false);
     }
@@ -124,7 +124,7 @@ const LanguageManagement: React.FC = () => {
       setTimeout(() => setSuccess(null), 3000);
     } catch (err: any) {
       setError(err?.response?.data?.error || 'Failed to save language');
-      console.error('Failed to save language:', err);
+      console.error('save language:', err);
     } finally {
       setLoading(false);
     }
@@ -150,7 +150,7 @@ const LanguageManagement: React.FC = () => {
       setTimeout(() => setSuccess(null), 3000);
     } catch (err: any) {
       setError(err?.response?.data?.error || 'Failed to update language');
-      console.error('Failed to update language:', err);
+      console.error('update language:', err);
     } finally {
       setLoading(false);
     }

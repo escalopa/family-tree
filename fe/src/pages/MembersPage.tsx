@@ -34,7 +34,7 @@ import {
 import { Add, Delete, FilterAlt, Clear, Close } from '@mui/icons-material';
 import { membersApi } from '../api';
 import { Member, MemberListItem, MemberSearchQuery, CreateMemberRequest, UpdateMemberRequest, HistoryRecord, Roles } from '../types';
-import { formatDateOfBirth, getMemberPictureUrl, formatDateTime, formatRelativeTime } from '../utils/helpers';
+import { formatDateOfBirth, getMemberPictureUrl, formatDateTime, formatRelativeTime, getChangeTypeColor } from '../utils/helpers';
 import Layout from '../components/Layout/Layout';
 import MemberPhotoUpload from '../components/MemberPhotoUpload';
 import ParentAutocomplete from '../components/ParentAutocomplete';
@@ -48,7 +48,7 @@ const PAGE_SIZE = 10;
 
 const MembersPage: React.FC = () => {
   const { hasRole } = useAuth();
-  const { languages, getPreferredName, getAllNamesFormatted } = useLanguage();
+  const { languages } = useLanguage();
   const isSuperAdmin = hasRole(Roles.SUPER_ADMIN);
   const [searchParams, setSearchParams] = useSearchParams();
   const [members, setMembers] = useState<MemberListItem[]>([]);
@@ -80,8 +80,8 @@ const MembersPage: React.FC = () => {
     const married = searchParams.get('married');
 
     if (name) params.name = name;
-    if (gender) params.gender = gender;
-    if (married) params.married = Number(married);
+    if (gender && (gender === 'M' || gender === 'F')) params.gender = gender as 'M' | 'F';
+    if (married && (married === '0' || married === '1')) params.married = Number(married) as 0 | 1;
 
     return params;
   });
@@ -223,11 +223,11 @@ const MembersPage: React.FC = () => {
             const historyResponse = await membersApi.getMemberHistory(memberId);
             setMemberHistory(historyResponse.history || []);
           } catch (error) {
-            console.error('Failed to load member history:', error);
+            console.error('load member history:', error);
           }
         }
       } catch (error) {
-        console.error('Failed to load member details:', error);
+        console.error('load member details:', error);
         alert('Failed to load member details');
         return;
       }
@@ -329,7 +329,7 @@ const MembersPage: React.FC = () => {
     } catch (error: any) {
       const errorMsg = error?.response?.data?.error || 'Failed to save member';
       alert(errorMsg);
-      console.error('Failed to save member:', error);
+      console.error('save member:', error);
     }
   };
 
@@ -350,7 +350,7 @@ const MembersPage: React.FC = () => {
         handleCloseDialog(); // Close dialog after delete
         performSearch(searchQuery); // Refresh list
       } catch (error: any) {
-        console.error('Failed to delete member:', error);
+        console.error('delete member:', error);
         const errorMessage = error?.response?.data?.error || 'Failed to delete member. This member may have children or other dependencies.';
         alert(errorMessage);
       }
@@ -373,7 +373,7 @@ const MembersPage: React.FC = () => {
         const updatedMember = await membersApi.getMember(memberId);
         setEditingMember(updatedMember);
       } catch (error) {
-        console.error('Failed to refresh member data after photo change:', error);
+        console.error('refresh member data after photo change:', error);
       }
     }
   };
@@ -442,7 +442,7 @@ const MembersPage: React.FC = () => {
                   value={searchQuery.gender || ''}
                   label="Gender"
                   onChange={(e) =>
-                    setSearchQuery({ ...searchQuery, gender: e.target.value || undefined })
+                    setSearchQuery({ ...searchQuery, gender: (e.target.value as 'M' | 'F') || undefined })
                   }
                   endAdornment={
                     searchQuery.gender && (
@@ -473,7 +473,7 @@ const MembersPage: React.FC = () => {
                   onChange={(e) =>
                     setSearchQuery({
                       ...searchQuery,
-                      married: e.target.value === '' ? undefined : Number(e.target.value),
+                      married: e.target.value === '' ? undefined : Number(e.target.value) as 0 | 1,
                     })
                   }
                   endAdornment={
@@ -666,20 +666,20 @@ const MembersPage: React.FC = () => {
                     <MemberPhotoUpload
                       memberId={editingMember.member_id}
                       currentPhoto={editingMember.picture}
-                      memberName={getPreferredName(editingMember)}
+                      memberName={editingMember.name}
                       gender={editingMember.gender}
                       version={editingMember.version}
                       onPhotoChange={handlePhotoChange}
                       size={120}
                       showName
                     />
-                    {editingMember.full_names && Object.keys(editingMember.full_names).length > 0 && (
+                    {editingMember.full_name && (
                       <Box sx={{ mt: 2, textAlign: 'center' }}>
                         <Typography variant="caption" color="text.secondary" gutterBottom>
                           Full Name
                         </Typography>
                         <Typography variant="body2" fontWeight="medium">
-                          {getAllNamesFormatted({ names: editingMember.full_names })}
+                          {editingMember.full_name}
                         </Typography>
                       </Box>
                     )}
@@ -801,6 +801,7 @@ const MembersPage: React.FC = () => {
                       father_id: value || undefined,
                     })
                   }
+                  initialParent={editingMember?.father || null}
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
@@ -814,6 +815,7 @@ const MembersPage: React.FC = () => {
                       mother_id: value || undefined,
                     })
                   }
+                  initialParent={editingMember?.mother || null}
                 />
               </Grid>
 
@@ -913,7 +915,7 @@ const MembersPage: React.FC = () => {
                                 const updated = await membersApi.getMember(editingMember.member_id);
                                 setEditingMember(updated);
                               } catch (error) {
-                                console.error('Failed to refresh member after spouse update:', error);
+                                console.error('refresh member after spouse update:', error);
                               }
                             }}
                             editable={true}
@@ -1051,11 +1053,7 @@ const MembersPage: React.FC = () => {
                                 <Chip
                                   label={change.change_type}
                                   size="small"
-                                  color={
-                                    change.change_type === 'INSERT' ? 'success' :
-                                    change.change_type === 'UPDATE' ? 'primary' :
-                                    'error'
-                                  }
+                                  color={getChangeTypeColor(change.change_type)}
                                 />
                               </TableCell>
                               <TableCell>
@@ -1128,7 +1126,7 @@ const MembersPage: React.FC = () => {
             open={openAddSpouseDialog}
             onClose={() => setOpenAddSpouseDialog(false)}
             memberId={editingMember.member_id}
-            memberName={getPreferredName(editingMember)}
+            memberName={editingMember.name}
             memberGender={editingMember.gender}
             onSuccess={() => {
               performSearch(searchQuery);
@@ -1138,7 +1136,7 @@ const MembersPage: React.FC = () => {
                   const updated = await membersApi.getMember(editingMember.member_id);
                   setEditingMember(updated);
                 } catch (error) {
-                  console.error('Failed to refresh member:', error);
+                  console.error('refresh member:', error);
                 }
               };
               refreshMember();

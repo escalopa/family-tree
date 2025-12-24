@@ -27,7 +27,7 @@ import {
   Grid,
 } from '@mui/material';
 import { OpenInNew, Clear } from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { usersApi } from '../api';
 import { User, Roles } from '../types';
 import { getRoleName } from '../utils/helpers';
@@ -37,6 +37,7 @@ import { useAuth } from '../contexts/AuthContext';
 const UsersPage: React.FC = () => {
   const navigate = useNavigate();
   const { hasRole } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -47,12 +48,27 @@ const UsersPage: React.FC = () => {
   const [isActive, setIsActive] = useState(false);
   const isSuperAdmin = hasRole(Roles.SUPER_ADMIN);
 
-  // Filter states
-  const [searchQuery, setSearchQuery] = useState('');
-  const [roleFilter, setRoleFilter] = useState<number | 'all'>('all');
-  const [activeFilter, setActiveFilter] = useState<boolean | 'all'>('all');
+  // Filter states from URL query params
+  const [searchQuery, setSearchQuery] = useState(() => searchParams.get('search') || '');
+  const [roleFilter, setRoleFilter] = useState<number | 'all'>(() => {
+    const role = searchParams.get('role');
+    return role && role !== 'all' ? Number(role) : 'all';
+  });
+  const [activeFilter, setActiveFilter] = useState<boolean | 'all'>(() => {
+    const active = searchParams.get('active');
+    if (active === 'true') return true;
+    if (active === 'false') return false;
+    return 'all';
+  });
 
   useEffect(() => {
+    // Update URL params when filters change
+    const params = new URLSearchParams();
+    if (searchQuery) params.set('search', searchQuery);
+    if (roleFilter !== 'all') params.set('role', roleFilter.toString());
+    if (activeFilter !== 'all') params.set('active', activeFilter.toString());
+    setSearchParams(params, { replace: true });
+
     loadUsers();
   }, [searchQuery, roleFilter, activeFilter]);
 
@@ -85,7 +101,7 @@ const UsersPage: React.FC = () => {
 
       setNextCursor(response.next_cursor);
     } catch (error) {
-      console.error('Failed to load users:', error);
+      console.error('load users:', error);
     } finally {
       setLoading(false);
       setLoadingMore(false);
@@ -127,7 +143,7 @@ const UsersPage: React.FC = () => {
       handleCloseDialog();
       loadUsers(); // Refresh list
     } catch (error) {
-      console.error('Failed to update user:', error);
+      console.error('update user:', error);
     }
   };
 
