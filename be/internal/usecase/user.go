@@ -60,7 +60,7 @@ func (uc *userUseCase) UpdateUserRole(ctx context.Context, userID, newRoleID, ch
 	actionType := uc.determineRoleActionType(oldRoleID, newRoleID)
 
 	if err := uc.userRepo.CreateRoleHistory(ctx, userID, oldRoleID, newRoleID, changedBy, actionType); err != nil {
-		slog.Error("failed to record role change history",
+		slog.Error("record role change history",
 			"error", err,
 			"user_id", userID,
 			"old_role_id", oldRoleID,

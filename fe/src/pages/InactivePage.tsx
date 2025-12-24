@@ -13,7 +13,6 @@ const InactivePage: React.FC = () => {
   // Automatically redirect if user becomes active
   useEffect(() => {
     if (isActive) {
-      console.log('[InactivePage] User is now active, redirecting to home...');
       navigate('/', { replace: true });
     }
   }, [isActive, navigate]);

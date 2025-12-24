@@ -1,4 +1,4 @@
-.PHONY: help migrate-up migrate-down promote-user db-recreate
+.PHONY: help migrate-up migrate-down migrate-status migrate-create promote-user db-recreate
 
 # Database configuration (can be overridden with environment variables)
 DB_HOST ?= localhost
@@ -11,21 +11,56 @@ help: ## Show this help message
 	@echo "Available commands:"
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
-migrate-up: ## Run database migrations (up)
-	@echo "Running migrations..."
-	@for file in be/migrations/*_*.up.sql; do \
-		echo "Applying migration: $$file"; \
-		PGPASSWORD=$(DB_PASSWORD) psql -h $(DB_HOST) -p $(DB_PORT) -U $(DB_USER) -d $(DB_NAME) -f $$file || exit 1; \
-	done
-	@echo "✅ Migrations completed successfully!"
+migrate-up: ## Run database migrations (up) using goose
+	@echo "Running migrations with goose..."
+	@docker run --rm --network host \
+		-e DB_HOST=$(DB_HOST) \
+		-e DB_PORT=$(DB_PORT) \
+		-e DB_USER=$(DB_USER) \
+		-e DB_PASSWORD=$(DB_PASSWORD) \
+		-e DB_NAME=$(DB_NAME) \
+		-e DB_SSL=disable \
+		-v $(PWD)/be/migrations:/migrations \
+		gomicro/goose:latest \
+		/bin/bash -c "cd /migrations && goose postgres 'host=$(DB_HOST) port=$(DB_PORT) user=$(DB_USER) password=$(DB_PASSWORD) dbname=$(DB_NAME) sslmode=disable' up"
 
-migrate-down: ## Run database migrations (down)
-	@echo "Rolling back migrations..."
-	@for file in $$(ls -r be/migrations/*_*.down.sql); do \
-		echo "Rolling back migration: $$file"; \
-		PGPASSWORD=$(DB_PASSWORD) psql -h $(DB_HOST) -p $(DB_PORT) -U $(DB_USER) -d $(DB_NAME) -f $$file || exit 1; \
-	done
-	@echo "✅ Migrations rolled back successfully!"
+migrate-down: ## Run database migrations (down) using goose
+	@echo "Rolling back migrations with goose..."
+	@docker run --rm --network host \
+		-e DB_HOST=$(DB_HOST) \
+		-e DB_PORT=$(DB_PORT) \
+		-e DB_USER=$(DB_USER) \
+		-e DB_PASSWORD=$(DB_PASSWORD) \
+		-e DB_NAME=$(DB_NAME) \
+		-e DB_SSL=disable \
+		-v $(PWD)/be/migrations:/migrations \
+		gomicro/goose:latest \
+		/bin/bash -c "cd /migrations && goose postgres 'host=$(DB_HOST) port=$(DB_PORT) user=$(DB_USER) password=$(DB_PASSWORD) dbname=$(DB_NAME) sslmode=disable' down"
+
+migrate-status: ## Check migration status using goose
+	@echo "Checking migration status with goose..."
+	@docker run --rm --network host \
+		-e DB_HOST=$(DB_HOST) \
+		-e DB_PORT=$(DB_PORT) \
+		-e DB_USER=$(DB_USER) \
+		-e DB_PASSWORD=$(DB_PASSWORD) \
+		-e DB_NAME=$(DB_NAME) \
+		-e DB_SSL=disable \
+		-v $(PWD)/be/migrations:/migrations \
+		gomicro/goose:latest \
+		/bin/bash -c "cd /migrations && goose postgres 'host=$(DB_HOST) port=$(DB_PORT) user=$(DB_USER) password=$(DB_PASSWORD) dbname=$(DB_NAME) sslmode=disable' status"
+
+migrate-create: ## Create a new migration file (Usage: make migrate-create NAME=migration_name)
+	@if [ -z "$(NAME)" ]; then \
+		echo "Error: NAME is required"; \
+		echo "Usage: make migrate-create NAME=migration_name"; \
+		exit 1; \
+	fi
+	@echo "Creating new migration: $(NAME)"
+	@docker run --rm \
+		-v $(PWD)/be/migrations:/migrations \
+		gomicro/goose:latest \
+		/bin/bash -c "cd /migrations && goose create $(NAME) sql"
 
 db-recreate: ## Drop and recreate database, then run migrations
 	@echo "⚠️  WARNING: This will DELETE all data in the database!"

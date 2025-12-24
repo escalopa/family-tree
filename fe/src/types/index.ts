@@ -3,12 +3,11 @@
 export interface User {
   user_id: number;
   full_name: string;
-  arabic_name?: string | null;
-  english_name?: string | null;
   email: string;
   avatar: string | null;
   role_id: number;
   is_active: boolean;
+  preferred_language: string;
   total_score?: number;
 }
 
@@ -19,8 +18,7 @@ export interface AuthResponse {
 export interface SpouseInfo {
   spouse_id: number;
   member_id: number;
-  arabic_name: string;
-  english_name: string;
+  name: string; // Name in user's preferred language
   gender: 'M' | 'F';
   picture: string | null;
   marriage_date: string | null;
@@ -28,18 +26,27 @@ export interface SpouseInfo {
   married_years: number | null;
 }
 
+export interface Language {
+  language_code: string;
+  language_name: string;
+  is_active: boolean;
+  display_order: number;
+}
+
+export interface UserLanguagePreference {
+  preferred_language: string;
+}
+
 export interface MemberInfo {
   member_id: number;
-  arabic_name: string;
-  english_name: string;
+  name: string; // Name in user's preferred language
   picture: string | null;
 }
 
 // Minimal member data for list views
 export interface MemberListItem {
   member_id: number;
-  arabic_name: string;
-  english_name: string;
+  name: string; // Name in user's preferred language
   gender: 'M' | 'F';
   picture: string | null;
   date_of_birth: string | null;
@@ -49,8 +56,7 @@ export interface MemberListItem {
 
 export interface Member {
   member_id: number;
-  arabic_name: string;
-  english_name: string;
+  names: Record<string, string>; // language_code -> name
   gender: 'M' | 'F';
   picture: string | null;
   date_of_birth: string | null;
@@ -62,8 +68,7 @@ export interface Member {
   nicknames: string[];
   profession: string | null;
   version: number;
-  arabic_full_name?: string;
-  english_full_name?: string;
+  full_names?: Record<string, string>; // language_code -> full_name
   age?: number;
   generation_level?: number;
   is_married: boolean;
@@ -74,8 +79,7 @@ export interface Member {
 
 export interface ParentOption {
   member_id: number;
-  arabic_name: string;
-  english_name: string;
+  names: Record<string, string>; // language_code -> name
   picture: string | null;
   gender: 'M' | 'F';
 }
@@ -104,8 +108,7 @@ export interface HistoryRecord {
 export interface ScoreHistory {
   user_id: number;
   member_id: number;
-  member_arabic_name: string;
-  member_english_name: string;
+  member_names: Record<string, string>; // All member names
   field_name: string;
   points: number;
   member_version: number;
@@ -115,8 +118,6 @@ export interface ScoreHistory {
 export interface UserScore {
   user_id: number;
   full_name: string;
-  arabic_name?: string | null;
-  english_name?: string | null;
   avatar: string | null;
   total_score: number;
   rank: number;
@@ -125,8 +126,7 @@ export interface UserScore {
 // Request Types
 
 export interface CreateMemberRequest {
-  arabic_name: string;
-  english_name: string;
+  names: Record<string, string>; // language_code -> name
   gender: 'M' | 'F';
   date_of_birth?: string;
   date_of_death?: string;
@@ -161,11 +161,6 @@ export interface UpdateRoleRequest {
 
 export interface UpdateActiveRequest {
   is_active: boolean;
-}
-
-export interface UpdateNamesRequest {
-  arabic_name?: string | null;
-  english_name?: string | null;
 }
 
 // Search/Query Types

@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/escalopa/family-tree/internal/domain"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -16,25 +17,37 @@ func NewScoreRepository(db *pgxpool.Pool) *ScoreRepository {
 	return &ScoreRepository{db: db}
 }
 
-func (r *ScoreRepository) Create(ctx context.Context, score *domain.Score) error {
+func (r *ScoreRepository) Create(ctx context.Context, scores ...domain.Score) error {
+	if len(scores) == 0 {
+		return nil
+	}
+
+	batch := &pgx.Batch{}
 	query := `
 		INSERT INTO user_scores (user_id, member_id, field_name, points, member_version)
 		VALUES ($1, $2, $3, $4, $5)
-		RETURNING created_at
 	`
-	err := r.db.QueryRow(ctx, query,
-		score.UserID, score.MemberID, score.FieldName, score.Points, score.MemberVersion,
-	).Scan(&score.CreatedAt)
-	if err != nil {
+	for i := range scores {
+		batch.Queue(query,
+			scores[i].UserID,
+			scores[i].MemberID,
+			scores[i].FieldName,
+			scores[i].Points,
+			scores[i].MemberVersion,
+		)
+	}
+
+	br := r.db.SendBatch(ctx, batch)
+	if err := br.Close(); err != nil {
 		return domain.NewDatabaseError(err)
 	}
+
 	return nil
 }
 
 func (r *ScoreRepository) GetByUserID(ctx context.Context, userID int, cursor *string, limit int) ([]*domain.ScoreHistory, *string, error) {
 	query := `
-		SELECT us.user_id, us.member_id, us.field_name, us.points, us.member_version, us.created_at,
-		       m.arabic_name, m.english_name
+		SELECT us.user_id, us.member_id, us.field_name, us.points, us.member_version, us.created_at
 		FROM user_scores us
 		JOIN members m ON us.member_id = m.member_id
 		WHERE us.user_id = $1
@@ -50,20 +63,59 @@ func (r *ScoreRepository) GetByUserID(ctx context.Context, userID int, cursor *s
 	defer rows.Close()
 
 	var scores []*domain.ScoreHistory
+	var memberIDs []int
 	for rows.Next() {
 		s := &domain.ScoreHistory{}
 		err := rows.Scan(
 			&s.UserID, &s.MemberID, &s.FieldName, &s.Points, &s.MemberVersion, &s.CreatedAt,
-			&s.MemberArabicName, &s.MemberEnglishName,
 		)
 		if err != nil {
 			return nil, nil, domain.NewDatabaseError(err)
 		}
 		scores = append(scores, s)
+		memberIDs = append(memberIDs, s.MemberID)
 	}
 
 	if err := rows.Err(); err != nil {
 		return nil, nil, domain.NewDatabaseError(err)
+	}
+
+	if len(scores) == 0 {
+		return nil, nil, nil
+	}
+
+	namesQuery := `
+			SELECT member_id, language_code, name
+			FROM member_names
+			WHERE member_id = ANY($1)
+		`
+	nameRows, err := r.db.Query(ctx, namesQuery, memberIDs)
+	if err != nil {
+		return nil, nil, domain.NewDatabaseError(err)
+	}
+	defer nameRows.Close()
+
+	namesMap := make(map[int]map[string]string)
+	for nameRows.Next() {
+		var (
+			mid            int
+			langCode, name string
+		)
+		if err := nameRows.Scan(&mid, &langCode, &name); err != nil {
+			return nil, nil, domain.NewDatabaseError(err)
+		}
+		if namesMap[mid] == nil {
+			namesMap[mid] = make(map[string]string)
+		}
+		namesMap[mid][langCode] = name
+	}
+
+	for i := range scores {
+		if names, ok := namesMap[scores[i].MemberID]; ok {
+			scores[i].MemberNames = names
+		} else {
+			scores[i].MemberNames = make(map[string]string)
+		}
 	}
 
 	var nextCursor *string

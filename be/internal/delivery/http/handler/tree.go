@@ -34,38 +34,34 @@ func (h *treeHandler) GetTree(c *gin.Context) {
 			return
 		}
 
-		var response []dto.MemberResponse
-		for _, m := range members {
-			spousesDTO := make([]dto.SpouseInfo, len(m.Spouses))
-			for i, spouse := range m.Spouses {
-				spousesDTO[i] = dto.SpouseInfo{
-					SpouseID:     spouse.SpouseID,
-					MemberID:     spouse.MemberID,
-					ArabicName:   spouse.ArabicName,
-					EnglishName:  spouse.EnglishName,
-					Gender:       spouse.Gender,
-					Picture:      spouse.Picture,
-					MarriageDate: dto.FromTimePtr(spouse.MarriageDate),
-					DivorceDate:  dto.FromTimePtr(spouse.DivorceDate),
-					MarriedYears: dto.CalculateMarriedYears(spouse.MarriageDate, spouse.DivorceDate),
+		// Get user's preferred language from middleware
+		preferredLang := middleware.GetPreferredLanguage(c)
+
+		// Helper function to extract name in preferred language
+		extractName := func(names map[string]string) string {
+			name := names[preferredLang]
+			if name == "" {
+				// Fallback to any available name
+				for _, n := range names {
+					if n != "" {
+						name = n
+						break
+					}
 				}
 			}
+			return name
+		}
 
-			response = append(response, dto.MemberResponse{
+		var response []dto.MemberListItem
+		for _, m := range members {
+			response = append(response, dto.MemberListItem{
 				MemberID:    m.MemberID,
-				ArabicName:  m.ArabicName,
-				EnglishName: m.EnglishName,
+				Name:        extractName(m.Names),
 				Gender:      m.Gender,
 				Picture:     m.Picture,
 				DateOfBirth: dto.FromTimePtr(m.DateOfBirth),
 				DateOfDeath: dto.FromTimePtr(m.DateOfDeath),
-				FatherID:    m.FatherID,
-				MotherID:    m.MotherID,
-				Nicknames:   m.Nicknames,
-				Profession:  m.Profession,
-				Version:     m.Version,
 				IsMarried:   m.IsMarried,
-				Spouses:     spousesDTO,
 			})
 		}
 
@@ -79,7 +75,8 @@ func (h *treeHandler) GetTree(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, dto.Response{Success: true, Data: h.convertToTreeResponse(tree)})
+	preferredLang := middleware.GetPreferredLanguage(c)
+	c.JSON(http.StatusOK, dto.Response{Success: true, Data: h.convertToTreeResponse(tree, preferredLang)})
 }
 
 func (h *treeHandler) GetRelation(c *gin.Context) {
@@ -97,22 +94,36 @@ func (h *treeHandler) GetRelation(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, dto.Response{Success: true, Data: h.convertToTreeResponse(tree)})
+	preferredLang := middleware.GetPreferredLanguage(c)
+	c.JSON(http.StatusOK, dto.Response{Success: true, Data: h.convertToTreeResponse(tree, preferredLang)})
 }
 
-func (h *treeHandler) convertToTreeResponse(node *domain.MemberTreeNode) *dto.TreeNodeResponse {
+func (h *treeHandler) convertToTreeResponse(node *domain.MemberTreeNode, preferredLang string) *dto.TreeNodeResponse {
 	if node == nil {
 		return nil
 	}
 
-	// Convert spouse information to DTO
+	// Helper function to extract name in preferred language
+	extractName := func(names map[string]string) string {
+		name := names[preferredLang]
+		if name == "" {
+			// Fallback to any available name
+			for _, n := range names {
+				if n != "" {
+					name = n
+					break
+				}
+			}
+		}
+		return name
+	}
+
 	spousesDTO := make([]dto.SpouseInfo, len(node.Spouses))
 	for i, spouse := range node.Spouses {
 		spousesDTO[i] = dto.SpouseInfo{
 			SpouseID:     spouse.SpouseID,
 			MemberID:     spouse.MemberID,
-			ArabicName:   spouse.ArabicName,
-			EnglishName:  spouse.EnglishName,
+			Name:         extractName(spouse.Names),
 			Gender:       spouse.Gender,
 			Picture:      spouse.Picture,
 			MarriageDate: dto.FromTimePtr(spouse.MarriageDate),
@@ -124,8 +135,8 @@ func (h *treeHandler) convertToTreeResponse(node *domain.MemberTreeNode) *dto.Tr
 	response := &dto.TreeNodeResponse{
 		Member: dto.MemberResponse{
 			MemberID:        node.MemberID,
-			ArabicName:      node.ArabicName,
-			EnglishName:     node.EnglishName,
+			Names:           node.Names,
+			FullNames:       node.FullNames,
 			Gender:          node.Gender,
 			Picture:         node.Picture,
 			DateOfBirth:     dto.FromTimePtr(node.DateOfBirth),
@@ -135,8 +146,6 @@ func (h *treeHandler) convertToTreeResponse(node *domain.MemberTreeNode) *dto.Tr
 			Nicknames:       node.Nicknames,
 			Profession:      node.Profession,
 			Version:         node.Version,
-			ArabicFullName:  node.ArabicFullName,
-			EnglishFullName: node.EnglishFullName,
 			Age:             node.Age,
 			GenerationLevel: node.GenerationLevel,
 			IsMarried:       node.IsMarried,
@@ -146,15 +155,15 @@ func (h *treeHandler) convertToTreeResponse(node *domain.MemberTreeNode) *dto.Tr
 	}
 
 	for _, child := range node.Children {
-		response.Children = append(response.Children, h.convertToTreeResponse(child))
+		response.Children = append(response.Children, h.convertToTreeResponse(child, preferredLang))
 	}
 
 	for _, spouse := range node.SpouseNodes {
-		response.SpouseNodes = append(response.SpouseNodes, h.convertToTreeResponse(spouse))
+		response.SpouseNodes = append(response.SpouseNodes, h.convertToTreeResponse(spouse, preferredLang))
 	}
 
 	for _, sibling := range node.SiblingNodes {
-		response.SiblingNodes = append(response.SiblingNodes, h.convertToTreeResponse(sibling))
+		response.SiblingNodes = append(response.SiblingNodes, h.convertToTreeResponse(sibling, preferredLang))
 	}
 
 	return response

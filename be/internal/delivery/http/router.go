@@ -9,13 +9,14 @@ import (
 )
 
 type Router struct {
-	authHandler    AuthHandler
-	userHandler    UserHandler
-	memberHandler  MemberHandler
-	spouseHandler  SpouseHandler
-	treeHandler    TreeHandler
-	authMiddleware AuthMiddleware
-	allowedOrigins []string
+	authHandler     AuthHandler
+	userHandler     UserHandler
+	memberHandler   MemberHandler
+	spouseHandler   SpouseHandler
+	treeHandler     TreeHandler
+	languageHandler LanguageHandler
+	authMiddleware  AuthMiddleware
+	allowedOrigins  []string
 }
 
 func NewRouter(
@@ -24,17 +25,19 @@ func NewRouter(
 	memberHandler MemberHandler,
 	spouseHandler SpouseHandler,
 	treeHandler TreeHandler,
+	languageHandler LanguageHandler,
 	authMiddleware AuthMiddleware,
 	allowedOrigins []string,
 ) *Router {
 	return &Router{
-		authHandler:    authHandler,
-		userHandler:    userHandler,
-		memberHandler:  memberHandler,
-		spouseHandler:  spouseHandler,
-		treeHandler:    treeHandler,
-		authMiddleware: authMiddleware,
-		allowedOrigins: allowedOrigins,
+		authHandler:     authHandler,
+		userHandler:     userHandler,
+		memberHandler:   memberHandler,
+		spouseHandler:   spouseHandler,
+		treeHandler:     treeHandler,
+		languageHandler: languageHandler,
+		authMiddleware:  authMiddleware,
+		allowedOrigins:  allowedOrigins,
 	}
 }
 
@@ -49,6 +52,7 @@ func (r *Router) Setup(engine *gin.Engine) {
 
 	auth := engine.Group("/auth")
 	{
+		auth.GET("/providers", r.authHandler.GetProviders)
 		auth.GET("/:provider", r.authHandler.GetAuthURL)
 		auth.GET("/:provider/callback", r.authHandler.HandleCallback)
 	}
@@ -94,7 +98,7 @@ func (r *Router) Setup(engine *gin.Engine) {
 
 			memberGroup.POST("", middleware.RequireRole(domain.RoleAdmin), r.memberHandler.CreateMember)
 			memberGroup.PUT("/:member_id", middleware.RequireRole(domain.RoleAdmin), r.memberHandler.UpdateMember)
-			memberGroup.DELETE("/:member_id", middleware.RequireRole(domain.RoleAdmin), r.memberHandler.DeleteMember)
+			memberGroup.DELETE("/:member_id", middleware.RequireRole(domain.RoleSuperAdmin), r.memberHandler.DeleteMember)
 			memberGroup.POST("/:member_id/picture", middleware.RequireRole(domain.RoleAdmin), r.memberHandler.UploadPicture)
 			memberGroup.DELETE("/:member_id/picture", middleware.RequireRole(domain.RoleAdmin), r.memberHandler.DeletePicture)
 		}
@@ -106,6 +110,22 @@ func (r *Router) Setup(engine *gin.Engine) {
 			spouseGroup.PUT("", r.spouseHandler.UpdateSpouse)
 			spouseGroup.PUT("/member", r.spouseHandler.UpdateSpouseByID)
 			spouseGroup.DELETE("", r.spouseHandler.RemoveSpouse)
+		}
+
+		languageGroup := api.Group("/languages")
+		{
+			languageGroup.GET("", r.languageHandler.GetLanguages)
+			languageGroup.GET("/:code", r.languageHandler.GetLanguage)
+
+			languageGroup.POST("", middleware.RequireActive(), middleware.RequireRole(domain.RoleSuperAdmin), r.languageHandler.CreateLanguage)
+			languageGroup.PUT("/:code", middleware.RequireActive(), middleware.RequireRole(domain.RoleSuperAdmin), r.languageHandler.UpdateLanguage)
+		}
+
+		userPrefsGroup := api.Group("/users/me/preferences")
+		userPrefsGroup.Use(middleware.RequireActive())
+		{
+			userPrefsGroup.GET("/languages", r.languageHandler.GetUserLanguagePreference)
+			userPrefsGroup.PUT("/languages", r.languageHandler.UpdateUserLanguagePreference)
 		}
 	}
 }

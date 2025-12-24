@@ -26,18 +26,79 @@ jwt:
 oauth:
   providers:
     google:
+      order: 1  # Lower numbers appear first on login page, default is 999 if not set
       client_id: "your-google-client-id"
       client_secret: "your-google-client-secret"
       user_info_url: "https://www.googleapis.com/oauth2/v2/userinfo"
       scopes:
         - "https://www.googleapis.com/auth/userinfo.email"
         - "https://www.googleapis.com/auth/userinfo.profile"
+
+    # Yandex OAuth configuration
+    # yandex:
+    #   order: 2
+    #   client_id: "your-yandex-client-id"
+    #   client_secret: "your-yandex-client-secret"
+    #   user_info_url: "https://login.yandex.ru/info"
+    #   scopes:
+    #     - "login:email"
+    #     - "login:info"
+
+    # VK (VKontakte) OAuth configuration
+    # vk:
+    #   order: 3
+    #   client_id: "your-vk-app-id"
+    #   client_secret: "your-vk-client-secret"
+    #   user_info_url: "https://api.vk.com/method/users.get"
+    #   scopes:
+    #     - "email"
+
+    # Facebook OAuth configuration
     # facebook:
+    #   order: 4
     #   client_id: "your-facebook-client-id"
     #   client_secret: "your-facebook-client-secret"
+    #   user_info_url: "https://graph.facebook.com/me"
     #   scopes:
     #     - "email"
     #     - "public_profile"
+
+    # Instagram OAuth configuration
+    # instagram:
+    #   order: 5
+    #   client_id: "your-instagram-client-id"
+    #   client_secret: "your-instagram-client-secret"
+    #   user_info_url: "https://graph.instagram.com/me"
+    #   scopes:
+    #     - "user_profile"
+
+    # GitHub OAuth configuration
+    # github:
+    #   order: 6
+    #   client_id: "your-github-client-id"
+    #   client_secret: "your-github-client-secret"
+    #   user_info_url: "https://api.github.com/user"
+    #   scopes:
+    #     - "user:email"
+
+    # GitLab OAuth configuration
+    # gitlab:
+    #   order: 7
+    #   client_id: "your-gitlab-client-id"
+    #   client_secret: "your-gitlab-client-secret"
+    #   user_info_url: "https://gitlab.com/api/v4/user"
+    #   scopes:
+    #     - "read_user"
+
+    # LinkedIn OAuth configuration
+    # linkedin:
+    #   order: 8
+    #   client_id: "your-linkedin-client-id"
+    #   client_secret: "your-linkedin-client-secret"
+    #   user_info_url: "https://api.linkedin.com/v2/me"
+    #   scopes:
+    #     - "r_liteprofile"
+    #     - "r_emailaddress"
 
   redirect_base_url: "http://localhost:5173"
 

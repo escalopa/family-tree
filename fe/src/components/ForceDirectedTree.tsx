@@ -4,6 +4,7 @@ import { ZoomIn, ZoomOut, ZoomOutMap, PlayArrow, Pause, Info } from '@mui/icons-
 import * as d3 from 'd3';
 import { TreeNode, Member } from '../types';
 import { getGenderColor, getMemberPictureUrl } from '../utils/helpers';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface ForceDirectedTreeProps {
   data: TreeNode;
@@ -37,6 +38,7 @@ const ForceDirectedTree: React.FC<ForceDirectedTreeProps> = ({
   const [linkDistance, setLinkDistance] = useState(150);
   const [chargeStrength, setChargeStrength] = useState(-300);
   const [infoDialogOpen, setInfoDialogOpen] = useState(false);
+  const { getPreferredName } = useLanguage();
 
   useEffect(() => {
     if (!svgRef.current || !containerRef.current || !data) return;
@@ -204,7 +206,10 @@ const ForceDirectedTree: React.FC<ForceDirectedTreeProps> = ({
     // Show first letter (no avatars/images)
     node
       .append('text')
-      .text((d) => d.data.english_name.charAt(0).toUpperCase())
+      .text((d) => {
+        const name = getPreferredName(d.data);
+        return name.charAt(0).toUpperCase();
+      })
       .attr('text-anchor', 'middle')
       .attr('dy', '0.35em')
       .attr('font-size', '18px')
@@ -215,7 +220,7 @@ const ForceDirectedTree: React.FC<ForceDirectedTreeProps> = ({
     // Node labels
     node
       .append('text')
-      .text((d) => d.data.english_name)
+      .text((d) => getPreferredName(d.data))
       .attr('text-anchor', 'middle')
       .attr('dy', 45)
       .attr('font-size', '12px')

@@ -2,6 +2,11 @@ import { apiClient } from './client';
 import { AuthResponse } from '../types';
 
 export const authApi = {
+  getProviders: async (): Promise<string[]> => {
+    const response = await apiClient.get('/auth/providers');
+    return response.data.data.providers;
+  },
+
   getAuthURL: async (provider: string): Promise<{ url: string; provider: string }> => {
     const response = await apiClient.get(`/auth/${provider}`);
     return response.data.data;

@@ -151,7 +151,7 @@ func (r *SpouseRepository) GetSpousesByMemberID(ctx context.Context, memberID in
 		WHERE (ms.father_id = $1 OR ms.mother_id = $1)
 		  AND ms.deleted_at IS NULL
 		  AND m.deleted_at IS NULL
-		ORDER BY m.date_of_birth ASC NULLS LAST, m.member_id ASC
+		ORDER BY ms.marriage_date ASC NULLS LAST, m.date_of_birth ASC NULLS LAST, m.member_id ASC
 	`
 	rows, err := r.db.Query(ctx, query, memberID)
 	if err != nil {
@@ -209,8 +209,6 @@ func (r *SpouseRepository) GetSpousesWithMemberInfo(ctx context.Context, memberI
 		SELECT
 			ms.spouse_id,
 			m.member_id,
-			m.arabic_name,
-			m.english_name,
 			m.gender,
 			m.picture,
 			ms.marriage_date,
@@ -221,7 +219,7 @@ func (r *SpouseRepository) GetSpousesWithMemberInfo(ctx context.Context, memberI
 			(ms.mother_id = $1 AND m.member_id = ms.father_id)
 		)
 		WHERE ms.deleted_at IS NULL AND m.deleted_at IS NULL
-		ORDER BY m.date_of_birth ASC NULLS LAST, m.member_id ASC
+		ORDER BY ms.marriage_date ASC NULLS LAST, m.date_of_birth ASC NULLS LAST, m.member_id ASC
 	`
 	rows, err := r.db.Query(ctx, query, memberID)
 	if err != nil {
@@ -230,13 +228,12 @@ func (r *SpouseRepository) GetSpousesWithMemberInfo(ctx context.Context, memberI
 	defer rows.Close()
 
 	var spouses []domain.SpouseWithMemberInfo
+	var memberIDs []int
 	for rows.Next() {
 		var spouse domain.SpouseWithMemberInfo
 		if err := rows.Scan(
 			&spouse.SpouseID,
 			&spouse.MemberID,
-			&spouse.ArabicName,
-			&spouse.EnglishName,
 			&spouse.Gender,
 			&spouse.Picture,
 			&spouse.MarriageDate,
@@ -245,9 +242,47 @@ func (r *SpouseRepository) GetSpousesWithMemberInfo(ctx context.Context, memberI
 			return nil, domain.NewDatabaseError(err)
 		}
 		spouses = append(spouses, spouse)
+		memberIDs = append(memberIDs, spouse.MemberID)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, domain.NewDatabaseError(err)
 	}
+
+	// Fetch names for all spouses
+	if len(memberIDs) > 0 {
+		namesQuery := `
+			SELECT member_id, language_code, name
+			FROM member_names
+			WHERE member_id = ANY($1)
+		`
+		nameRows, err := r.db.Query(ctx, namesQuery, memberIDs)
+		if err != nil {
+			return nil, domain.NewDatabaseError(err)
+		}
+		defer nameRows.Close()
+
+		namesMap := make(map[int]map[string]string)
+		for nameRows.Next() {
+			var mid int
+			var langCode, name string
+			if err := nameRows.Scan(&mid, &langCode, &name); err != nil {
+				return nil, domain.NewDatabaseError(err)
+			}
+			if namesMap[mid] == nil {
+				namesMap[mid] = make(map[string]string)
+			}
+			namesMap[mid][langCode] = name
+		}
+
+		// Assign names to spouses
+		for i := range spouses {
+			if names, ok := namesMap[spouses[i].MemberID]; ok {
+				spouses[i].Names = names
+			} else {
+				spouses[i].Names = make(map[string]string)
+			}
+		}
+	}
+
 	return spouses, nil
 }

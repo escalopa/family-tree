@@ -73,10 +73,9 @@ func (uc *treeUseCase) GetTree(ctx context.Context, rootID *int, userRole int) (
 	virtualRoot := &domain.MemberTreeNode{
 		MemberWithComputed: domain.MemberWithComputed{
 			Member: domain.Member{
-				MemberID:    0,
-				ArabicName:  "All Trees",
-				EnglishName: "All Trees",
-				Gender:      "M",
+				MemberID: 0,
+				Names:    map[string]string{},
+				Gender:   "M",
 			},
 			GenerationLevel: -1,
 		},
@@ -537,8 +536,7 @@ func (uc *treeUseCase) convertSpouseIDsToInfo(spouseIDs []int, memberMap map[int
 		if spouse, exists := memberMap[spouseID]; exists {
 			spouses = append(spouses, domain.SpouseWithMemberInfo{
 				MemberID:     spouse.MemberID,
-				ArabicName:   spouse.ArabicName,
-				EnglishName:  spouse.EnglishName,
+				Names:        spouse.Names,
 				Gender:       spouse.Gender,
 				Picture:      spouse.Picture,
 				MarriageDate: nil, // Will be populated from spouse relationship if needed

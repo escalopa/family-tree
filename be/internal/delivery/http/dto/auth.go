@@ -15,3 +15,7 @@ type AuthResponse struct {
 		IsActive bool    `json:"is_active"`
 	} `json:"user"`
 }
+
+type ProvidersResponse struct {
+	Providers []string `json:"providers"`
+}

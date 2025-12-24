@@ -33,12 +33,14 @@ import { User, ScoreHistory, HistoryRecord } from '../types';
 import { getRoleName, formatDateTime, formatRelativeTime } from '../utils/helpers';
 import Layout from '../components/Layout/Layout';
 import { useAuth } from '../contexts/AuthContext';
+import { useLanguage } from '../contexts/LanguageContext';
 import { Roles } from '../types';
 import HistoryDiffDialog from '../components/HistoryDiffDialog';
 
 const UserProfilePage: React.FC = () => {
   const { userId } = useParams<{ userId: string }>();
   const { hasRole } = useAuth();
+  const { getPreferredName, getAllNamesFormatted } = useLanguage();
   const [user, setUser] = useState<User | null>(null);
   const [scoreHistory, setScoreHistory] = useState<ScoreHistory[]>([]);
   const [displayedScoreCount, setDisplayedScoreCount] = useState(10);
@@ -94,11 +96,11 @@ const UserProfilePage: React.FC = () => {
         points: score.points,
         cumulative: cumulativeScore,
         timestamp: date.getTime(),
-        memberName: `${score.member_arabic_name} (${score.member_english_name})`,
+        memberName: getPreferredName({ names: score.member_names }),
         fieldName: score.field_name,
       };
     });
-  }, [scoreHistory]);
+  }, [scoreHistory, getPreferredName]);
 
   useEffect(() => {
     if (userId) {
@@ -129,7 +131,6 @@ const UserProfilePage: React.FC = () => {
 
       setScoreHistory(allScores);
       setDisplayedScoreCount(10); // Reset pagination
-      console.log(`Loaded ${allScores.length} score history records for user ${userId}`);
 
       // Only super admins can see user changes
       if (hasRole(Roles.SUPER_ADMIN)) {
@@ -151,7 +152,6 @@ const UserProfilePage: React.FC = () => {
 
         setUserChanges(allChanges);
         setDisplayedChangesCount(10); // Reset pagination
-        console.log(`Loaded ${allChanges.length} change history records for user ${userId}`);
       }
     } catch (error) {
       console.error('Failed to load user data:', error);
@@ -396,7 +396,7 @@ const UserProfilePage: React.FC = () => {
                       scoreHistory.slice(0, displayedScoreCount).map((score, idx) => (
                         <TableRow key={idx}>
                           <TableCell>
-                            {score.member_arabic_name} ({score.member_english_name})
+                            {getAllNamesFormatted({ names: score.member_names })}
                           </TableCell>
                           <TableCell>{score.field_name}</TableCell>
                           <TableCell>

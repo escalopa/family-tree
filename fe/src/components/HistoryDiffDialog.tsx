@@ -30,8 +30,6 @@ const HistoryDiffDialog: React.FC<HistoryDiffDialogProps> = ({ open, onClose, hi
 
   const getFieldLabel = (field: string): string => {
     const labels: Record<string, string> = {
-      arabic_name: 'Arabic Name',
-      english_name: 'English Name',
       gender: 'Gender',
       picture: 'Picture',
       date_of_birth: 'Date of Birth',
@@ -44,6 +42,13 @@ const HistoryDiffDialog: React.FC<HistoryDiffDialogProps> = ({ open, onClose, hi
       marriage_date: 'Marriage Date',
       divorce_date: 'Divorce Date',
     };
+
+    // Handle dynamic name fields (e.g., name_ar, name_en, name_ru)
+    if (field.startsWith('name_')) {
+      const langCode = field.substring(5).toUpperCase();
+      return `Name (${langCode})`;
+    }
+
     return labels[field] || field;
   };
 

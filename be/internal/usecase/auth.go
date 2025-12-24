@@ -222,3 +222,7 @@ func (uc *authUseCase) ValidateSession(ctx context.Context, sessionID string) (*
 	}
 	return session, nil
 }
+
+func (uc *authUseCase) GetSupportedProviders(ctx context.Context) []string {
+	return uc.oauthMgr.GetSupportedProviders()
+}

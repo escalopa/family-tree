@@ -17,6 +17,7 @@ import {
   SupervisorAccount,
   Leaderboard,
   AccountCircle,
+  Settings,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -62,6 +63,11 @@ const Header: React.FC = () => {
     if (user) {
       navigate(`/users/${user.user_id}`);
     }
+    handleClose();
+  };
+
+  const handleConfiguration = () => {
+    navigate('/configuration');
     handleClose();
   };
 
@@ -142,7 +148,14 @@ const Header: React.FC = () => {
               open={Boolean(anchorEl)}
               onClose={handleClose}
             >
-              <MenuItem onClick={handleProfile}>Profile</MenuItem>
+              <MenuItem onClick={handleProfile}>
+                <AccountCircle sx={{ mr: 1 }} fontSize="small" />
+                Profile
+              </MenuItem>
+              <MenuItem onClick={handleConfiguration}>
+                <Settings sx={{ mr: 1 }} fontSize="small" />
+                Configuration
+              </MenuItem>
               <Divider />
               <MenuItem onClick={handleLogout}>Logout</MenuItem>
               <MenuItem onClick={handleLogoutAll} sx={{ color: 'error.main' }}>

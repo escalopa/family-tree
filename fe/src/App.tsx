@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider, createTheme, CssBaseline } from '@mui/material';
 import { AuthProvider } from './contexts/AuthContext';
+import { LanguageProvider } from './contexts/LanguageContext';
 import ProtectedRoute from './components/ProtectedRoute';
 
 // Pages
@@ -14,6 +15,7 @@ import LeaderboardPage from './pages/LeaderboardPage';
 import MembersPage from './pages/MembersPage';
 import UsersPage from './pages/UsersPage';
 import UserProfilePage from './pages/UserProfilePage';
+import ConfigurationPage from './pages/ConfigurationPage';
 
 import { Roles } from './types';
 
@@ -33,65 +35,75 @@ const App: React.FC = () => {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <AuthProvider>
-        <Router>
-          <Routes>
-            {/* Public Routes */}
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/auth/:provider/callback" element={<CallbackPage />} />
-            <Route path="/inactive" element={<InactivePage />} />
-            <Route path="/unauthorized" element={<UnauthorizedPage />} />
+        <LanguageProvider>
+          <Router>
+            <Routes>
+              {/* Public Routes */}
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/auth/:provider/callback" element={<CallbackPage />} />
+              <Route path="/inactive" element={<InactivePage />} />
+              <Route path="/unauthorized" element={<UnauthorizedPage />} />
 
-            {/* Protected Routes - Require Authentication */}
-            <Route
-              path="/tree"
-              element={
-                <ProtectedRoute requireActive>
-                  <TreePage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/leaderboard"
-              element={
-                <ProtectedRoute requireActive>
-                  <LeaderboardPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/users/:userId"
-              element={
-                <ProtectedRoute requireActive>
-                  <UserProfilePage />
-                </ProtectedRoute>
-              }
-            />
+              {/* Protected Routes - Require Authentication */}
+              <Route
+                path="/tree"
+                element={
+                  <ProtectedRoute requireActive>
+                    <TreePage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/leaderboard"
+                element={
+                  <ProtectedRoute requireActive>
+                    <LeaderboardPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/users/:userId"
+                element={
+                  <ProtectedRoute requireActive>
+                    <UserProfilePage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/configuration"
+                element={
+                  <ProtectedRoute requireActive>
+                    <ConfigurationPage />
+                  </ProtectedRoute>
+                }
+              />
 
-            {/* Admin Routes */}
-            <Route
-              path="/members"
-              element={
-                <ProtectedRoute requireActive minRole={Roles.ADMIN}>
-                  <MembersPage />
-                </ProtectedRoute>
-              }
-            />
+              {/* Admin Routes */}
+              <Route
+                path="/members"
+                element={
+                  <ProtectedRoute requireActive minRole={Roles.ADMIN}>
+                    <MembersPage />
+                  </ProtectedRoute>
+                }
+              />
 
-            {/* Admin Routes - Can view users, only SuperAdmin can edit */}
-            <Route
-              path="/users"
-              element={
-                <ProtectedRoute requireActive minRole={Roles.ADMIN}>
-                  <UsersPage />
-                </ProtectedRoute>
-              }
-            />
+              {/* Admin Routes - Can view users, only SuperAdmin can edit */}
+              <Route
+                path="/users"
+                element={
+                  <ProtectedRoute requireActive minRole={Roles.ADMIN}>
+                    <UsersPage />
+                  </ProtectedRoute>
+                }
+              />
 
-            {/* Default Route */}
-            <Route path="/" element={<Navigate to="/tree" replace />} />
-            <Route path="*" element={<Navigate to="/tree" replace />} />
-          </Routes>
-        </Router>
+              {/* Default Route */}
+              <Route path="/" element={<Navigate to="/tree" replace />} />
+              <Route path="*" element={<Navigate to="/tree" replace />} />
+            </Routes>
+          </Router>
+        </LanguageProvider>
       </AuthProvider>
     </ThemeProvider>
   );

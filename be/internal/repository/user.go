@@ -34,14 +34,17 @@ func (r *UserRepository) Create(ctx context.Context, user *domain.User) error {
 
 func (r *UserRepository) GetByID(ctx context.Context, userID int) (*domain.User, error) {
 	query := `
-		SELECT user_id, full_name, email, avatar, role_id, is_active, created_at
-		FROM users
-		WHERE user_id = $1
+		SELECT
+			u.user_id, u.full_name, u.email, u.avatar, u.role_id, u.is_active, u.created_at,
+			COALESCE(ulp.preferred_language, 'en') as preferred_language
+		FROM users u
+		LEFT JOIN user_language_preferences ulp ON u.user_id = ulp.user_id
+		WHERE u.user_id = $1
 	`
 	user := &domain.User{}
 	err := r.db.QueryRow(ctx, query, userID).Scan(
 		&user.UserID, &user.FullName, &user.Email, &user.Avatar,
-		&user.RoleID, &user.IsActive, &user.CreatedAt,
+		&user.RoleID, &user.IsActive, &user.CreatedAt, &user.PreferredLanguage,
 	)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, domain.NewNotFoundError("user")
@@ -54,14 +57,17 @@ func (r *UserRepository) GetByID(ctx context.Context, userID int) (*domain.User,
 
 func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*domain.User, error) {
 	query := `
-		SELECT user_id, full_name, email, avatar, role_id, is_active, created_at
-		FROM users
-		WHERE email = $1
+		SELECT
+			u.user_id, u.full_name, u.email, u.avatar, u.role_id, u.is_active, u.created_at,
+			COALESCE(ulp.preferred_language, 'en') as preferred_language
+		FROM users u
+		LEFT JOIN user_language_preferences ulp ON u.user_id = ulp.user_id
+		WHERE u.email = $1
 	`
 	user := &domain.User{}
 	err := r.db.QueryRow(ctx, query, email).Scan(
 		&user.UserID, &user.FullName, &user.Email, &user.Avatar,
-		&user.RoleID, &user.IsActive, &user.CreatedAt,
+		&user.RoleID, &user.IsActive, &user.CreatedAt, &user.PreferredLanguage,
 	)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
@@ -105,13 +111,16 @@ func (r *UserRepository) UpdateActive(ctx context.Context, userID int, isActive 
 
 func (r *UserRepository) List(ctx context.Context, filter domain.UserFilter, cursor *string, limit int) ([]*domain.User, *string, error) {
 	query := `
-		SELECT user_id, full_name, email, avatar, role_id, is_active, created_at
-		FROM users
-		WHERE (($1::text IS NULL) OR user_id > $1::int)
-		  AND (($2::text IS NULL) OR (full_name ILIKE '%' || $2 || '%' OR email ILIKE '%' || $2 || '%'))
-		  AND (($3::int IS NULL) OR role_id = $3)
-		  AND (($4::boolean IS NULL) OR is_active = $4)
-		ORDER BY user_id
+		SELECT
+			u.user_id, u.full_name, u.email, u.avatar, u.role_id, u.is_active, u.created_at,
+			COALESCE(ulp.preferred_language, 'en') as preferred_language
+		FROM users u
+		LEFT JOIN user_language_preferences ulp ON u.user_id = ulp.user_id
+		WHERE (($1::text IS NULL) OR u.user_id > $1::int)
+		  AND (($2::text IS NULL) OR (u.full_name ILIKE '%' || $2 || '%' OR u.email ILIKE '%' || $2 || '%'))
+		  AND (($3::int IS NULL) OR u.role_id = $3)
+		  AND (($4::boolean IS NULL) OR u.is_active = $4)
+		ORDER BY u.user_id
 		LIMIT $5
 	`
 
@@ -126,7 +135,7 @@ func (r *UserRepository) List(ctx context.Context, filter domain.UserFilter, cur
 		user := &domain.User{}
 		err := rows.Scan(
 			&user.UserID, &user.FullName, &user.Email, &user.Avatar,
-			&user.RoleID, &user.IsActive, &user.CreatedAt,
+			&user.RoleID, &user.IsActive, &user.CreatedAt, &user.PreferredLanguage,
 		)
 		if err != nil {
 			return nil, nil, domain.NewDatabaseError(err)
@@ -150,16 +159,18 @@ func (r *UserRepository) List(ctx context.Context, filter domain.UserFilter, cur
 func (r *UserRepository) GetWithScore(ctx context.Context, userID int) (*domain.UserWithScore, error) {
 	query := `
 		SELECT u.user_id, u.full_name, u.email, u.avatar, u.role_id, u.is_active, u.created_at,
+		       COALESCE(ulp.preferred_language, 'en') as preferred_language,
 		       COALESCE(SUM(us.points), 0) as total_score
 		FROM users u
+		LEFT JOIN user_language_preferences ulp ON u.user_id = ulp.user_id
 		LEFT JOIN user_scores us ON u.user_id = us.user_id
 		WHERE u.user_id = $1
-		GROUP BY u.user_id
+		GROUP BY u.user_id, ulp.preferred_language
 	`
 	user := &domain.UserWithScore{}
 	err := r.db.QueryRow(ctx, query, userID).Scan(
 		&user.UserID, &user.FullName, &user.Email, &user.Avatar,
-		&user.RoleID, &user.IsActive, &user.CreatedAt, &user.TotalScore,
+		&user.RoleID, &user.IsActive, &user.CreatedAt, &user.PreferredLanguage, &user.TotalScore,
 	)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, domain.NewNotFoundError("user")

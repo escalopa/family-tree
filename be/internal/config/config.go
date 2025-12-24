@@ -4,7 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"maps"
+	"math"
 	"os"
+	"slices"
 	"strings"
 	"time"
 
@@ -44,9 +47,11 @@ type DatabaseConfig struct {
 type OAuthConfig struct {
 	Providers       map[string]OAuthProviderConfig `mapstructure:"providers" json:"providers"`
 	RedirectBaseURL string                         `mapstructure:"redirect_base_url" env:"OAUTH_REDIRECT_BASE_URL" json:"redirect_base_url"`
+	providerOrder   []string                       // cached computed order
 }
 
 type OAuthProviderConfig struct {
+	Order        int      `mapstructure:"order" json:"order"`
 	ClientID     string   `mapstructure:"client_id" env:"CLIENT_ID" json:"client_id"`
 	ClientSecret string   `mapstructure:"client_secret" env:"CLIENT_SECRET" json:"client_secret"`
 	Scopes       []string `mapstructure:"scopes" json:"scopes"`
@@ -164,6 +169,8 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("unmarshal config: %w", err)
 	}
 
+	cfg.OAuth.computeProviderOrder()
+
 	slog.Info("Config", "config", cfg.String())
 
 	return &cfg, nil
@@ -183,4 +190,29 @@ func (c *JWTConfig) ParseRefreshExpiry() time.Duration {
 
 func (c *OAuthConfig) GetRedirectURL(provider string) string {
 	return fmt.Sprintf("%s/auth/%s/callback", c.RedirectBaseURL, provider)
+}
+
+func (c *OAuthConfig) computeProviderOrder() {
+	c.providerOrder = slices.Collect(maps.Keys(c.Providers))
+
+	slices.SortFunc(c.providerOrder, func(a, b string) int {
+		orderA := c.Providers[a].Order
+		if orderA == 0 {
+			orderA = math.MaxInt
+		}
+		orderB := c.Providers[b].Order
+		if orderB == 0 {
+			orderB = math.MaxInt
+		}
+
+		if orderA == orderB {
+			return strings.Compare(a, b)
+		}
+
+		return orderA - orderB
+	})
+}
+
+func (c *OAuthConfig) GetProviderOrder() []string {
+	return c.providerOrder
 }

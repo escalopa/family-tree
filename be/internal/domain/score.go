@@ -4,9 +4,8 @@ import "time"
 
 const (
 	// Mandatory fields
-	PointsArabicName  = 1
-	PointsEnglishName = 1
-	PointsGender      = 1
+	PointsName   = 1
+	PointsGender = 1
 
 	// Optional fields
 	PointsPicture     = 2
@@ -38,6 +37,5 @@ type UserScore struct {
 
 type ScoreHistory struct {
 	Score
-	MemberArabicName  string `json:"member_arabic_name"`
-	MemberEnglishName string `json:"member_english_name"`
+	MemberNames map[string]string `json:"member_names"`
 }

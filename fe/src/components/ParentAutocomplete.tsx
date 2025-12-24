@@ -3,6 +3,7 @@ import { Autocomplete, TextField, Avatar, Box, Typography, CircularProgress } fr
 import { membersApi } from '../api';
 import { getMemberPictureUrl } from '../utils/helpers';
 import { ParentOption } from '../types';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface ParentAutocompleteProps {
   label: string;
@@ -10,7 +11,7 @@ interface ParentAutocompleteProps {
   value: number | null;
   onChange: (value: number | null) => void;
   disabled?: boolean;
-  initialParent?: { member_id: number; arabic_name: string; english_name: string; picture: string | null } | null;
+  initialParent?: { member_id: number; names: Record<string, string>; picture: string | null } | null;
 }
 
 const ParentAutocomplete: React.FC<ParentAutocompleteProps> = ({
@@ -21,6 +22,7 @@ const ParentAutocomplete: React.FC<ParentAutocompleteProps> = ({
   disabled = false,
   initialParent = null,
 }) => {
+  const { getPreferredName, getAllNamesFormatted } = useLanguage();
   const [options, setOptions] = useState<ParentOption[]>([]);
   const [loading, setLoading] = useState(false);
   const [inputValue, setInputValue] = useState('');
@@ -85,7 +87,7 @@ const ParentAutocomplete: React.FC<ParentAutocompleteProps> = ({
         }
         setInputValue(newInputValue);
       }}
-      getOptionLabel={(option) => `${option.arabic_name} - ${option.english_name}`}
+      getOptionLabel={(option) => getPreferredName(option)}
       isOptionEqualToValue={(option, value) => option.member_id === value.member_id}
       loading={loading}
       disabled={disabled}
@@ -109,7 +111,7 @@ const ParentAutocomplete: React.FC<ParentAutocompleteProps> = ({
                   mr: 1,
                 }}
               >
-                {selectedOption.english_name.charAt(0)}
+                {getPreferredName(selectedOption).charAt(0) || '?'}
               </Avatar>
             ),
             endAdornment: (
@@ -131,13 +133,10 @@ const ParentAutocomplete: React.FC<ParentAutocompleteProps> = ({
               bgcolor: option.gender === 'M' ? '#00BCD4' : '#E91E63',
             }}
           >
-            {option.english_name.charAt(0)}
+            {getPreferredName(option).charAt(0) || '?'}
           </Avatar>
           <Box>
-            <Typography variant="body2">{option.arabic_name}</Typography>
-            <Typography variant="caption" color="text.secondary">
-              {option.english_name}
-            </Typography>
+            <Typography variant="body2">{getAllNamesFormatted(option)}</Typography>
           </Box>
         </Box>
       )}

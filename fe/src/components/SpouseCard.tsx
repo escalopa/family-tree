@@ -124,11 +124,11 @@ const SpouseCard: React.FC<SpouseCardProps> = ({
             bgcolor: spouse.gender === 'M' ? '#00BCD4' : '#E91E63',
           }}
         >
-          {spouse.english_name[0]}
+          {spouse.name?.[0] || '?'}
         </Avatar>
         <CardContent sx={{ flex: 1, p: 0 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-            <Typography variant="h6">{spouse.english_name}</Typography>
+            <Typography variant="h6">{spouse.name || 'N/A'}</Typography>
             {isDivorced && (
               <Chip
                 icon={<HeartBroken />}
@@ -138,9 +138,6 @@ const SpouseCard: React.FC<SpouseCardProps> = ({
               />
             )}
           </Box>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
-            {spouse.arabic_name}
-          </Typography>
           {spouse.marriage_date && (
             <Typography variant="caption" color="text.secondary">
               Married: {formatDate(spouse.marriage_date)}
@@ -174,7 +171,7 @@ const SpouseCard: React.FC<SpouseCardProps> = ({
           <Grid container spacing={2} sx={{ mt: 1 }}>
             <Grid item xs={12}>
               <Typography variant="body2" color="text.secondary" gutterBottom>
-                Editing marriage information for {spouse.english_name}
+                Editing marriage information for {spouse.name || 'Unknown'}
               </Typography>
             </Grid>
             <Grid item xs={12} sm={6}>
@@ -214,7 +211,7 @@ const SpouseCard: React.FC<SpouseCardProps> = ({
         <DialogTitle>Delete Spouse Relationship</DialogTitle>
         <DialogContent>
           <Typography>
-            Are you sure you want to delete the spouse relationship with {spouse.english_name}?
+            Are you sure you want to delete the spouse relationship with {spouse.name || 'Unknown'}?
           </Typography>
           <Typography variant="body2" color="error" sx={{ mt: 2 }}>
             Note: You cannot delete a spouse relationship if there are children with both parents.

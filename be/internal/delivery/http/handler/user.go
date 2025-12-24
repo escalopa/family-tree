@@ -218,14 +218,13 @@ func (h *userHandler) GetScoreHistory(c *gin.Context) {
 	var scoresResponse []dto.ScoreHistoryResponse
 	for _, s := range scores {
 		scoresResponse = append(scoresResponse, dto.ScoreHistoryResponse{
-			UserID:            s.UserID,
-			MemberID:          s.MemberID,
-			MemberArabicName:  s.MemberArabicName,
-			MemberEnglishName: s.MemberEnglishName,
-			FieldName:         s.FieldName,
-			Points:            s.Points,
-			MemberVersion:     s.MemberVersion,
-			CreatedAt:         s.CreatedAt,
+			UserID:        s.UserID,
+			MemberID:      s.MemberID,
+			MemberNames:   s.MemberNames,
+			FieldName:     s.FieldName,
+			Points:        s.Points,
+			MemberVersion: s.MemberVersion,
+			CreatedAt:     s.CreatedAt,
 		})
 	}
 

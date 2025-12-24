@@ -32,23 +32,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   useEffect(() => {
     const checkAuth = async () => {
-      console.log('[AuthContext] Checking authentication...');
       try {
         // Try to fetch user from backend (will use cookies)
         // Backend middleware will auto-refresh tokens if needed
-        console.log('[AuthContext] Calling GET /api/auth/me');
         const response = await authApi.getCurrentUser();
-        console.log('[AuthContext] Auth successful, user:', response.user);
         setUser(response.user);
         localStorage.setItem('user', JSON.stringify(response.user));
       } catch (error: any) {
         // If 401, user is not authenticated (both tokens expired/invalid)
-        console.log('[AuthContext] Auth failed:', error.response?.status, error.message);
         setUser(null);
         localStorage.removeItem('user');
       } finally {
         setLoading(false);
-        console.log('[AuthContext] Loading complete');
       }
     };
 
@@ -69,14 +64,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const refreshUser = async () => {
-    console.log('[AuthContext] Manually refreshing user data...');
     try {
       const response = await authApi.getCurrentUser();
-      console.log('[AuthContext] User data refreshed:', response.user);
       setUser(response.user);
       localStorage.setItem('user', JSON.stringify(response.user));
     } catch (error: any) {
-      console.log('[AuthContext] Refresh failed:', error.response?.status, error.message);
       setUser(null);
       localStorage.removeItem('user');
       throw error;

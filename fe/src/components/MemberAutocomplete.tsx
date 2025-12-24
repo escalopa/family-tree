@@ -3,6 +3,7 @@ import { Autocomplete, TextField, Box, Typography, CircularProgress, Avatar } fr
 import { membersApi } from '../api';
 import { ParentOption } from '../types';
 import { debounce, getGenderColor, getMemberPictureUrl } from '../utils/helpers';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface MemberAutocompleteProps {
   label: string;
@@ -17,6 +18,7 @@ const MemberAutocomplete: React.FC<MemberAutocompleteProps> = ({
   onChange,
   disabled,
 }) => {
+  const { getPreferredName, getAllNamesFormatted } = useLanguage();
   const [options, setOptions] = useState<ParentOption[]>([]);
   const [loading, setLoading] = useState(false);
   const [inputValue, setInputValue] = useState('');
@@ -57,7 +59,7 @@ const MemberAutocomplete: React.FC<MemberAutocompleteProps> = ({
       options={options || []}
       loading={loading}
       disabled={disabled}
-      getOptionLabel={(option) => `${option.arabic_name} (${option.english_name})`}
+      getOptionLabel={(option) => getPreferredName(option)}
       isOptionEqualToValue={(option, value) => option.member_id === value.member_id}
       renderOption={(props, option) => (
         <Box component="li" {...props} sx={{ display: 'flex', gap: 1.5, alignItems: 'center' }}>
@@ -69,13 +71,10 @@ const MemberAutocomplete: React.FC<MemberAutocompleteProps> = ({
               bgcolor: getGenderColor(option.gender),
             }}
           >
-            {option.english_name.charAt(0)}
+            {getPreferredName(option).charAt(0) || '?'}
           </Avatar>
           <Box>
-            <Typography variant="body2">{option.arabic_name}</Typography>
-            <Typography variant="caption" color="text.secondary">
-              {option.english_name}
-            </Typography>
+            <Typography variant="body2">{getAllNamesFormatted(option)}</Typography>
           </Box>
         </Box>
       )}
@@ -95,7 +94,7 @@ const MemberAutocomplete: React.FC<MemberAutocompleteProps> = ({
                   mr: 1,
                 }}
               >
-                {value.english_name.charAt(0)}
+                {getPreferredName(value).charAt(0) || '?'}
               </Avatar>
             ),
             endAdornment: (

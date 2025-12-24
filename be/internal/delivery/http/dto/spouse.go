@@ -41,8 +41,7 @@ type UpdateSpouseByMemberRequest struct {
 type SpouseInfo struct {
 	SpouseID     int     `json:"spouse_id"`
 	MemberID     int     `json:"member_id"`
-	ArabicName   string  `json:"arabic_name"`
-	EnglishName  string  `json:"english_name"`
+	Name         string  `json:"name"`
 	Gender       string  `json:"gender"`
 	Picture      *string `json:"picture"`
 	MarriageDate *Date   `json:"marriage_date"`

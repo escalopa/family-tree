@@ -30,7 +30,7 @@ interface MemberTableViewProps {
   onLoadMore?: () => void;
 }
 
-type SortField = 'arabic_name' | 'english_name' | 'gender' | 'date_of_birth';
+type SortField = 'primary_name' | 'secondary_name' | 'gender' | 'date_of_birth';
 type SortOrder = 'asc' | 'desc';
 
 const MemberTableView: React.FC<MemberTableViewProps> = ({
@@ -62,11 +62,9 @@ const MemberTableView: React.FC<MemberTableViewProps> = ({
     let filtered = members;
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
-      filtered = members.filter(
-        (member) =>
-          member.arabic_name.toLowerCase().includes(query) ||
-          member.english_name.toLowerCase().includes(query)
-      );
+      filtered = members.filter((member) => {
+        return member.name.toLowerCase().includes(query);
+      });
     }
 
     // Sort
@@ -75,13 +73,13 @@ const MemberTableView: React.FC<MemberTableViewProps> = ({
       let bValue: any;
 
       switch (sortField) {
-        case 'arabic_name':
-          aValue = a.arabic_name;
-          bValue = b.arabic_name;
+        case 'primary_name':
+          aValue = a.name;
+          bValue = b.name;
           break;
-        case 'english_name':
-          aValue = a.english_name;
-          bValue = b.english_name;
+        case 'secondary_name':
+          aValue = a.name;
+          bValue = b.name;
           break;
         case 'gender':
           aValue = a.gender;
@@ -197,20 +195,11 @@ const MemberTableView: React.FC<MemberTableViewProps> = ({
               <TableCell>Photo</TableCell>
               <TableCell>
                 <TableSortLabel
-                  active={sortField === 'arabic_name'}
-                  direction={sortField === 'arabic_name' ? sortOrder : 'asc'}
-                  onClick={() => handleSort('arabic_name')}
+                  active={sortField === 'primary_name'}
+                  direction={sortField === 'primary_name' ? sortOrder : 'asc'}
+                  onClick={() => handleSort('primary_name')}
                 >
-                  Arabic Name
-                </TableSortLabel>
-              </TableCell>
-              <TableCell>
-                <TableSortLabel
-                  active={sortField === 'english_name'}
-                  direction={sortField === 'english_name' ? sortOrder : 'asc'}
-                  onClick={() => handleSort('english_name')}
-                >
-                  English Name
+                  Name
                 </TableSortLabel>
               </TableCell>
               <TableCell>
@@ -237,7 +226,7 @@ const MemberTableView: React.FC<MemberTableViewProps> = ({
           <TableBody>
             {(!members || members.length === 0) && !loading && (
               <TableRow>
-                <TableCell colSpan={6} align="center" sx={{ py: 4, color: 'text.secondary' }}>
+                <TableCell colSpan={5} align="center" sx={{ py: 4, color: 'text.secondary' }}>
                   {searchQuery
                     ? 'No members found matching your search'
                     : 'No members found'}
@@ -246,7 +235,7 @@ const MemberTableView: React.FC<MemberTableViewProps> = ({
             )}
             {loading && members.length === 0 && (
               <TableRow>
-                <TableCell colSpan={6} align="center" sx={{ py: 8 }}>
+                <TableCell colSpan={5} align="center" sx={{ py: 8 }}>
                   <CircularProgress />
                   <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
                     Loading members...
@@ -266,13 +255,12 @@ const MemberTableView: React.FC<MemberTableViewProps> = ({
                     src={getMemberPictureUrl(member.member_id, member.picture) || undefined}
                     sx={{ bgcolor: getGenderColor(member.gender) }}
                   >
-                    {member.english_name.charAt(0)}
+                    {member.name.charAt(0) || '?'}
                   </Avatar>
                 </TableCell>
                 <TableCell>
-                  <Box sx={{ fontWeight: 500 }}>{member.arabic_name}</Box>
+                  <Box sx={{ fontWeight: 500 }}>{member.name}</Box>
                 </TableCell>
-                <TableCell>{member.english_name}</TableCell>
                 <TableCell>
                   <Chip
                     label={member.gender === 'M' ? 'Male' : member.gender === 'F' ? 'Female' : 'Other'}

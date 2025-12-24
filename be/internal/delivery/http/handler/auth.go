@@ -193,3 +193,22 @@ func (h *authHandler) GetCurrentUser(c *gin.Context) {
 		Data:    response,
 	})
 }
+
+// GetProviders godoc
+// @Summary Get available OAuth providers
+// @Description Returns the list of enabled OAuth providers in order
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Success 200 {object} dto.Response{data=dto.ProvidersResponse}
+// @Router /auth/providers [get]
+func (h *authHandler) GetProviders(c *gin.Context) {
+	providers := h.authUseCase.GetSupportedProviders(c.Request.Context())
+
+	c.JSON(http.StatusOK, dto.Response{
+		Success: true,
+		Data: dto.ProvidersResponse{
+			Providers: providers,
+		},
+	})
+}

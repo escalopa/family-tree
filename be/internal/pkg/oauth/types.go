@@ -8,7 +8,14 @@ import (
 )
 
 const (
-	ProviderGoogle = "google"
+	ProviderGoogle    = "google"
+	ProviderYandex    = "yandex"
+	ProviderVK        = "vk"
+	ProviderFacebook  = "facebook"
+	ProviderInstagram = "instagram"
+	ProviderGitHub    = "github"
+	ProviderGitLab    = "gitlab"
+	ProviderLinkedIn  = "linkedin"
 )
 
 type OAuthProvider interface {
@@ -21,5 +28,12 @@ type OAuthProvider interface {
 type ProviderFactory func(clientID, clientSecret, redirectURL, userInfoURL string, scopes []string) OAuthProvider
 
 var ProviderFactories = map[string]ProviderFactory{
-	ProviderGoogle: NewGoogleProvider,
+	ProviderGoogle:    NewGoogleProvider,
+	ProviderYandex:    NewYandexProvider,
+	ProviderVK:        NewVKProvider,
+	ProviderFacebook:  NewFacebookProvider,
+	ProviderInstagram: NewInstagramProvider,
+	ProviderGitHub:    NewGitHubProvider,
+	ProviderGitLab:    NewGitLabProvider,
+	ProviderLinkedIn:  NewLinkedInProvider,
 }

@@ -8,10 +8,11 @@ import (
 )
 
 const (
-	keyUserID    = "user_id"
-	keyUserRole  = "user_role"
-	keyIsActive  = "is_active"
-	keySessionID = "session_id"
+	keyUserID            = "user_id"
+	keyUserRole          = "user_role"
+	keyIsActive          = "is_active"
+	keySessionID         = "session_id"
+	keyPreferredLanguage = "preferred_language"
 )
 
 type authMiddleware struct {
@@ -83,39 +84,33 @@ func (m *authMiddleware) Authenticate() gin.HandlerFunc {
 		c.Set(keyUserRole, user.RoleID)
 		c.Set(keyIsActive, user.IsActive)
 		c.Set(keySessionID, claims.SessionID)
+		c.Set(keyPreferredLanguage, user.PreferredLanguage)
 
 		c.Next()
 	}
 }
 
 func GetUserID(c *gin.Context) int {
-	userID, exists := c.Get(keyUserID)
-	if !exists {
-		return 0
-	}
+	userID, _ := c.Get(keyUserID)
 	return userID.(int)
 }
 
 func GetUserRole(c *gin.Context) int {
-	roleID, exists := c.Get(keyUserRole)
-	if !exists {
-		return 0
-	}
+	roleID, _ := c.Get(keyUserRole)
 	return roleID.(int)
 }
 
 func GetIsActive(c *gin.Context) bool {
-	isActive, exists := c.Get(keyIsActive)
-	if !exists {
-		return false
-	}
+	isActive, _ := c.Get(keyIsActive)
 	return isActive.(bool)
 }
 
 func GetSessionID(c *gin.Context) string {
-	sessionID, exists := c.Get(keySessionID)
-	if !exists {
-		return ""
-	}
+	sessionID, _ := c.Get(keySessionID)
 	return sessionID.(string)
+}
+
+func GetPreferredLanguage(c *gin.Context) string {
+	preferredLang, _ := c.Get(keyPreferredLanguage)
+	return preferredLang.(string)
 }

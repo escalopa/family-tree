@@ -30,7 +30,7 @@ type MemberRepository interface {
 	Create(ctx context.Context, member *domain.Member) error
 	GetByID(ctx context.Context, memberID int) (*domain.Member, error)
 	Update(ctx context.Context, member *domain.Member, expectedVersion int) error
-	SoftDelete(ctx context.Context, memberID int) error
+	Delete(ctx context.Context, memberID int) (*string, error)
 	UpdatePicture(ctx context.Context, memberID int, pictureURL string) error
 	DeletePicture(ctx context.Context, memberID int) error
 	Search(ctx context.Context, filter domain.MemberFilter, cursor *string, limit int) ([]*domain.Member, *string, error)
@@ -61,7 +61,7 @@ type HistoryRepository interface {
 }
 
 type ScoreRepository interface {
-	Create(ctx context.Context, score *domain.Score) error
+	Create(ctx context.Context, scores ...domain.Score) error
 	GetByUserID(ctx context.Context, userID int, cursor *string, limit int) ([]*domain.ScoreHistory, *string, error)
 	GetLeaderboard(ctx context.Context, limit int) ([]*domain.UserScore, error)
 	GetTotalByUserID(ctx context.Context, userID int) (int, error)
@@ -96,4 +96,15 @@ type OAuthManager interface {
 	GetAuthURL(providerName string, state string) (string, error)
 	GetUserInfo(ctx context.Context, providerName, code string) (*domain.OAuthUserInfo, error)
 	GetSupportedProviders() []string
+}
+
+type LanguageRepository interface {
+	Create(ctx context.Context, language *domain.Language) error
+	GetByCode(ctx context.Context, code string) (*domain.Language, error)
+	GetAll(ctx context.Context, filter domain.LanguageFilter) ([]*domain.Language, error)
+	Update(ctx context.Context, language *domain.Language) error
+}
+
+type UserLanguagePreferenceRepository interface {
+	Upsert(ctx context.Context, pref *domain.UserLanguagePreference) error
 }

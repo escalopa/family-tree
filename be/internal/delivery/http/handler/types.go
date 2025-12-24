@@ -6,6 +6,14 @@ import (
 	"github.com/escalopa/family-tree/internal/domain"
 )
 
+type LanguageUseCase interface {
+	CreateLanguage(ctx context.Context, language *domain.Language) error
+	GetLanguage(ctx context.Context, code string) (*domain.Language, error)
+	GetAllLanguages(ctx context.Context, activeOnly bool) ([]*domain.Language, error)
+	UpdateLanguage(ctx context.Context, language *domain.Language) error
+	UpdateUserLanguagePreference(ctx context.Context, pref *domain.UserLanguagePreference) error
+}
+
 type CookieManager interface {
 	SetAuthCookies(c domain.CookieContext, accessToken, refreshToken, sessionID string)
 	SetTokenCookies(c domain.CookieContext, accessToken, refreshToken string)
@@ -22,6 +30,7 @@ type AuthUseCase interface {
 	Logout(ctx context.Context, sessionID string) error
 	LogoutAll(ctx context.Context, userID int) error
 	ValidateSession(ctx context.Context, sessionID string) (*domain.Session, error)
+	GetSupportedProviders(ctx context.Context) []string
 }
 
 type UserUseCase interface {

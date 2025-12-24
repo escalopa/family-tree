@@ -3,6 +3,7 @@ package http
 import "github.com/gin-gonic/gin"
 
 type AuthHandler interface {
+	GetProviders(c *gin.Context)
 	GetAuthURL(c *gin.Context)
 	HandleCallback(c *gin.Context)
 	GetCurrentUser(c *gin.Context)
@@ -43,6 +44,15 @@ type SpouseHandler interface {
 type TreeHandler interface {
 	GetTree(c *gin.Context)
 	GetRelation(c *gin.Context)
+}
+
+type LanguageHandler interface {
+	GetLanguages(c *gin.Context)
+	GetLanguage(c *gin.Context)
+	CreateLanguage(c *gin.Context)
+	UpdateLanguage(c *gin.Context)
+	GetUserLanguagePreference(c *gin.Context)
+	UpdateUserLanguagePreference(c *gin.Context)
 }
 
 type AuthMiddleware interface {

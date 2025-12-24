@@ -10,15 +10,23 @@ import (
 )
 
 type OAuthManager struct {
-	providers map[string]OAuthProvider
+	providers     map[string]OAuthProvider
+	providerOrder []string
 }
 
 func NewOAuthManager(cfg *config.OAuthConfig) *OAuthManager {
 	manager := &OAuthManager{
-		providers: make(map[string]OAuthProvider),
+		providers:     make(map[string]OAuthProvider),
+		providerOrder: make([]string, 0),
 	}
 
-	for providerName, providerCfg := range cfg.Providers {
+	// Get the ordered provider names from config
+	orderedProviders := cfg.GetProviderOrder()
+
+	// Initialize providers in the specified order
+	for _, providerName := range orderedProviders {
+		providerCfg := cfg.Providers[providerName]
+
 		factory, exists := ProviderFactories[providerName]
 		if !exists {
 			slog.Warn("OAuthManager.NewOAuthManager: provider factory not found", "provider", providerName)
@@ -28,8 +36,9 @@ func NewOAuthManager(cfg *config.OAuthConfig) *OAuthManager {
 		redirectURL := cfg.GetRedirectURL(providerName)
 		provider := factory(providerCfg.ClientID, providerCfg.ClientSecret, redirectURL, providerCfg.UserInfoURL, providerCfg.Scopes)
 		manager.providers[providerName] = provider
+		manager.providerOrder = append(manager.providerOrder, providerName)
 
-		slog.Info("OAuthManager.NewOAuthManager: initialized provider", "provider", providerName)
+		slog.Info("OAuthManager.NewOAuthManager: initialized provider", "provider", providerName, "order", providerCfg.Order)
 	}
 
 	return manager
@@ -74,9 +83,5 @@ func (m *OAuthManager) GetUserInfo(ctx context.Context, providerName, code strin
 }
 
 func (m *OAuthManager) GetSupportedProviders() []string {
-	providers := make([]string, 0, len(m.providers))
-	for name := range m.providers {
-		providers = append(providers, name)
-	}
-	return providers
+	return m.providerOrder
 }

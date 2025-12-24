@@ -53,6 +53,8 @@ func NewApp(cfg *config.Config) (*App, error) {
 	userRepo := repository.NewUserRepository(pool)
 	sessionRepo := repository.NewSessionRepository(pool)
 	oauthStateRepo := repository.NewOAuthStateRepository(pool)
+	langRepo := repository.NewLanguageRepository(pool)
+	langPrefRepo := repository.NewUserLanguagePreferenceRepository(pool)
 	memberRepo := repository.NewMemberRepository(pool)
 	spouseRepo := repository.NewSpouseRepository(pool)
 	historyRepo := repository.NewHistoryRepository(pool)
@@ -75,12 +77,14 @@ func NewApp(cfg *config.Config) (*App, error) {
 	memberUseCase := usecase.NewMemberUseCase(memberRepo, spouseRepo, historyRepo, scoreRepo, s3Client)
 	spouseUseCase := usecase.NewSpouseUseCase(spouseRepo, memberRepo, historyRepo, scoreRepo)
 	treeUseCase := usecase.NewTreeUseCase(memberRepo, spouseRepo)
+	languageUseCase := usecase.NewLanguageUseCase(langRepo, langPrefRepo)
 
 	authHandler := handler.NewAuthHandler(authUseCase, userUseCase, cookieManager)
 	userHandler := handler.NewUserHandler(userUseCase)
-	memberHandler := handler.NewMemberHandler(memberUseCase)
+	memberHandler := handler.NewMemberHandler(memberUseCase, languageUseCase)
 	spouseHandler := handler.NewSpouseHandler(spouseUseCase)
 	treeHandler := handler.NewTreeHandler(treeUseCase)
+	languageHandler := handler.NewLanguageHandler(languageUseCase)
 
 	authMiddleware := middleware.NewAuthMiddleware(tokenMgr, authUseCase, userRepo, cookieManager)
 
@@ -90,6 +94,7 @@ func NewApp(cfg *config.Config) (*App, error) {
 		memberHandler,
 		spouseHandler,
 		treeHandler,
+		languageHandler,
 		authMiddleware,
 		cfg.Server.AllowedOrigins,
 	)

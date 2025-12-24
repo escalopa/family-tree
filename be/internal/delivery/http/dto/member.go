@@ -1,28 +1,26 @@
 package dto
 
 type CreateMemberRequest struct {
-	ArabicName  string   `json:"arabic_name" binding:"required"`
-	EnglishName string   `json:"english_name" binding:"required"`
-	Gender      string   `json:"gender" binding:"required,oneof=M F"`
-	DateOfBirth *Date    `json:"date_of_birth"`
-	DateOfDeath *Date    `json:"date_of_death"`
-	FatherID    *int     `json:"father_id"`
-	MotherID    *int     `json:"mother_id"`
-	Nicknames   []string `json:"nicknames"`
-	Profession  *string  `json:"profession"`
+	Names       map[string]string `json:"names" binding:"required,min=1"` // language_code -> name
+	Gender      string            `json:"gender" binding:"required,oneof=M F"`
+	DateOfBirth *Date             `json:"date_of_birth"`
+	DateOfDeath *Date             `json:"date_of_death"`
+	FatherID    *int              `json:"father_id"`
+	MotherID    *int              `json:"mother_id"`
+	Nicknames   []string          `json:"nicknames"`
+	Profession  *string           `json:"profession"`
 }
 
 type UpdateMemberRequest struct {
-	ArabicName  string   `json:"arabic_name" binding:"required"`
-	EnglishName string   `json:"english_name" binding:"required"`
-	Gender      string   `json:"gender" binding:"required,oneof=M F"`
-	DateOfBirth *Date    `json:"date_of_birth"`
-	DateOfDeath *Date    `json:"date_of_death"`
-	FatherID    *int     `json:"father_id"`
-	MotherID    *int     `json:"mother_id"`
-	Nicknames   []string `json:"nicknames"`
-	Profession  *string  `json:"profession"`
-	Version     int      `json:"version" binding:"required,min=1"`
+	Names       map[string]string `json:"names" binding:"required,min=1"` // language_code -> name
+	Gender      string            `json:"gender" binding:"required,oneof=M F"`
+	DateOfBirth *Date             `json:"date_of_birth"`
+	DateOfDeath *Date             `json:"date_of_death"`
+	FatherID    *int              `json:"father_id"`
+	MotherID    *int              `json:"mother_id"`
+	Nicknames   []string          `json:"nicknames"`
+	Profession  *string           `json:"profession"`
+	Version     int               `json:"version" binding:"required,min=1"`
 }
 
 type MemberSearchQuery struct {
@@ -35,8 +33,7 @@ type MemberSearchQuery struct {
 
 type MemberListItem struct {
 	MemberID    int     `json:"member_id"`
-	ArabicName  string  `json:"arabic_name"`
-	EnglishName string  `json:"english_name"`
+	Name        string  `json:"name"`
 	Gender      string  `json:"gender"`
 	Picture     *string `json:"picture"`
 	DateOfBirth *Date   `json:"date_of_birth"`
@@ -50,35 +47,32 @@ type PaginatedMembersResponse struct {
 }
 
 type MemberInfo struct {
-	MemberID    int     `json:"member_id"`
-	ArabicName  string  `json:"arabic_name"`
-	EnglishName string  `json:"english_name"`
-	Picture     *string `json:"picture"`
+	MemberID int     `json:"member_id"`
+	Name     string  `json:"name"`
+	Picture  *string `json:"picture"`
 }
 
 type MemberResponse struct {
-	MemberID        int          `json:"member_id"`
-	ArabicName      string       `json:"arabic_name"`
-	EnglishName     string       `json:"english_name"`
-	Gender          string       `json:"gender"`
-	Picture         *string      `json:"picture"`
-	DateOfBirth     *Date        `json:"date_of_birth"`
-	DateOfDeath     *Date        `json:"date_of_death"`
-	FatherID        *int         `json:"father_id"`
-	MotherID        *int         `json:"mother_id"`
-	Father          *MemberInfo  `json:"father,omitempty"`
-	Mother          *MemberInfo  `json:"mother,omitempty"`
-	Nicknames       []string     `json:"nicknames"`
-	Profession      *string      `json:"profession"`
-	Version         int          `json:"version"`
-	ArabicFullName  string       `json:"arabic_full_name,omitempty"`
-	EnglishFullName string       `json:"english_full_name,omitempty"`
-	Age             *int         `json:"age,omitempty"`
-	GenerationLevel int          `json:"generation_level,omitempty"`
-	IsMarried       bool         `json:"is_married"`
-	Spouses         []SpouseInfo `json:"spouses,omitempty"`
-	Children        []MemberInfo `json:"children,omitempty"`
-	Siblings        []MemberInfo `json:"siblings,omitempty"`
+	MemberID        int               `json:"member_id"`
+	Names           map[string]string `json:"names"` // language_code -> name
+	Gender          string            `json:"gender"`
+	Picture         *string           `json:"picture"`
+	DateOfBirth     *Date             `json:"date_of_birth"`
+	DateOfDeath     *Date             `json:"date_of_death"`
+	FatherID        *int              `json:"father_id"`
+	MotherID        *int              `json:"mother_id"`
+	Father          *MemberInfo       `json:"father,omitempty"`
+	Mother          *MemberInfo       `json:"mother,omitempty"`
+	Nicknames       []string          `json:"nicknames"`
+	Profession      *string           `json:"profession"`
+	Version         int               `json:"version"`
+	FullNames       map[string]string `json:"full_names,omitempty"` // language_code -> full_name
+	Age             *int              `json:"age,omitempty"`
+	GenerationLevel int               `json:"generation_level,omitempty"`
+	IsMarried       bool              `json:"is_married"`
+	Spouses         []SpouseInfo      `json:"spouses,omitempty"`
+	Children        []MemberInfo      `json:"children,omitempty"`
+	Siblings        []MemberInfo      `json:"siblings,omitempty"`
 }
 
 type ParentSearchQuery struct {
@@ -88,9 +82,8 @@ type ParentSearchQuery struct {
 }
 
 type ParentOption struct {
-	MemberID    int     `json:"member_id"`
-	ArabicName  string  `json:"arabic_name"`
-	EnglishName string  `json:"english_name"`
-	Picture     *string `json:"picture"`
-	Gender      string  `json:"gender"`
+	MemberID int               `json:"member_id"`
+	Names    map[string]string `json:"names"` // language_code -> name
+	Picture  *string           `json:"picture"`
+	Gender   string            `json:"gender"`
 }

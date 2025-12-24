@@ -17,11 +17,12 @@ services:
       retries: 5
 
   migrate:
-    image: dekuyo/migrate-go:latest
+    image: gomicro/goose:latest
     container_name: migrate
     volumes:
       - ./be/migrations:/migrations
-    command: ["-dir", "/migrations", "-dsn", "postgres://familytree:secret@postgres:5432/familytree?sslmode=disable"]
+    command: >
+      sh -c "cd /migrations && goose postgres 'host=postgres port=5432 user=familytree password=secret dbname=familytree sslmode=disable' up"
     depends_on:
       postgres:
         condition: service_healthy

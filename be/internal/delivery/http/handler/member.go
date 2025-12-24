@@ -13,11 +13,15 @@ import (
 )
 
 type memberHandler struct {
-	memberUseCase MemberUseCase
+	memberUseCase   MemberUseCase
+	languageUseCase LanguageUseCase
 }
 
-func NewMemberHandler(memberUseCase MemberUseCase) *memberHandler {
-	return &memberHandler{memberUseCase: memberUseCase}
+func NewMemberHandler(memberUseCase MemberUseCase, languageUseCase LanguageUseCase) *memberHandler {
+	return &memberHandler{
+		memberUseCase:   memberUseCase,
+		languageUseCase: languageUseCase,
+	}
 }
 
 // CreateMember godoc
@@ -41,6 +45,24 @@ func (h *memberHandler) CreateMember(c *gin.Context) {
 		return
 	}
 
+	// Validate that all active languages have names
+	activeLanguages, err := h.languageUseCase.GetAllLanguages(c.Request.Context(), true)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, dto.Response{Success: false, Error: "failed to fetch active languages"})
+		return
+	}
+
+	for _, lang := range activeLanguages {
+		name, exists := req.Names[lang.LanguageCode]
+		if !exists || name == "" {
+			c.JSON(http.StatusBadRequest, dto.Response{
+				Success: false,
+				Error:   "name for language '" + lang.LanguageName + "' (" + lang.LanguageCode + ") is required",
+			})
+			return
+		}
+	}
+
 	var dateOfBirth, dateOfDeath *time.Time
 	if req.DateOfBirth != nil {
 		dateOfBirth = req.DateOfBirth.ToTimePtr()
@@ -56,8 +78,7 @@ func (h *memberHandler) CreateMember(c *gin.Context) {
 	}
 
 	member := &domain.Member{
-		ArabicName:  req.ArabicName,
-		EnglishName: req.EnglishName,
+		Names:       req.Names,
 		Gender:      req.Gender,
 		DateOfBirth: dateOfBirth,
 		DateOfDeath: dateOfDeath,
@@ -89,15 +110,31 @@ func (h *memberHandler) UpdateMember(c *gin.Context) {
 		return
 	}
 
-	var dateOfBirth, dateOfDeath *time.Time
-	if req.DateOfBirth != nil {
-		dateOfBirth = req.DateOfBirth.ToTimePtr()
-	}
-	if req.DateOfDeath != nil {
-		dateOfDeath = req.DateOfDeath.ToTimePtr()
+	// Validate that all active languages have names
+	activeLanguages, err := h.languageUseCase.GetAllLanguages(c.Request.Context(), true)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, dto.Response{Success: false, Error: "failed to fetch active languages"})
+		return
 	}
 
-	// Ensure nicknames is never nil, use empty array instead
+	for _, lang := range activeLanguages {
+		name, exists := req.Names[lang.LanguageCode]
+		if !exists || name == "" {
+			c.JSON(http.StatusBadRequest, dto.Response{
+				Success: false,
+				Error:   "name for language '" + lang.LanguageName + "' (" + lang.LanguageCode + ") is required",
+			})
+			return
+		}
+	}
+
+	// Fetch existing member to preserve picture and other fields
+	existingMember, err := h.memberUseCase.GetMemberByID(c.Request.Context(), memberID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, dto.Response{Success: false, Error: "member not found"})
+		return
+	}
+
 	nicknames := req.Nicknames
 	if nicknames == nil {
 		nicknames = []string{}
@@ -105,11 +142,11 @@ func (h *memberHandler) UpdateMember(c *gin.Context) {
 
 	member := &domain.Member{
 		MemberID:    memberID,
-		ArabicName:  req.ArabicName,
-		EnglishName: req.EnglishName,
+		Names:       req.Names,
 		Gender:      req.Gender,
-		DateOfBirth: dateOfBirth,
-		DateOfDeath: dateOfDeath,
+		Picture:     existingMember.Picture,
+		DateOfBirth: req.DateOfBirth.ToTimePtr(),
+		DateOfDeath: req.DateOfDeath.ToTimePtr(),
 		FatherID:    req.FatherID,
 		MotherID:    req.MotherID,
 		Nicknames:   nicknames,
@@ -138,7 +175,21 @@ func (h *memberHandler) DeleteMember(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, dto.Response{Success: true, Data: "member deleted"})
+	c.JSON(http.StatusOK, dto.Response{Success: true, Data: "member deleted successfully"})
+}
+
+func extractName(names map[string]string, preferredLang string) string {
+	name := names[preferredLang]
+	if name == "" {
+		// Fallback to any available name
+		for _, n := range names {
+			if n != "" {
+				name = n
+				break
+			}
+		}
+	}
+	return name
 }
 
 // GetMember godoc
@@ -170,13 +221,14 @@ func (h *memberHandler) GetMember(c *gin.Context) {
 	userRole := middleware.GetUserRole(c)
 	computed := h.memberUseCase.ComputeMemberWithExtras(c.Request.Context(), member, userRole)
 
+	preferredLang := middleware.GetPreferredLanguage(c)
+
 	spousesDTO := make([]dto.SpouseInfo, len(computed.Spouses))
 	for i, spouse := range computed.Spouses {
 		spousesDTO[i] = dto.SpouseInfo{
 			SpouseID:     spouse.SpouseID,
 			MemberID:     spouse.MemberID,
-			ArabicName:   spouse.ArabicName,
-			EnglishName:  spouse.EnglishName,
+			Name:         extractName(spouse.Names, preferredLang),
 			Gender:       spouse.Gender,
 			Picture:      spouse.Picture,
 			MarriageDate: dto.FromTimePtr(spouse.MarriageDate),
@@ -190,10 +242,9 @@ func (h *memberHandler) GetMember(c *gin.Context) {
 		father, err := h.memberUseCase.GetMemberByID(c.Request.Context(), *computed.FatherID)
 		if err == nil {
 			fatherInfo = &dto.MemberInfo{
-				MemberID:    father.MemberID,
-				ArabicName:  father.ArabicName,
-				EnglishName: father.EnglishName,
-				Picture:     father.Picture,
+				MemberID: father.MemberID,
+				Name:     extractName(father.Names, preferredLang),
+				Picture:  father.Picture,
 			}
 		}
 	}
@@ -201,10 +252,9 @@ func (h *memberHandler) GetMember(c *gin.Context) {
 		mother, err := h.memberUseCase.GetMemberByID(c.Request.Context(), *computed.MotherID)
 		if err == nil {
 			motherInfo = &dto.MemberInfo{
-				MemberID:    mother.MemberID,
-				ArabicName:  mother.ArabicName,
-				EnglishName: mother.EnglishName,
-				Picture:     mother.Picture,
+				MemberID: mother.MemberID,
+				Name:     extractName(mother.Names, preferredLang),
+				Picture:  mother.Picture,
 			}
 		}
 	}
@@ -214,10 +264,9 @@ func (h *memberHandler) GetMember(c *gin.Context) {
 	if err == nil {
 		for _, child := range children {
 			childrenInfo = append(childrenInfo, dto.MemberInfo{
-				MemberID:    child.MemberID,
-				ArabicName:  child.ArabicName,
-				EnglishName: child.EnglishName,
-				Picture:     child.Picture,
+				MemberID: child.MemberID,
+				Name:     extractName(child.Names, preferredLang),
+				Picture:  child.Picture,
 			})
 		}
 	}
@@ -227,18 +276,16 @@ func (h *memberHandler) GetMember(c *gin.Context) {
 	if err == nil {
 		for _, sibling := range siblings {
 			siblingsInfo = append(siblingsInfo, dto.MemberInfo{
-				MemberID:    sibling.MemberID,
-				ArabicName:  sibling.ArabicName,
-				EnglishName: sibling.EnglishName,
-				Picture:     sibling.Picture,
+				MemberID: sibling.MemberID,
+				Name:     extractName(sibling.Names, preferredLang),
+				Picture:  sibling.Picture,
 			})
 		}
 	}
 
 	response := dto.MemberResponse{
 		MemberID:        computed.MemberID,
-		ArabicName:      computed.ArabicName,
-		EnglishName:     computed.EnglishName,
+		Names:           computed.Names,
 		Gender:          computed.Gender,
 		Picture:         computed.Picture,
 		DateOfBirth:     dto.FromTimePtr(computed.DateOfBirth),
@@ -250,8 +297,7 @@ func (h *memberHandler) GetMember(c *gin.Context) {
 		Nicknames:       computed.Nicknames,
 		Profession:      computed.Profession,
 		Version:         computed.Version,
-		ArabicFullName:  computed.ArabicFullName,
-		EnglishFullName: computed.EnglishFullName,
+		FullNames:       computed.FullNames,
 		Age:             computed.Age,
 		GenerationLevel: computed.GenerationLevel,
 		IsMarried:       computed.IsMarried,
@@ -303,17 +349,18 @@ func (h *memberHandler) SearchMembers(c *gin.Context) {
 		return
 	}
 
+	preferredLang := middleware.GetPreferredLanguage(c)
+
 	var membersResponse []dto.MemberListItem
 	for _, m := range members {
 		membersResponse = append(membersResponse, dto.MemberListItem{
 			MemberID:    m.MemberID,
-			ArabicName:  m.ArabicName,
-			EnglishName: m.EnglishName,
+			Name:        extractName(m.Names, preferredLang),
 			Gender:      m.Gender,
 			Picture:     m.Picture,
 			DateOfBirth: dto.FromTimePtr(m.DateOfBirth),
 			DateOfDeath: dto.FromTimePtr(m.DateOfDeath),
-			IsMarried:   m.IsMarried, // Now comes from the query result
+			IsMarried:   m.IsMarried,
 		})
 	}
 
@@ -361,11 +408,10 @@ func (h *memberHandler) SearchMemberInfo(c *gin.Context) {
 	var options []dto.ParentOption
 	for _, member := range members {
 		options = append(options, dto.ParentOption{
-			MemberID:    member.MemberID,
-			ArabicName:  member.ArabicName,
-			EnglishName: member.EnglishName,
-			Picture:     member.Picture,
-			Gender:      member.Gender,
+			MemberID: member.MemberID,
+			Names:    member.Names,
+			Picture:  member.Picture,
+			Gender:   member.Gender,
 		})
 	}
 

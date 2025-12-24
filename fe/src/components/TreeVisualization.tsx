@@ -4,6 +4,7 @@ import { ZoomIn, ZoomOut, ZoomOutMap, Info } from '@mui/icons-material';
 import * as d3 from 'd3';
 import { TreeNode, Member } from '../types';
 import { getGenderColor, getMemberPictureUrl } from '../utils/helpers';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface TreeVisualizationProps {
   data: TreeNode;
@@ -20,6 +21,7 @@ const TreeVisualization: React.FC<TreeVisualizationProps> = ({ data, onNodeClick
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [infoDialogOpen, setInfoDialogOpen] = useState(false);
+  const { getPreferredName, getAllNamesFormatted } = useLanguage();
 
   useEffect(() => {
     if (!svgRef.current || !containerRef.current || !data) return;
@@ -200,6 +202,9 @@ const TreeVisualization: React.FC<TreeVisualizationProps> = ({ data, onNodeClick
       }
 
       // Add names (without avatar)
+      const preferredName = getPreferredName(node.data.member);
+      const allNames = getAllNamesFormatted(node.data.member);
+
       nodeG
         .append('text')
         .attr('x', nodeWidth / 2)
@@ -208,7 +213,7 @@ const TreeVisualization: React.FC<TreeVisualizationProps> = ({ data, onNodeClick
         .attr('font-size', '13px')
         .attr('font-weight', 'bold')
         .attr('fill', '#000')
-        .text(truncateText(node.data.member.arabic_name, 20));
+        .text(truncateText(preferredName, 20));
 
       nodeG
         .append('text')
@@ -217,7 +222,7 @@ const TreeVisualization: React.FC<TreeVisualizationProps> = ({ data, onNodeClick
         .attr('text-anchor', 'middle')
         .attr('font-size', '12px')
         .attr('fill', '#666')
-        .text(truncateText(node.data.member.english_name, 20));
+        .text(truncateText(allNames, 25));
 
       // Add generation level or age
       if (node.data.member.generation_level !== undefined) {

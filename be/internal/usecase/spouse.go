@@ -40,14 +40,14 @@ func (uc *spouseUseCase) recordSpouseHistory(
 ) {
 	fatherVersion := 0
 	if father, err := uc.memberRepo.GetByID(ctx, fatherID); err != nil {
-		slog.Error("failed to get father for history", "error", err, "father_id", fatherID)
+		slog.Error("get father for history", "error", err, "father_id", fatherID)
 	} else {
 		fatherVersion = father.Version
 	}
 
 	motherVersion := 0
 	if mother, err := uc.memberRepo.GetByID(ctx, motherID); err != nil {
-		slog.Error("failed to get mother for history", "error", err, "mother_id", motherID)
+		slog.Error("get mother for history", "error", err, "mother_id", motherID)
 	} else {
 		motherVersion = mother.Version
 	}
@@ -61,7 +61,7 @@ func (uc *spouseUseCase) recordSpouseHistory(
 		MemberVersion: fatherVersion,
 	}
 	if err := uc.historyRepo.Create(ctx, historyFather); err != nil {
-		slog.Error("failed to create history for father", "error", err, "father_id", fatherID, "change_type", changeType)
+		slog.Error("create history for father", "error", err, "father_id", fatherID, "change_type", changeType)
 	}
 
 	historyMother := &domain.History{
@@ -73,7 +73,7 @@ func (uc *spouseUseCase) recordSpouseHistory(
 		MemberVersion: motherVersion,
 	}
 	if err := uc.historyRepo.Create(ctx, historyMother); err != nil {
-		slog.Error("failed to create history for mother", "error", err, "mother_id", motherID, "change_type", changeType)
+		slog.Error("create history for mother", "error", err, "mother_id", motherID, "change_type", changeType)
 	}
 }
 
@@ -105,25 +105,24 @@ func (uc *spouseUseCase) AddSpouse(ctx context.Context, spouse *domain.Spouse, u
 	newValues, _ := json.Marshal(spouse)
 	uc.recordSpouseHistory(ctx, spouse.FatherID, spouse.MotherID, domain.ChangeTypeAddSpouse, nil, newValues, userID)
 
-	score1 := &domain.Score{
-		UserID:        userID,
-		MemberID:      spouse.FatherID,
-		FieldName:     "spouse",
-		Points:        domain.PointsSpouse,
-		MemberVersion: 0,
+	scores := []domain.Score{
+		{
+			UserID:        userID,
+			MemberID:      spouse.FatherID,
+			FieldName:     "spouse",
+			Points:        domain.PointsSpouse,
+			MemberVersion: father.Version,
+		},
+		{
+			UserID:        userID,
+			MemberID:      spouse.MotherID,
+			FieldName:     "spouse",
+			Points:        domain.PointsSpouse,
+			MemberVersion: mother.Version,
+		},
 	}
-	_ = uc.scoreRepo.Create(ctx, score1)
 
-	score2 := &domain.Score{
-		UserID:        userID,
-		MemberID:      spouse.MotherID,
-		FieldName:     "spouse",
-		Points:        domain.PointsSpouse,
-		MemberVersion: 0,
-	}
-	_ = uc.scoreRepo.Create(ctx, score2)
-
-	return nil
+	return uc.scoreRepo.Create(ctx, scores...)
 }
 
 func (uc *spouseUseCase) UpdateSpouseByID(ctx context.Context, spouse *domain.Spouse, userID int) error {

@@ -18,14 +18,10 @@ type GoogleProvider struct {
 }
 
 type googleUserInfo struct {
-	ID            string `json:"id"`
-	Email         string `json:"email"`
-	VerifiedEmail bool   `json:"verified_email"`
-	Name          string `json:"name"`
-	GivenName     string `json:"given_name"`
-	FamilyName    string `json:"family_name"`
-	Picture       string `json:"picture"`
-	Locale        string `json:"locale"`
+	ID      string `json:"id"`
+	Email   string `json:"email"`
+	Name    string `json:"name"`
+	Picture string `json:"picture"`
 }
 
 func NewGoogleProvider(clientID, clientSecret, redirectURL, userInfoURL string, scopes []string) OAuthProvider {
@@ -87,13 +83,9 @@ func (g *GoogleProvider) GetUserInfo(ctx context.Context, token *oauth2.Token) (
 	}
 
 	return &domain.OAuthUserInfo{
-		ID:            googleInfo.ID,
-		Email:         googleInfo.Email,
-		VerifiedEmail: googleInfo.VerifiedEmail,
-		Name:          googleInfo.Name,
-		GivenName:     googleInfo.GivenName,
-		FamilyName:    googleInfo.FamilyName,
-		Picture:       googleInfo.Picture,
-		Locale:        googleInfo.Locale,
+		ID:      googleInfo.ID,
+		Email:   googleInfo.Email,
+		Name:    googleInfo.Name,
+		Picture: googleInfo.Picture,
 	}, nil
 }

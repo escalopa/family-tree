@@ -42,11 +42,13 @@ import SpouseCard from '../components/SpouseCard';
 import AddSpouseDialog from '../components/AddSpouseDialog';
 import HistoryDiffDialog from '../components/HistoryDiffDialog';
 import { useAuth } from '../contexts/AuthContext';
+import { useLanguage } from '../contexts/LanguageContext';
 
 const PAGE_SIZE = 10;
 
 const MembersPage: React.FC = () => {
   const { hasRole } = useAuth();
+  const { languages, getPreferredName, getAllNamesFormatted } = useLanguage();
   const isSuperAdmin = hasRole(Roles.SUPER_ADMIN);
   const [searchParams, setSearchParams] = useSearchParams();
   const [members, setMembers] = useState<MemberListItem[]>([]);
@@ -59,8 +61,7 @@ const MembersPage: React.FC = () => {
   const [editingMember, setEditingMember] = useState<Member | null>(null);
   const [originalFormData, setOriginalFormData] = useState<CreateMemberRequest | null>(null);
   const [formData, setFormData] = useState<CreateMemberRequest>({
-    arabic_name: '',
-    english_name: '',
+    names: {},
     gender: 'M',
   });
   const [memberHistory, setMemberHistory] = useState<HistoryRecord[]>([]);
@@ -115,12 +116,6 @@ const MembersPage: React.FC = () => {
       const validCursor = response.next_cursor && response.next_cursor.trim() !== '' ? response.next_cursor : null;
       setNextCursor(validCursor);
       setHasMore(!!validCursor);
-      console.log('MembersPage pagination:', {
-        nextCursor: response.next_cursor,
-        validCursor,
-        hasMore: !!validCursor,
-        membersCount: response.members?.length
-      });
     } catch (error) {
       console.error('Search failed:', error);
       if (!loadMore) {
@@ -208,8 +203,7 @@ const MembersPage: React.FC = () => {
         const fullMember = await membersApi.getMember(memberId);
 
         const initialData = {
-          arabic_name: fullMember.arabic_name,
-          english_name: fullMember.english_name,
+          names: fullMember.names || {},
           gender: fullMember.gender,
           date_of_birth: fullMember.date_of_birth || undefined,
           date_of_death: fullMember.date_of_death || undefined,
@@ -241,8 +235,7 @@ const MembersPage: React.FC = () => {
       setEditingMember(null);
       setOriginalFormData(null);
       setFormData({
-        arabic_name: '',
-        english_name: '',
+        names: {},
         gender: 'M',
       });
     }
@@ -278,8 +271,7 @@ const MembersPage: React.FC = () => {
     if (!editingMember || !originalFormData) return true; // Allow create
 
     // Compare all fields
-    if (formData.arabic_name !== originalFormData.arabic_name) return true;
-    if (formData.english_name !== originalFormData.english_name) return true;
+    if (JSON.stringify(formData.names) !== JSON.stringify(originalFormData.names)) return true;
     if (formData.gender !== originalFormData.gender) return true;
     if (formData.date_of_birth !== originalFormData.date_of_birth) return true;
     if (formData.date_of_death !== originalFormData.date_of_death) return true;
@@ -305,6 +297,19 @@ const MembersPage: React.FC = () => {
       handleCloseDialog();
       return;
     }
+
+    // Validate that all active languages have names
+    const activeLanguages = languages.filter(lang => lang.is_active);
+    const missingLanguages = activeLanguages.filter(
+      lang => !formData.names[lang.language_code] || formData.names[lang.language_code].trim() === ''
+    );
+
+    if (missingLanguages.length > 0) {
+      const missingNames = missingLanguages.map(lang => lang.language_name).join(', ');
+      alert(`Please provide names for all active languages: ${missingNames}`);
+      return;
+    }
+
     try {
       if (editingMember) {
         const updateData: UpdateMemberRequest = {
@@ -321,20 +326,33 @@ const MembersPage: React.FC = () => {
       }
       handleCloseDialog();
       performSearch(searchQuery); // Refresh list
-    } catch (error) {
+    } catch (error: any) {
+      const errorMsg = error?.response?.data?.error || 'Failed to save member';
+      alert(errorMsg);
       console.error('Failed to save member:', error);
     }
   };
 
   const handleDelete = async (memberId: number) => {
-    if (confirm('Are you sure you want to delete this member? This action cannot be undone.')) {
+    const confirmMessage =
+      '⚠️ WARNING: This will DELETE this member and clean up all associated data.\n\n' +
+      'The following will be removed:\n' +
+      '• All member names in all languages\n' +
+      '• All spouse relationships\n' +
+      '• Member profile picture from storage\n' +
+      '• Member will be marked as deleted (soft delete)\n\n' +
+      'A history record will be kept for audit purposes.\n\n' +
+      'Are you absolutely sure you want to proceed?';
+
+    if (confirm(confirmMessage)) {
       try {
         await membersApi.deleteMember(memberId);
         handleCloseDialog(); // Close dialog after delete
         performSearch(searchQuery); // Refresh list
-      } catch (error) {
+      } catch (error: any) {
         console.error('Failed to delete member:', error);
-        alert('Failed to delete member. This member may have children or other dependencies.');
+        const errorMessage = error?.response?.data?.error || 'Failed to delete member. This member may have children or other dependencies.';
+        alert(errorMessage);
       }
     }
   };
@@ -520,8 +538,7 @@ const MembersPage: React.FC = () => {
               <TableRow>
                 <TableCell>ID</TableCell>
                 <TableCell>Avatar</TableCell>
-                <TableCell>Arabic Name</TableCell>
-                <TableCell>English Name</TableCell>
+                <TableCell>Name</TableCell>
                 <TableCell>Gender</TableCell>
                 <TableCell>Date of Birth</TableCell>
                 <TableCell>Married</TableCell>
@@ -530,7 +547,7 @@ const MembersPage: React.FC = () => {
             <TableBody>
               {(!members || members.length === 0) && !loading && (
                 <TableRow>
-                  <TableCell colSpan={7} align="center" sx={{ py: 4, color: 'text.secondary' }}>
+                  <TableCell colSpan={6} align="center" sx={{ py: 4, color: 'text.secondary' }}>
                     {searchQuery.name || searchQuery.gender || searchQuery.married !== undefined
                       ? 'No members found matching your filters'
                       : 'No members found'}
@@ -539,7 +556,7 @@ const MembersPage: React.FC = () => {
               )}
               {loading && members.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={7} align="center" sx={{ py: 8 }}>
+                  <TableCell colSpan={6} align="center" sx={{ py: 8 }}>
                     <CircularProgress />
                     <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
                       Loading members...
@@ -568,11 +585,10 @@ const MembersPage: React.FC = () => {
                         bgcolor: member.gender === 'M' ? '#00BCD4' : member.gender === 'F' ? '#E91E63' : '#9E9E9E'
                       }}
                     >
-                      {member.english_name[0]}
+                      {member.name?.[0] || '?'}
                     </Avatar>
                   </TableCell>
-                  <TableCell>{member.arabic_name}</TableCell>
-                  <TableCell>{member.english_name}</TableCell>
+                  <TableCell>{member.name}</TableCell>
                   <TableCell>
                     {member.gender === 'M' ? 'Male' : 'Female'}
                   </TableCell>
@@ -650,28 +666,21 @@ const MembersPage: React.FC = () => {
                     <MemberPhotoUpload
                       memberId={editingMember.member_id}
                       currentPhoto={editingMember.picture}
-                      memberName={editingMember.english_name}
+                      memberName={getPreferredName(editingMember)}
                       gender={editingMember.gender}
                       version={editingMember.version}
                       onPhotoChange={handlePhotoChange}
                       size={120}
                       showName
                     />
-                    {(editingMember.english_full_name || editingMember.arabic_full_name) && (
+                    {editingMember.full_names && Object.keys(editingMember.full_names).length > 0 && (
                       <Box sx={{ mt: 2, textAlign: 'center' }}>
                         <Typography variant="caption" color="text.secondary" gutterBottom>
                           Full Name
                         </Typography>
-                        {editingMember.english_full_name && (
-                          <Typography variant="body2" fontWeight="medium">
-                            {editingMember.english_full_name}
-                          </Typography>
-                        )}
-                        {editingMember.arabic_full_name && (
-                          <Typography variant="body2" fontWeight="medium" dir="rtl">
-                            {editingMember.arabic_full_name}
-                          </Typography>
-                        )}
+                        <Typography variant="body2" fontWeight="medium">
+                          {getAllNamesFormatted({ names: editingMember.full_names })}
+                        </Typography>
                       </Box>
                     )}
                     {editingMember.age !== undefined && editingMember.age !== null && (
@@ -684,28 +693,26 @@ const MembersPage: React.FC = () => {
                   </Box>
                 </Grid>
               )}
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  required
-                  label="Arabic Name"
-                  value={formData.arabic_name}
-                  onChange={(e) =>
-                    setFormData({ ...formData, arabic_name: e.target.value })
-                  }
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  required
-                  label="English Name"
-                  value={formData.english_name}
-                  onChange={(e) =>
-                    setFormData({ ...formData, english_name: e.target.value })
-                  }
-                />
-              </Grid>
+              {/* Multi-language name inputs */}
+              {languages.map((lang) => (
+                <Grid item xs={12} sm={6} key={lang.language_code}>
+                  <TextField
+                    fullWidth
+                    label={`${lang.language_name} Name`}
+                    value={formData.names?.[lang.language_code] || ''}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        names: {
+                          ...formData.names,
+                          [lang.language_code]: e.target.value,
+                        },
+                      })
+                    }
+                    helperText={`Enter member's name in ${lang.language_name}`}
+                  />
+                </Grid>
+              ))}
               <Grid item xs={12} sm={6}>
                 <FormControl fullWidth required>
                   <InputLabel>Gender</InputLabel>
@@ -794,7 +801,6 @@ const MembersPage: React.FC = () => {
                       father_id: value || undefined,
                     })
                   }
-                  initialParent={editingMember?.father || null}
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
@@ -808,18 +814,9 @@ const MembersPage: React.FC = () => {
                       mother_id: value || undefined,
                     })
                   }
-                  initialParent={editingMember?.mother || null}
                 />
               </Grid>
 
-              {/* Relationships Section - Group all related members */}
-              {editingMember && (editingMember.father || editingMember.mother || (editingMember.spouses && editingMember.spouses.length > 0) || (editingMember.children && editingMember.children.length > 0) || (editingMember.siblings && editingMember.siblings.length > 0)) && (
-                <Grid item xs={12}>
-                  <Typography variant="h5" sx={{ mt: 3, mb: 2, color: 'primary.main' }}>
-                    Family Relationships
-                  </Typography>
-                </Grid>
-              )}
 
               {/* Parents Display Section */}
               {editingMember && (editingMember.father || editingMember.mother) && (
@@ -846,14 +843,11 @@ const MembersPage: React.FC = () => {
                           src={getMemberPictureUrl(editingMember.father.member_id, editingMember.father.picture) || undefined}
                           sx={{ width: 50, height: 50, bgcolor: '#00BCD4' }}
                         >
-                          {editingMember.father.english_name[0]}
+                          {editingMember.father.name?.[0] || '?'}
                         </Avatar>
                         <Box sx={{ flex: 1 }}>
                           <Typography variant="body1" fontWeight="bold">
-                            {editingMember.father.english_name}
-                          </Typography>
-                          <Typography variant="body2" color="text.secondary">
-                            {editingMember.father.arabic_name}
+                            {editingMember.father.name}
                           </Typography>
                         </Box>
                       </Paper>
@@ -876,14 +870,11 @@ const MembersPage: React.FC = () => {
                           src={getMemberPictureUrl(editingMember.mother.member_id, editingMember.mother.picture) || undefined}
                           sx={{ width: 50, height: 50, bgcolor: '#E91E63' }}
                         >
-                          {editingMember.mother.english_name[0]}
+                          {editingMember.mother.name?.[0] || '?'}
                         </Avatar>
                         <Box sx={{ flex: 1 }}>
                           <Typography variant="body1" fontWeight="bold">
-                            {editingMember.mother.english_name}
-                          </Typography>
-                          <Typography variant="body2" color="text.secondary">
-                            {editingMember.mother.arabic_name}
+                            {editingMember.mother.name}
                           </Typography>
                         </Box>
                       </Paper>
@@ -908,35 +899,38 @@ const MembersPage: React.FC = () => {
                       Add Spouse
                     </Button>
                   </Box>
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <Grid container spacing={2}>
                     {editingMember.spouses && editingMember.spouses.length > 0 ? (
                       editingMember.spouses.map((spouse) => (
-                        <SpouseCard
-                          key={spouse.member_id}
-                          spouse={spouse}
-                          currentMemberId={editingMember.member_id}
-                          onUpdate={async () => {
-                            performSearch(searchQuery);
-                            // Refetch member data after spouse update/delete
-                            try {
-                              const updated = await membersApi.getMember(editingMember.member_id);
-                              setEditingMember(updated);
-                            } catch (error) {
-                              console.error('Failed to refresh member after spouse update:', error);
-                            }
-                          }}
-                          editable={true}
-                          onMemberClick={() => handleOpenRelatedMember(spouse.member_id)}
-                        />
+                        <Grid item xs={12} md={6} key={spouse.member_id}>
+                          <SpouseCard
+                            spouse={spouse}
+                            currentMemberId={editingMember.member_id}
+                            onUpdate={async () => {
+                              performSearch(searchQuery);
+                              // Refetch member data after spouse update/delete
+                              try {
+                                const updated = await membersApi.getMember(editingMember.member_id);
+                                setEditingMember(updated);
+                              } catch (error) {
+                                console.error('Failed to refresh member after spouse update:', error);
+                              }
+                            }}
+                            editable={true}
+                            onMemberClick={() => handleOpenRelatedMember(spouse.member_id)}
+                          />
+                        </Grid>
                       ))
                     ) : (
-                      <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'action.hover' }}>
-                        <Typography variant="body2" color="text.secondary">
-                          No spouses added yet. Click "Add Spouse" to create a relationship.
-                        </Typography>
-                      </Paper>
+                      <Grid item xs={12}>
+                        <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'action.hover' }}>
+                          <Typography variant="body2" color="text.secondary">
+                            No spouses added yet. Click "Add Spouse" to create a relationship.
+                          </Typography>
+                        </Paper>
+                      </Grid>
                     )}
-                  </Box>
+                  </Grid>
                 </Grid>
               )}
 
@@ -966,14 +960,11 @@ const MembersPage: React.FC = () => {
                           src={getMemberPictureUrl(child.member_id, child.picture) || undefined}
                           sx={{ width: 50, height: 50, bgcolor: '#9C27B0' }}
                         >
-                          {child.english_name[0]}
+                          {child.name?.[0] || '?'}
                         </Avatar>
                         <Box sx={{ flex: 1 }}>
                           <Typography variant="body1" fontWeight="bold">
-                            {child.english_name}
-                          </Typography>
-                          <Typography variant="body2" color="text.secondary">
-                            {child.arabic_name}
+                            {child.name}
                           </Typography>
                         </Box>
                       </Paper>
@@ -1012,14 +1003,11 @@ const MembersPage: React.FC = () => {
                             bgcolor: '#FF9800',
                           }}
                         >
-                          {sibling.english_name[0]}
+                          {sibling.name?.[0] || '?'}
                         </Avatar>
                         <Box sx={{ flex: 1 }}>
                           <Typography variant="body1" fontWeight="bold">
-                            {sibling.english_name}
-                          </Typography>
-                          <Typography variant="body2" color="text.secondary">
-                            {sibling.arabic_name}
+                            {sibling.name}
                           </Typography>
                         </Box>
                       </Paper>
@@ -1110,8 +1098,8 @@ const MembersPage: React.FC = () => {
           <DialogActions sx={{ px: 3, py: 2 }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
               <Box>
-                {editingMember && (
-                  <Tooltip title="Delete this member permanently">
+                {editingMember && isSuperAdmin && (
+                  <Tooltip title="Delete this member permanently (Super Admin only)">
                     <IconButton
                       onClick={() => handleDelete(editingMember.member_id)}
                       color="error"
@@ -1140,7 +1128,7 @@ const MembersPage: React.FC = () => {
             open={openAddSpouseDialog}
             onClose={() => setOpenAddSpouseDialog(false)}
             memberId={editingMember.member_id}
-            memberName={editingMember.english_name}
+            memberName={getPreferredName(editingMember)}
             memberGender={editingMember.gender}
             onSuccess={() => {
               performSearch(searchQuery);

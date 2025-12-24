@@ -13,6 +13,7 @@ import {
 } from '@mui/material';
 import { ParentOption } from '../types';
 import { membersApi, spousesApi } from '../api';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface AddSpouseDialogProps {
   open: boolean;
@@ -31,6 +32,7 @@ const AddSpouseDialog: React.FC<AddSpouseDialogProps> = ({
   memberGender,
   onSuccess,
 }) => {
+  const { getPreferredName, getAllNamesFormatted } = useLanguage();
   const [selectedSpouse, setSelectedSpouse] = useState<ParentOption | null>(null);
   const [spouseOptions, setSpouseOptions] = useState<ParentOption[]>([]);
   const [loadingSpouses, setLoadingSpouses] = useState(false);
@@ -108,7 +110,7 @@ const AddSpouseDialog: React.FC<AddSpouseDialogProps> = ({
           <Grid item xs={12}>
             <Autocomplete
               options={spouseOptions}
-              getOptionLabel={(option) => `${option.english_name} - ${option.arabic_name}`}
+              getOptionLabel={(option) => getPreferredName(option)}
               loading={loadingSpouses}
               value={selectedSpouse}
               onChange={(_, newValue) => setSelectedSpouse(newValue)}
@@ -135,10 +137,7 @@ const AddSpouseDialog: React.FC<AddSpouseDialogProps> = ({
               renderOption={(props, option) => (
                 <li {...props} key={option.member_id}>
                   <div>
-                    <div>{option.english_name}</div>
-                    <div style={{ fontSize: '0.875rem', color: '#666' }}>
-                      {option.arabic_name}
-                    </div>
+                    <div>{getAllNamesFormatted(option)}</div>
                   </div>
                 </li>
               )}

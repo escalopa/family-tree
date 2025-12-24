@@ -47,6 +47,7 @@ import ForceDirectedTree from '../components/ForceDirectedTree';
 import TreeVisualization from '../components/TreeVisualization';
 import RelationFinder from '../components/RelationFinder';
 import { useAuth } from '../contexts/AuthContext';
+import { useLanguage } from '../contexts/LanguageContext';
 import { Roles } from '../types';
 
 type ViewMode = 'tree' | 'list' | 'relation';
@@ -54,6 +55,7 @@ type TreeLayout = 'hierarchical' | 'force';
 
 const TreePage: React.FC = () => {
   const { hasRole } = useAuth();
+  const { getPreferredName, getAllNamesFormatted } = useLanguage();
   const isSuperAdmin = hasRole(Roles.SUPER_ADMIN);
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -172,12 +174,7 @@ const TreePage: React.FC = () => {
       const validCursor = response.next_cursor && response.next_cursor.trim() !== '' ? response.next_cursor : null;
       setNextCursor(validCursor);
       setHasMore(!!validCursor);
-      console.log('TreePage pagination:', {
-        nextCursor: response.next_cursor,
-        validCursor,
-        hasMore: !!validCursor,
-        membersCount: response.members?.length
-      });
+
     } catch (error) {
       console.error('Failed to load list view:', error);
       setError('Failed to load member list. Please try again.');
@@ -550,8 +547,7 @@ const TreePage: React.FC = () => {
                       <TableRow>
                         <TableCell>ID</TableCell>
                         <TableCell>Avatar</TableCell>
-                        <TableCell>Arabic Name</TableCell>
-                        <TableCell>English Name</TableCell>
+                        <TableCell>Name</TableCell>
                         <TableCell>Gender</TableCell>
                         <TableCell>Date of Birth</TableCell>
                         <TableCell>Married</TableCell>
@@ -560,7 +556,7 @@ const TreePage: React.FC = () => {
                     <TableBody>
                       {(!listMembers || listMembers.length === 0) && !loading && (
                         <TableRow>
-                          <TableCell colSpan={7} align="center" sx={{ py: 4, color: 'text.secondary' }}>
+                          <TableCell colSpan={6} align="center" sx={{ py: 4, color: 'text.secondary' }}>
                             {searchQuery.name || searchQuery.gender || searchQuery.married !== undefined
                               ? 'No members found matching your filters'
                               : 'No members found'}
@@ -569,7 +565,7 @@ const TreePage: React.FC = () => {
                       )}
                       {loading && listMembers.length === 0 && (
                         <TableRow>
-                          <TableCell colSpan={7} align="center" sx={{ py: 8 }}>
+                          <TableCell colSpan={6} align="center" sx={{ py: 8 }}>
                             <CircularProgress />
                             <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
                               Loading members...
@@ -598,11 +594,10 @@ const TreePage: React.FC = () => {
                                 bgcolor: member.gender === 'M' ? '#00BCD4' : member.gender === 'F' ? '#E91E63' : '#9E9E9E'
                               }}
                             >
-                              {member.english_name[0]}
+                              {member.name?.[0] || '?'}
                             </Avatar>
                           </TableCell>
-                          <TableCell>{member.arabic_name}</TableCell>
-                          <TableCell>{member.english_name}</TableCell>
+                          <TableCell>{member.name}</TableCell>
                           <TableCell>
                             {member.gender === 'M' ? 'Male' : 'Female'}
                           </TableCell>
@@ -715,32 +710,25 @@ const TreePage: React.FC = () => {
                   bgcolor: getGenderColor(selectedMember.gender),
                 }}
               >
-                {selectedMember.english_name[0]}
+                {getPreferredName(selectedMember)[0] || '?'}
               </Avatar>
 
               <Typography variant="h6" align="center" gutterBottom>
-                {selectedMember.arabic_name}
+                {getPreferredName(selectedMember)}
               </Typography>
-              <Typography variant="body1" align="center" color="text.secondary" gutterBottom>
-                {selectedMember.english_name}
+              <Typography variant="body2" align="center" color="text.secondary" gutterBottom>
+                {getAllNamesFormatted(selectedMember)}
               </Typography>
 
               {/* Full Name */}
-              {(selectedMember.english_full_name || selectedMember.arabic_full_name) && (
+              {selectedMember.full_names && Object.keys(selectedMember.full_names).length > 0 && (
                 <Box sx={{ mt: 2, p: 2, bgcolor: 'background.default', borderRadius: 1 }}>
                   <Typography variant="caption" color="text.secondary" gutterBottom display="block">
                     Full Name
                   </Typography>
-                  {selectedMember.english_full_name && (
-                    <Typography variant="body2" fontWeight="medium" gutterBottom>
-                      {selectedMember.english_full_name}
-                    </Typography>
-                  )}
-                  {selectedMember.arabic_full_name && (
-                    <Typography variant="body2" fontWeight="medium" dir="rtl">
-                      {selectedMember.arabic_full_name}
-                    </Typography>
-                  )}
+                  <Typography variant="body2" fontWeight="medium">
+                    {getAllNamesFormatted({ names: selectedMember.full_names })}
+                  </Typography>
                 </Box>
               )}
 
@@ -841,7 +829,7 @@ const TreePage: React.FC = () => {
                         }}
                       >
                         <Typography variant="body2" fontWeight="medium">
-                          {spouse.arabic_name} ({spouse.english_name})
+                          {spouse.name}
                         </Typography>
                         {spouse.marriage_date && (
                           <Typography variant="caption" color="text.secondary">

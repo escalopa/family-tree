@@ -12,12 +12,11 @@ type Spouse struct {
 }
 
 type SpouseWithMemberInfo struct {
-	SpouseID     int        `json:"spouse_id"`
-	MemberID     int        `json:"member_id"`
-	ArabicName   string     `json:"arabic_name"`
-	EnglishName  string     `json:"english_name"`
-	Gender       string     `json:"gender"`
-	Picture      *string    `json:"picture"`
-	MarriageDate *time.Time `json:"marriage_date"`
-	DivorceDate  *time.Time `json:"divorce_date"`
+	SpouseID     int               `json:"spouse_id"`
+	MemberID     int               `json:"member_id"`
+	Names        map[string]string `json:"names"`
+	Gender       string            `json:"gender"`
+	Picture      *string           `json:"picture"`
+	MarriageDate *time.Time        `json:"marriage_date"`
+	DivorceDate  *time.Time        `json:"divorce_date"`
 }
