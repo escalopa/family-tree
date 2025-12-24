@@ -19,3 +19,8 @@ type AuthResponse struct {
 type ProvidersResponse struct {
 	Providers []string `json:"providers"`
 }
+
+type CallbackQuery struct {
+	Code  string `query:"code" binding:"required"`
+	State string `query:"state" binding:"required"`
+}

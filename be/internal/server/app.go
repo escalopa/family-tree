@@ -10,6 +10,7 @@ import (
 	"github.com/escalopa/family-tree/internal/delivery/http/cookie"
 	"github.com/escalopa/family-tree/internal/delivery/http/handler"
 	"github.com/escalopa/family-tree/internal/delivery/http/middleware"
+	"github.com/escalopa/family-tree/internal/pkg/i18n"
 	"github.com/escalopa/family-tree/internal/pkg/oauth"
 	"github.com/escalopa/family-tree/internal/pkg/s3"
 	"github.com/escalopa/family-tree/internal/pkg/token"
@@ -28,6 +29,14 @@ type App struct {
 
 func NewApp(cfg *config.Config) (*App, error) {
 	gin.SetMode(cfg.Server.Mode)
+
+	// Initialize i18n translations (embedded)
+	if err := i18n.Init(); err != nil {
+		slog.Error("App.NewApp: failed to initialize i18n", "error", err)
+		return nil, err
+	}
+
+	slog.Info("App.NewApp: i18n initialized", "supported_languages", i18n.GetSupportedLanguages())
 
 	ctx := context.Background()
 	pool, err := db.NewPool(ctx, &cfg.Database)

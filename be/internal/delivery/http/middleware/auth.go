@@ -4,6 +4,8 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/escalopa/family-tree/internal/delivery"
+	"github.com/escalopa/family-tree/internal/domain"
 	"github.com/gin-gonic/gin"
 )
 
@@ -35,7 +37,7 @@ func (m *authMiddleware) Authenticate() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		accessToken, err := m.cookieManager.GetAccessToken(c)
 		if err != nil && !errors.Is(err, http.ErrNoCookie) {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "missing auth token"})
+			delivery.Error(c, domain.NewUnauthorizedError("error.missing_auth_token", nil))
 			c.Abort()
 			return
 		}
@@ -44,14 +46,14 @@ func (m *authMiddleware) Authenticate() gin.HandlerFunc {
 		if err != nil {
 			refreshToken, err := m.cookieManager.GetRefreshToken(c)
 			if err != nil {
-				c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid or expired token"})
+				delivery.Error(c, domain.NewUnauthorizedError("error.invalid_or_expired_token", nil))
 				c.Abort()
 				return
 			}
 
 			tokens, err := m.authUseCase.RefreshTokens(c.Request.Context(), refreshToken)
 			if err != nil {
-				c.JSON(http.StatusUnauthorized, gin.H{"error": "failed to refresh token"})
+				delivery.Error(c, domain.NewUnauthorizedError("error.failed_to_refresh_token", nil))
 				c.Abort()
 				return
 			}
@@ -60,7 +62,7 @@ func (m *authMiddleware) Authenticate() gin.HandlerFunc {
 
 			claims, err = m.tokenMgr.ValidateToken(tokens.AccessToken)
 			if err != nil {
-				c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid refreshed token"})
+				delivery.Error(c, domain.NewUnauthorizedError("error.invalid_refreshed_token", nil))
 				c.Abort()
 				return
 			}
@@ -68,14 +70,14 @@ func (m *authMiddleware) Authenticate() gin.HandlerFunc {
 
 		_, err = m.authUseCase.ValidateSession(c.Request.Context(), claims.SessionID)
 		if err != nil {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid session"})
+			delivery.Error(c, domain.NewUnauthorizedError("error.invalid_session", nil))
 			c.Abort()
 			return
 		}
 
 		user, err := m.userRepo.Get(c.Request.Context(), claims.UserID)
 		if err != nil {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "user not found"})
+			delivery.Error(c, domain.NewUnauthorizedError("error.user_not_found", nil))
 			c.Abort()
 			return
 		}

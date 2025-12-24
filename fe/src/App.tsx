@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { ThemeProvider, createTheme, CssBaseline } from '@mui/material';
 import { AuthProvider } from './contexts/AuthContext';
 import { LanguageProvider } from './contexts/LanguageContext';
+import { UILanguageProvider } from './contexts/UILanguageContext';
 import ProtectedRoute from './components/ProtectedRoute';
 
 // Pages
@@ -35,8 +36,9 @@ const App: React.FC = () => {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <AuthProvider>
-        <LanguageProvider>
-          <Router>
+        <UILanguageProvider>
+          <LanguageProvider>
+            <Router>
             <Routes>
               {/* Public Routes */}
               <Route path="/login" element={<LoginPage />} />
@@ -104,6 +106,7 @@ const App: React.FC = () => {
             </Routes>
           </Router>
         </LanguageProvider>
+        </UILanguageProvider>
       </AuthProvider>
     </ThemeProvider>
   );

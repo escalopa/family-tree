@@ -3,7 +3,6 @@ package usecase
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"log/slog"
 
 	"github.com/escalopa/family-tree/internal/domain"
@@ -78,27 +77,27 @@ func (uc *spouseUseCase) recordSpouseHistory(
 
 func (uc *spouseUseCase) Create(ctx context.Context, spouse *domain.Spouse, userID int) error {
 	if !validator.ValidateDateOrder(spouse.MarriageDate, spouse.DivorceDate) {
-		return fmt.Errorf("divorce date must be after marriage date")
+		return domain.NewValidationError("error.spouse.invalid_marriage_date", nil)
 	}
 
 	father, err := uc.memberRepo.Get(ctx, spouse.FatherID)
 	if err != nil {
-		return fmt.Errorf("get father: %w", err)
+		return err
 	}
 	if father.Gender != "M" {
-		return domain.NewValidationError("father must be male")
+		return domain.NewValidationError("error.member.invalid_parent", map[string]string{"parent": "father"})
 	}
 
 	mother, err := uc.memberRepo.Get(ctx, spouse.MotherID)
 	if err != nil {
-		return fmt.Errorf("get mother: %w", err)
+		return err
 	}
 	if mother.Gender != "F" {
-		return domain.NewValidationError("mother must be female")
+		return domain.NewValidationError("error.member.invalid_parent", map[string]string{"parent": "mother"})
 	}
 
 	if err := uc.spouseRepo.Create(ctx, spouse); err != nil {
-		return fmt.Errorf("create spouse relationship: %w", err)
+		return err
 	}
 
 	newValues, _ := json.Marshal(spouse)
@@ -126,19 +125,19 @@ func (uc *spouseUseCase) Create(ctx context.Context, spouse *domain.Spouse, user
 
 func (uc *spouseUseCase) Update(ctx context.Context, spouse *domain.Spouse, userID int) error {
 	if !validator.ValidateDateOrder(spouse.MarriageDate, spouse.DivorceDate) {
-		return fmt.Errorf("divorce date must be after marriage date")
+		return domain.NewValidationError("error.spouse.invalid_marriage_date", nil)
 	}
 
 	oldSpouse, err := uc.spouseRepo.Get(ctx, spouse.SpouseID)
 	if err != nil {
-		return fmt.Errorf("get spouse relationship: %w", err)
+		return err
 	}
 
 	spouse.FatherID = oldSpouse.FatherID
 	spouse.MotherID = oldSpouse.MotherID
 
 	if err := uc.spouseRepo.Update(ctx, spouse); err != nil {
-		return fmt.Errorf("update spouse relationship: %w", err)
+		return err
 	}
 
 	oldValues, _ := json.Marshal(oldSpouse)
@@ -151,19 +150,19 @@ func (uc *spouseUseCase) Update(ctx context.Context, spouse *domain.Spouse, user
 func (uc *spouseUseCase) Delete(ctx context.Context, spouseID, userID int) error {
 	oldSpouse, err := uc.spouseRepo.Get(ctx, spouseID)
 	if err != nil {
-		return fmt.Errorf("get spouse relationship: %w", err)
+		return err
 	}
 
 	hasChildren, err := uc.memberRepo.HasChildrenWithParents(ctx, oldSpouse.FatherID, oldSpouse.MotherID)
 	if err != nil {
-		return fmt.Errorf("check for children: %w", err)
+		return err
 	}
 	if hasChildren {
-		return domain.NewValidationError("cannot delete spouse relationship: there are children with both parents")
+		return domain.NewConflictError("error.spouse.has_children", nil)
 	}
 
 	if err := uc.spouseRepo.Delete(ctx, spouseID); err != nil {
-		return fmt.Errorf("delete spouse relationship: %w", err)
+		return err
 	}
 
 	oldValues, _ := json.Marshal(oldSpouse)

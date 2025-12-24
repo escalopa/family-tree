@@ -40,7 +40,7 @@ func NewS3Client(ctx context.Context, endpoint, region, accessKey, secretKey, bu
 	)
 	if err != nil {
 		slog.Error("S3Client.NewS3Client: load AWS config", "error", err)
-		return nil, domain.NewInternalError("initialize S3 client", err)
+		return nil, domain.NewInternalError(err)
 	}
 
 	// Use the modern approach with service-specific options
@@ -56,17 +56,16 @@ func NewS3Client(ctx context.Context, endpoint, region, accessKey, secretKey, bu
 }
 
 func (s *S3Client) UploadImage(ctx context.Context, data []byte, filename string) (string, error) {
-	// Validate size
 	if len(data) > MaxImageSize {
 		slog.Warn("S3Client.UploadImage: image size exceeds maximum", "size", len(data), "max_size", MaxImageSize, "filename", filename)
-		return "", domain.NewValidationError("image size exceeds maximum allowed size of 3MB")
+		return "", domain.NewValidationError("error.validation.file_too_large", nil)
 	}
 
 	// Validate file type
 	ext := strings.ToLower(filepath.Ext(filename))
 	if !allowedImageTypes[ext] {
 		slog.Warn("S3Client.UploadImage: unsupported image type", "extension", ext, "filename", filename)
-		return "", domain.NewValidationError(fmt.Sprintf("unsupported image type: %s", ext))
+		return "", domain.NewValidationError("error.validation.invalid_file", nil)
 	}
 
 	// Generate unique filename
@@ -80,7 +79,7 @@ func (s *S3Client) UploadImage(ctx context.Context, data []byte, filename string
 	})
 	if err != nil {
 		slog.Error("S3Client.UploadImage: upload to S3", "error", err, "key", key)
-		return "", domain.NewExternalServiceError("S3", err)
+		return "", domain.NewExternalServiceError(err)
 	}
 
 	slog.Info("S3Client.UploadImage: uploaded", "key", key)
@@ -99,7 +98,7 @@ func (s *S3Client) DeleteImage(ctx context.Context, key string) error {
 	})
 	if err != nil {
 		slog.Error("S3Client.DeleteImage: delete from S3", "error", err, "key", key)
-		return domain.NewExternalServiceError("S3", err)
+		return domain.NewExternalServiceError(err)
 	}
 
 	slog.Info("S3Client.DeleteImage: deleted", "key", key)
@@ -118,14 +117,14 @@ func (s *S3Client) GetImage(ctx context.Context, key string) ([]byte, error) {
 	})
 	if err != nil {
 		slog.Error("S3Client.GetImage: get from S3", "error", err, "key", key)
-		return nil, domain.NewExternalServiceError("S3", err)
+		return nil, domain.NewExternalServiceError(err)
 	}
 	defer result.Body.Close()
 
 	var buf bytes.Buffer
 	if _, err := buf.ReadFrom(result.Body); err != nil {
 		slog.Error("S3Client.GetImage: read response body", "error", err, "key", key)
-		return nil, domain.NewInternalError("read image data", err)
+		return nil, domain.NewInternalError(err)
 	}
 
 	return buf.Bytes(), nil

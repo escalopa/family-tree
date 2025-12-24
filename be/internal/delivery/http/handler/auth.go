@@ -1,11 +1,10 @@
 package handler
 
 import (
-	"net/http"
-
-	httpErrors "github.com/escalopa/family-tree/internal/delivery/http"
+	"github.com/escalopa/family-tree/internal/delivery"
 	"github.com/escalopa/family-tree/internal/delivery/http/dto"
 	"github.com/escalopa/family-tree/internal/delivery/http/middleware"
+	"github.com/escalopa/family-tree/internal/domain"
 	"github.com/gin-gonic/gin"
 )
 
@@ -35,21 +34,24 @@ func NewAuthHandler(authUseCase AuthUseCase, userUseCase UserUseCase, cookieMana
 // @Failure 500 {object} dto.Response
 // @Router /auth/{provider} [get]
 func (h *authHandler) GetAuthURL(c *gin.Context) {
-	provider := c.Param("provider")
-
-	url, err := h.authUseCase.GetURL(c.Request.Context(), provider)
-	if err != nil {
-		httpErrors.HandleError(c, err)
+	var uri dto.ProviderUri
+	if err := c.ShouldBindUri(&uri); err != nil {
+		delivery.Error(c, err)
 		return
 	}
 
-	c.JSON(http.StatusOK, dto.Response{
-		Success: true,
-		Data: dto.AuthURLResponse{
-			URL:      url,
-			Provider: provider,
-		},
-	})
+	url, err := h.authUseCase.GetURL(c.Request.Context(), uri.Provider)
+	if err != nil {
+		delivery.Error(c, err)
+		return
+	}
+
+	data := dto.AuthURLResponse{
+		URL:      url,
+		Provider: uri.Provider,
+	}
+
+	delivery.SuccessWithData(c, data)
 }
 
 // HandleCallback godoc
@@ -67,23 +69,21 @@ func (h *authHandler) GetAuthURL(c *gin.Context) {
 // @Failure 500 {object} dto.Response
 // @Router /auth/{provider}/callback [get]
 func (h *authHandler) HandleCallback(c *gin.Context) {
-	provider := c.Param("provider")
-	code := c.Query("code")
-	state := c.Query("state")
-
-	if code == "" {
-		c.JSON(http.StatusBadRequest, dto.Response{Success: false, Error: "missing code"})
+	var uri dto.ProviderUri
+	if err := c.ShouldBindUri(&uri); err != nil {
+		delivery.Error(c, err)
 		return
 	}
 
-	if state == "" {
-		c.JSON(http.StatusBadRequest, dto.Response{Success: false, Error: "missing state"})
+	var query dto.CallbackQuery
+	if err := c.ShouldBindQuery(&query); err != nil {
+		delivery.Error(c, err)
 		return
 	}
 
-	user, tokens, err := h.authUseCase.HandleCallback(c.Request.Context(), provider, code, state)
+	user, tokens, err := h.authUseCase.HandleCallback(c.Request.Context(), uri.Provider, query.Code, query.State)
 	if err != nil {
-		httpErrors.HandleError(c, err)
+		delivery.Error(c, err)
 		return
 	}
 
@@ -97,7 +97,7 @@ func (h *authHandler) HandleCallback(c *gin.Context) {
 	response.User.RoleID = user.RoleID
 	response.User.IsActive = user.IsActive
 
-	c.JSON(http.StatusOK, dto.Response{Success: true, Data: response})
+	delivery.SuccessWithData(c, response)
 }
 
 // Logout godoc
@@ -114,19 +114,15 @@ func (h *authHandler) HandleCallback(c *gin.Context) {
 // @Router /api/auth/logout [post]
 func (h *authHandler) Logout(c *gin.Context) {
 	sessionID := middleware.GetSessionID(c)
-	if sessionID == "" {
-		c.JSON(http.StatusBadRequest, dto.Response{Success: false, Error: "invalid session"})
-		return
-	}
 
 	if err := h.authUseCase.Logout(c.Request.Context(), sessionID); err != nil {
-		httpErrors.HandleError(c, err)
+		delivery.Error(c, err)
 		return
 	}
 
 	h.cookieManager.ClearAuthCookies(c)
 
-	c.JSON(http.StatusOK, dto.Response{Success: true, Data: "logged out"})
+	delivery.Success(c, "success.auth.logout", nil)
 }
 
 // LogoutAll godoc
@@ -144,18 +140,18 @@ func (h *authHandler) Logout(c *gin.Context) {
 func (h *authHandler) LogoutAll(c *gin.Context) {
 	userID := middleware.GetUserID(c)
 	if userID == 0 {
-		c.JSON(http.StatusBadRequest, dto.Response{Success: false, Error: "invalid user"})
+		delivery.Error(c, domain.NewValidationError("error.invalid_input", map[string]string{"message": "invalid user"}))
 		return
 	}
 
 	if err := h.authUseCase.LogoutAll(c.Request.Context(), userID); err != nil {
-		httpErrors.HandleError(c, err)
+		delivery.Error(c, err)
 		return
 	}
 
 	h.cookieManager.ClearAuthCookies(c)
 
-	c.JSON(http.StatusOK, dto.Response{Success: true, Data: "logged out from all devices"})
+	delivery.Success(c, "success.auth.logout_all", nil)
 }
 
 // GetCurrentUser godoc
@@ -170,13 +166,13 @@ func (h *authHandler) LogoutAll(c *gin.Context) {
 func (h *authHandler) GetCurrentUser(c *gin.Context) {
 	userID := middleware.GetUserID(c)
 	if userID == 0 {
-		c.JSON(http.StatusUnauthorized, dto.Response{Success: false, Error: "not authenticated"})
+		delivery.Error(c, domain.NewUnauthorizedError("error.unauthorized", nil))
 		return
 	}
 
 	user, err := h.userUseCase.Get(c.Request.Context(), userID)
 	if err != nil {
-		httpErrors.HandleError(c, err)
+		delivery.Error(c, err)
 		return
 	}
 
@@ -188,10 +184,7 @@ func (h *authHandler) GetCurrentUser(c *gin.Context) {
 	response.User.RoleID = user.RoleID
 	response.User.IsActive = user.IsActive
 
-	c.JSON(http.StatusOK, dto.Response{
-		Success: true,
-		Data:    response,
-	})
+	delivery.SuccessWithData(c, response)
 }
 
 // GetProviders godoc
@@ -205,10 +198,9 @@ func (h *authHandler) GetCurrentUser(c *gin.Context) {
 func (h *authHandler) GetProviders(c *gin.Context) {
 	providers := h.authUseCase.ListProviders(c.Request.Context())
 
-	c.JSON(http.StatusOK, dto.Response{
-		Success: true,
-		Data: dto.ProvidersResponse{
-			Providers: providers,
-		},
-	})
+	data := dto.ProvidersResponse{
+		Providers: providers,
+	}
+
+	delivery.SuccessWithData(c, data)
 }

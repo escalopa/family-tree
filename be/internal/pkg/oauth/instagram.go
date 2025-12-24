@@ -49,7 +49,7 @@ func (i *InstagramProvider) Exchange(ctx context.Context, code string) (*oauth2.
 	token, err := i.config.Exchange(ctx, code)
 	if err != nil {
 		slog.Error("InstagramProvider.Exchange: exchange code for token", "error", err)
-		return nil, domain.NewExternalServiceError("Instagram OAuth", err)
+		return nil, domain.NewExternalServiceError(err)
 	}
 	return token, nil
 }
@@ -57,30 +57,29 @@ func (i *InstagramProvider) Exchange(ctx context.Context, code string) (*oauth2.
 func (i *InstagramProvider) GetUserInfo(ctx context.Context, token *oauth2.Token) (*domain.OAuthUserInfo, error) {
 	client := i.config.Client(ctx, token)
 
-	// Instagram Basic Display API
 	url := fmt.Sprintf("%s?fields=id,username&access_token=%s", i.userInfoURL, token.AccessToken)
 	resp, err := client.Get(url)
 	if err != nil {
 		slog.Error("InstagramProvider.GetUserInfo: get user info from API", "error", err)
-		return nil, domain.NewExternalServiceError("Instagram API", err)
+		return nil, domain.NewExternalServiceError(err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
 		slog.Error("InstagramProvider.GetUserInfo: non-200 status code", "status_code", resp.StatusCode)
-		return nil, domain.NewExternalServiceError("Instagram API", fmt.Errorf("status code %d", resp.StatusCode))
+		return nil, domain.NewExternalServiceError(fmt.Errorf("status code %d", resp.StatusCode))
 	}
 
 	data, err := io.ReadAll(resp.Body)
 	if err != nil {
 		slog.Error("InstagramProvider.GetUserInfo: read response body", "error", err)
-		return nil, domain.NewInternalError("read response", err)
+		return nil, domain.NewInternalError(err)
 	}
 
 	var instagramInfo instagramUserInfo
 	if err := json.Unmarshal(data, &instagramInfo); err != nil {
 		slog.Error("InstagramProvider.GetUserInfo: unmarshal response", "error", err)
-		return nil, domain.NewInternalError("parse response", err)
+		return nil, domain.NewInternalError(err)
 	}
 
 	// Instagram Basic Display API doesn't provide email

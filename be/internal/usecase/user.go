@@ -2,7 +2,6 @@ package usecase
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 
 	"github.com/escalopa/family-tree/internal/domain"
@@ -48,13 +47,13 @@ func (uc *userUseCase) determineRoleActionType(oldRoleID, newRoleID int) string 
 func (uc *userUseCase) UpdateRole(ctx context.Context, userID, newRoleID, changedBy int) error {
 	user, err := uc.userRepo.Get(ctx, userID)
 	if err != nil {
-		return fmt.Errorf("get user: %w", err)
+		return err
 	}
 
 	oldRoleID := user.RoleID
 
 	if err := uc.userRepo.UpdateRole(ctx, userID, newRoleID); err != nil {
-		return fmt.Errorf("update role: %w", err)
+		return err
 	}
 
 	actionType := uc.determineRoleActionType(oldRoleID, newRoleID)

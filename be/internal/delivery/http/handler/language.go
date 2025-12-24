@@ -1,9 +1,9 @@
 package handler
 
 import (
-	"net/http"
 	"strconv"
 
+	"github.com/escalopa/family-tree/internal/delivery"
 	"github.com/escalopa/family-tree/internal/delivery/http/dto"
 	"github.com/escalopa/family-tree/internal/delivery/http/middleware"
 	"github.com/escalopa/family-tree/internal/domain"
@@ -35,7 +35,7 @@ func (h *LanguageHandler) List(c *gin.Context) {
 
 	languages, err := h.languageUC.List(c.Request.Context(), activeOnly)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, dto.Response{Error: err.Error()})
+		delivery.Error(c, err)
 		return
 	}
 
@@ -49,7 +49,7 @@ func (h *LanguageHandler) List(c *gin.Context) {
 		}
 	}
 
-	c.JSON(http.StatusOK, response)
+	delivery.SuccessWithData(c, response)
 }
 
 // GetLanguage godoc
@@ -68,7 +68,7 @@ func (h *LanguageHandler) Get(c *gin.Context) {
 
 	language, err := h.languageUC.Get(c.Request.Context(), code)
 	if err != nil {
-		c.JSON(http.StatusNotFound, dto.Response{Error: err.Error()})
+		delivery.Error(c, err)
 		return
 	}
 
@@ -79,7 +79,7 @@ func (h *LanguageHandler) Get(c *gin.Context) {
 		DisplayOrder: language.DisplayOrder,
 	}
 
-	c.JSON(http.StatusOK, response)
+	delivery.SuccessWithData(c, response)
 }
 
 // CreateLanguage godoc
@@ -99,7 +99,7 @@ func (h *LanguageHandler) Get(c *gin.Context) {
 func (h *LanguageHandler) Create(c *gin.Context) {
 	var req dto.CreateLanguageRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, dto.Response{Error: err.Error()})
+		delivery.Error(c, err)
 		return
 	}
 
@@ -111,7 +111,7 @@ func (h *LanguageHandler) Create(c *gin.Context) {
 	}
 
 	if err := h.languageUC.Create(c.Request.Context(), language); err != nil {
-		c.JSON(http.StatusBadRequest, dto.Response{Error: err.Error()})
+		delivery.Error(c, err)
 		return
 	}
 
@@ -122,7 +122,7 @@ func (h *LanguageHandler) Create(c *gin.Context) {
 		DisplayOrder: language.DisplayOrder,
 	}
 
-	c.JSON(http.StatusCreated, response)
+	delivery.SuccessWithData(c, response)
 }
 
 // UpdateLanguage godoc
@@ -146,7 +146,7 @@ func (h *LanguageHandler) Update(c *gin.Context) {
 
 	var req dto.UpdateLanguageRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, dto.Response{Error: err.Error()})
+		delivery.Error(c, err)
 		return
 	}
 
@@ -158,7 +158,7 @@ func (h *LanguageHandler) Update(c *gin.Context) {
 	}
 
 	if err := h.languageUC.Update(c.Request.Context(), language); err != nil {
-		c.JSON(http.StatusBadRequest, dto.Response{Error: err.Error()})
+		delivery.Error(c, err)
 		return
 	}
 
@@ -169,7 +169,7 @@ func (h *LanguageHandler) Update(c *gin.Context) {
 		DisplayOrder: language.DisplayOrder,
 	}
 
-	c.JSON(http.StatusOK, response)
+	delivery.SuccessWithData(c, response)
 }
 
 // GetUserLanguagePreference godoc
@@ -190,7 +190,7 @@ func (h *LanguageHandler) GetPreference(c *gin.Context) {
 		PreferredLanguage: preferredLang,
 	}
 
-	c.JSON(http.StatusOK, response)
+	delivery.SuccessWithData(c, response)
 }
 
 // UpdateUserLanguagePreference godoc
@@ -211,7 +211,7 @@ func (h *LanguageHandler) UpdatePreference(c *gin.Context) {
 
 	var req dto.UpdateUserLanguagePreferenceRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, dto.Response{Error: err.Error()})
+		delivery.Error(c, err)
 		return
 	}
 
@@ -221,7 +221,7 @@ func (h *LanguageHandler) UpdatePreference(c *gin.Context) {
 	}
 
 	if err := h.languageUC.UpdatePreference(c.Request.Context(), pref); err != nil {
-		c.JSON(http.StatusBadRequest, dto.Response{Error: err.Error()})
+		delivery.Error(c, err)
 		return
 	}
 
@@ -229,5 +229,5 @@ func (h *LanguageHandler) UpdatePreference(c *gin.Context) {
 		PreferredLanguage: pref.PreferredLanguage,
 	}
 
-	c.JSON(http.StatusOK, response)
+	delivery.SuccessWithData(c, response)
 }

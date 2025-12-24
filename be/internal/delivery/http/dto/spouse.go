@@ -31,6 +31,10 @@ type UpdateSpouseRequest struct {
 	DivorceDate  *Date `json:"divorce_date"`
 }
 
+type DeleteSpouseRequest struct {
+	SpouseID int `json:"spouse_id" binding:"required"`
+}
+
 type SpouseInfo struct {
 	SpouseID     int     `json:"spouse_id"`
 	MemberID     int     `json:"member_id"`

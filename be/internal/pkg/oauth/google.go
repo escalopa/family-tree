@@ -51,7 +51,7 @@ func (g *GoogleProvider) Exchange(ctx context.Context, code string) (*oauth2.Tok
 	token, err := g.config.Exchange(ctx, code)
 	if err != nil {
 		slog.Error("GoogleProvider.Exchange: exchange code for token", "error", err)
-		return nil, domain.NewExternalServiceError("Google OAuth", err)
+		return nil, domain.NewExternalServiceError(err)
 	}
 	return token, nil
 }
@@ -61,25 +61,25 @@ func (g *GoogleProvider) GetUserInfo(ctx context.Context, token *oauth2.Token) (
 	resp, err := client.Get(g.userInfoURL)
 	if err != nil {
 		slog.Error("GoogleProvider.GetUserInfo: get user info from API", "error", err)
-		return nil, domain.NewExternalServiceError("Google API", err)
+		return nil, domain.NewExternalServiceError(err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
 		slog.Error("GoogleProvider.GetUserInfo: non-200 status code", "status_code", resp.StatusCode)
-		return nil, domain.NewExternalServiceError("Google API", fmt.Errorf("status code %d", resp.StatusCode))
+		return nil, domain.NewExternalServiceError(fmt.Errorf("status code %d", resp.StatusCode))
 	}
 
 	data, err := io.ReadAll(resp.Body)
 	if err != nil {
 		slog.Error("GoogleProvider.GetUserInfo: read response body", "error", err)
-		return nil, domain.NewInternalError("read response", err)
+		return nil, domain.NewInternalError(err)
 	}
 
 	var googleInfo googleUserInfo
 	if err := json.Unmarshal(data, &googleInfo); err != nil {
 		slog.Error("GoogleProvider.GetUserInfo: unmarshal response", "error", err)
-		return nil, domain.NewInternalError("parse response", err)
+		return nil, domain.NewInternalError(err)
 	}
 
 	return &domain.OAuthUserInfo{

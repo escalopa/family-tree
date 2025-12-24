@@ -1,8 +1,7 @@
 package handler
 
 import (
-	"net/http"
-
+	"github.com/escalopa/family-tree/internal/delivery"
 	"github.com/escalopa/family-tree/internal/delivery/http/dto"
 	"github.com/escalopa/family-tree/internal/delivery/http/middleware"
 	"github.com/escalopa/family-tree/internal/domain"
@@ -20,7 +19,7 @@ func NewTreeHandler(treeUseCase TreeUseCase) *treeHandler {
 func (h *treeHandler) GetTree(c *gin.Context) {
 	var query dto.TreeQuery
 	if err := c.ShouldBindQuery(&query); err != nil {
-		c.JSON(http.StatusBadRequest, dto.Response{Success: false, Error: err.Error()})
+		delivery.Error(c, err)
 		return
 	}
 
@@ -30,7 +29,7 @@ func (h *treeHandler) GetTree(c *gin.Context) {
 	if query.Style == "list" {
 		members, err := h.treeUseCase.List(c.Request.Context(), query.RootID, userRole)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, dto.Response{Success: false, Error: err.Error()})
+			delivery.Error(c, err)
 			return
 		}
 
@@ -50,29 +49,29 @@ func (h *treeHandler) GetTree(c *gin.Context) {
 			})
 		}
 
-		c.JSON(http.StatusOK, dto.Response{Success: true, Data: response})
+		delivery.SuccessWithData(c, response)
 		return
 	}
 
 	tree, err := h.treeUseCase.Get(c.Request.Context(), query.RootID, userRole)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, dto.Response{Success: false, Error: err.Error()})
+		delivery.Error(c, err)
 		return
 	}
 
 	if tree == nil {
-		c.JSON(http.StatusOK, dto.Response{Success: true, Data: nil})
+		delivery.SuccessWithData(c, nil)
 		return
 	}
 
 	preferredLang := middleware.GetPreferredLanguage(c)
-	c.JSON(http.StatusOK, dto.Response{Success: true, Data: h.convertToTreeResponse(tree, preferredLang)})
+	delivery.SuccessWithData(c, h.convertToTreeResponse(tree, preferredLang))
 }
 
 func (h *treeHandler) GetRelation(c *gin.Context) {
 	var query dto.RelationQuery
 	if err := c.ShouldBindQuery(&query); err != nil {
-		c.JSON(http.StatusBadRequest, dto.Response{Success: false, Error: err.Error()})
+		delivery.Error(c, err)
 		return
 	}
 
@@ -80,17 +79,17 @@ func (h *treeHandler) GetRelation(c *gin.Context) {
 
 	tree, err := h.treeUseCase.GetRelation(c.Request.Context(), query.Member1ID, query.Member2ID, userRole)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, dto.Response{Success: false, Error: err.Error()})
+		delivery.Error(c, err)
 		return
 	}
 
 	if tree == nil {
-		c.JSON(http.StatusOK, dto.Response{Success: true, Data: nil})
+		delivery.SuccessWithData(c, nil)
 		return
 	}
 
 	preferredLang := middleware.GetPreferredLanguage(c)
-	c.JSON(http.StatusOK, dto.Response{Success: true, Data: h.convertToTreeResponse(tree, preferredLang)})
+	delivery.SuccessWithData(c, h.convertToTreeResponse(tree, preferredLang))
 }
 
 func (h *treeHandler) convertToTreeResponse(node *domain.MemberTreeNode, preferredLang string) *dto.TreeNodeResponse {

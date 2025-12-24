@@ -299,7 +299,7 @@ const MembersPage: React.FC = () => {
     }
 
     // Validate that all active languages have names
-    const activeLanguages = languages.filter(lang => lang.is_active);
+    const activeLanguages = Array.isArray(languages) ? languages.filter(lang => lang.is_active) : [];
     const missingLanguages = activeLanguages.filter(
       lang => !formData.names[lang.language_code] || formData.names[lang.language_code].trim() === ''
     );
@@ -694,7 +694,7 @@ const MembersPage: React.FC = () => {
                 </Grid>
               )}
               {/* Multi-language name inputs */}
-              {languages.map((lang) => (
+              {Array.isArray(languages) && languages.map((lang) => (
                 <Grid item xs={12} sm={6} key={lang.language_code}>
                   <TextField
                     fullWidth

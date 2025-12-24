@@ -14,6 +14,7 @@ import {
   Grid,
 } from '@mui/material';
 import { Save } from '@mui/icons-material';
+import { useTranslation } from 'react-i18next';
 import { useLanguage } from '../contexts/LanguageContext';
 
 interface LanguageSettingsProps {
@@ -21,6 +22,7 @@ interface LanguageSettingsProps {
 }
 
 const LanguageSettings: React.FC<LanguageSettingsProps> = ({ onSave }) => {
+  const { t } = useTranslation();
   const { languages, preferences, loading, error, updatePreferences } = useLanguage();
   const [preferredLanguage, setPreferredLanguage] = useState('');
   const [saving, setSaving] = useState(false);
@@ -62,7 +64,7 @@ const LanguageSettings: React.FC<LanguageSettingsProps> = ({ onSave }) => {
     }
   };
 
-  if (loading && !preferences) {
+  if (loading && languages.length === 0) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
         <CircularProgress />
@@ -74,21 +76,21 @@ const LanguageSettings: React.FC<LanguageSettingsProps> = ({ onSave }) => {
     <Card>
       <CardContent>
         <Typography variant="h6" gutterBottom>
-          Language Preference
+          {t('language.namesLanguage')}
         </Typography>
         <Typography variant="body2" color="text.secondary" paragraph>
           Choose your preferred language for member names in tree view, avatar initials and member list.
         </Typography>
 
-        {error && !preferences && (
+        {error && (
           <Alert severity="warning" sx={{ mb: 2 }}>
-            {error}. Using default setting (Arabic).
+            {error}
           </Alert>
         )}
 
         {saveSuccess && (
           <Alert severity="success" sx={{ mb: 2 }}>
-            Language preference saved successfully!
+            {t('language.languageUpdated')}
           </Alert>
         )}
 
@@ -98,17 +100,23 @@ const LanguageSettings: React.FC<LanguageSettingsProps> = ({ onSave }) => {
           </Alert>
         )}
 
+        {!Array.isArray(languages) || languages.length === 0 ? (
+          <Alert severity="info" sx={{ mb: 2 }}>
+            No languages available. Please contact an administrator to activate languages.
+          </Alert>
+        ) : null}
+
         <Grid container spacing={2}>
           <Grid item xs={12}>
             <FormControl fullWidth>
-              <InputLabel>Preferred Language</InputLabel>
+              <InputLabel>{t('language.selectLanguage')}</InputLabel>
               <Select
                 value={preferredLanguage}
                 onChange={(e) => setPreferredLanguage(e.target.value)}
-                label="Preferred Language"
-                disabled={saving}
+                label={t('language.selectLanguage')}
+                disabled={saving || !Array.isArray(languages) || languages.length === 0}
               >
-                {languages.map((lang) => (
+                {Array.isArray(languages) && languages.map((lang) => (
                   <MenuItem
                     key={lang.language_code}
                     value={lang.language_code}
@@ -128,7 +136,7 @@ const LanguageSettings: React.FC<LanguageSettingsProps> = ({ onSave }) => {
               disabled={saving || !preferredLanguage}
               fullWidth
             >
-              {saving ? 'Saving...' : 'Save Preference'}
+              {saving ? t('common.loading') : t('common.save')}
             </Button>
           </Grid>
         </Grid>

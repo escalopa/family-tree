@@ -1,11 +1,11 @@
 package handler
 
 import (
-	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
-	"strconv"
 
+	"github.com/escalopa/family-tree/internal/delivery"
 	"github.com/escalopa/family-tree/internal/delivery/http/dto"
 	"github.com/escalopa/family-tree/internal/delivery/http/middleware"
 	"github.com/escalopa/family-tree/internal/domain"
@@ -27,17 +27,19 @@ func NewMemberHandler(memberUseCase MemberUseCase, languageUseCase LanguageUseCa
 func (h *memberHandler) validateNames(c *gin.Context, names map[string]string) error {
 	activeLanguages, err := h.languageUseCase.List(c.Request.Context(), true)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, dto.Response{Success: false, Error: "fetch active languages"})
+		delivery.Error(c, err)
+		return err
 	}
 
 	for _, lang := range activeLanguages {
 		name, exists := names[lang.LanguageCode]
 		if !exists || name == "" {
-			c.JSON(http.StatusBadRequest, dto.Response{
-				Success: false,
-				Error:   "name for language '" + lang.LanguageName + "' (" + lang.LanguageCode + ") is required",
+			validationErr := domain.NewValidationError("error.validation.names_required", map[string]string{
+				"language": lang.LanguageName,
+				"code":     lang.LanguageCode,
 			})
-			return fmt.Errorf("name for language %s is required", lang.LanguageCode)
+			delivery.Error(c, validationErr)
+			return validationErr
 		}
 	}
 
@@ -61,7 +63,7 @@ func (h *memberHandler) validateNames(c *gin.Context, names map[string]string) e
 func (h *memberHandler) Create(c *gin.Context) {
 	var req dto.CreateMemberRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, dto.Response{Success: false, Error: err.Error()})
+		delivery.Error(c, err)
 		return
 	}
 
@@ -87,23 +89,28 @@ func (h *memberHandler) Create(c *gin.Context) {
 
 	userID := middleware.GetUserID(c)
 	if err := h.memberUseCase.Create(c.Request.Context(), member, userID); err != nil {
-		c.JSON(http.StatusInternalServerError, dto.Response{Success: false, Error: err.Error()})
+		delivery.Error(c, err)
 		return
 	}
 
-	c.JSON(http.StatusCreated, dto.Response{Success: true, Data: gin.H{"member_id": member.MemberID, "version": member.Version}})
+	response := gin.H{
+		"member_id": member.MemberID,
+		"version":   member.Version,
+	}
+
+	delivery.SuccessWithData(c, response)
 }
 
 func (h *memberHandler) Update(c *gin.Context) {
-	memberID, err := strconv.Atoi(c.Param("member_id"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, dto.Response{Success: false, Error: "invalid member_id"})
+	var uri dto.MemberIDUri
+	if err := c.ShouldBindUri(&uri); err != nil {
+		delivery.Error(c, err)
 		return
 	}
 
 	var req dto.UpdateMemberRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, dto.Response{Success: false, Error: err.Error()})
+		delivery.Error(c, err)
 		return
 	}
 
@@ -111,9 +118,9 @@ func (h *memberHandler) Update(c *gin.Context) {
 		return
 	}
 
-	existingMember, err := h.memberUseCase.Get(c.Request.Context(), memberID)
+	existingMember, err := h.memberUseCase.Get(c.Request.Context(), uri.MemberID)
 	if err != nil {
-		c.JSON(http.StatusNotFound, dto.Response{Success: false, Error: "member not found"})
+		delivery.Error(c, err)
 		return
 	}
 
@@ -123,7 +130,7 @@ func (h *memberHandler) Update(c *gin.Context) {
 	}
 
 	member := &domain.Member{
-		MemberID:    memberID,
+		MemberID:    uri.MemberID,
 		Names:       req.Names,
 		Gender:      req.Gender,
 		Picture:     existingMember.Picture,
@@ -137,27 +144,29 @@ func (h *memberHandler) Update(c *gin.Context) {
 
 	userID := middleware.GetUserID(c)
 	if err := h.memberUseCase.Update(c.Request.Context(), member, req.Version, userID); err != nil {
-		c.JSON(http.StatusConflict, dto.Response{Success: false, Error: err.Error()})
+		delivery.Error(c, err)
 		return
 	}
 
-	c.JSON(http.StatusOK, dto.Response{Success: true, Data: gin.H{"version": member.Version}})
+	response := gin.H{"version": member.Version}
+
+	delivery.SuccessWithData(c, response)
 }
 
 func (h *memberHandler) Delete(c *gin.Context) {
-	memberID, err := strconv.Atoi(c.Param("member_id"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, dto.Response{Success: false, Error: "invalid member_id"})
+	var uri dto.MemberIDUri
+	if err := c.ShouldBindUri(&uri); err != nil {
+		delivery.Error(c, err)
 		return
 	}
 
 	userID := middleware.GetUserID(c)
-	if err := h.memberUseCase.Delete(c.Request.Context(), memberID, userID); err != nil {
-		c.JSON(http.StatusInternalServerError, dto.Response{Success: false, Error: err.Error()})
+	if err := h.memberUseCase.Delete(c.Request.Context(), uri.MemberID, userID); err != nil {
+		delivery.Error(c, err)
 		return
 	}
 
-	c.JSON(http.StatusOK, dto.Response{Success: true, Data: "member deleted successfully"})
+	delivery.Success(c, "success.member.deleted", nil)
 }
 
 // GetMember godoc
@@ -174,15 +183,15 @@ func (h *memberHandler) Delete(c *gin.Context) {
 // @Failure 404 {object} dto.Response
 // @Router /api/members/info/{member_id} [get]
 func (h *memberHandler) Get(c *gin.Context) {
-	memberID, err := strconv.Atoi(c.Param("member_id"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, dto.Response{Success: false, Error: "invalid member_id"})
+	var uri dto.MemberIDUri
+	if err := c.ShouldBindUri(&uri); err != nil {
+		delivery.Error(c, err)
 		return
 	}
 
-	member, err := h.memberUseCase.Get(c.Request.Context(), memberID)
+	member, err := h.memberUseCase.Get(c.Request.Context(), uri.MemberID)
 	if err != nil {
-		c.JSON(http.StatusNotFound, dto.Response{Success: false, Error: err.Error()})
+		delivery.Error(c, err)
 		return
 	}
 
@@ -190,6 +199,7 @@ func (h *memberHandler) Get(c *gin.Context) {
 	computed := h.memberUseCase.Compute(c.Request.Context(), member, userRole)
 
 	preferredLang := middleware.GetPreferredLanguage(c)
+	memberID := uri.MemberID
 
 	spousesDTO := make([]dto.SpouseInfo, len(computed.Spouses))
 	for i, spouse := range computed.Spouses {
@@ -276,7 +286,7 @@ func (h *memberHandler) Get(c *gin.Context) {
 		Siblings:        siblingsInfo,
 	}
 
-	c.JSON(http.StatusOK, dto.Response{Success: true, Data: response})
+	delivery.SuccessWithData(c, response)
 }
 
 // SearchMembers godoc
@@ -300,7 +310,7 @@ func (h *memberHandler) Get(c *gin.Context) {
 func (h *memberHandler) List(c *gin.Context) {
 	var query dto.MemberSearchQuery
 	if err := c.ShouldBindQuery(&query); err != nil {
-		c.JSON(http.StatusBadRequest, dto.Response{Success: false, Error: err.Error()})
+		delivery.Error(c, err)
 		return
 	}
 
@@ -315,7 +325,7 @@ func (h *memberHandler) List(c *gin.Context) {
 
 	members, nextCursor, err := h.memberUseCase.List(c.Request.Context(), filter, query.Cursor, query.Limit)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, dto.Response{Success: false, Error: err.Error()})
+		delivery.Error(c, err)
 		return
 	}
 
@@ -339,25 +349,19 @@ func (h *memberHandler) List(c *gin.Context) {
 		NextCursor: nextCursor,
 	}
 
-	c.JSON(http.StatusOK, dto.Response{Success: true, Data: response})
+	delivery.SuccessWithData(c, response)
 }
 
 func (h *memberHandler) ListHistory(c *gin.Context) {
-	memberID, err := strconv.Atoi(c.Query("member_id"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, dto.Response{Success: false, Error: "invalid member_id"})
-		return
-	}
-
-	var query dto.PaginationQuery
+	var query dto.MemberHistoryQuery
 	if err := c.ShouldBindQuery(&query); err != nil {
-		c.JSON(http.StatusBadRequest, dto.Response{Success: false, Error: err.Error()})
+		delivery.Error(c, err)
 		return
 	}
 
-	history, nextCursor, err := h.memberUseCase.ListHistory(c.Request.Context(), memberID, query.Cursor, query.Limit)
+	history, nextCursor, err := h.memberUseCase.ListHistory(c.Request.Context(), query.MemberID, query.Cursor, query.Limit)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, dto.Response{Success: false, Error: err.Error()})
+		delivery.Error(c, err)
 		return
 	}
 
@@ -385,65 +389,68 @@ func (h *memberHandler) ListHistory(c *gin.Context) {
 		NextCursor: nextCursor,
 	}
 
-	c.JSON(http.StatusOK, dto.Response{Success: true, Data: response})
+	delivery.SuccessWithData(c, response)
 }
 
 func (h *memberHandler) UploadPicture(c *gin.Context) {
-	memberID, err := strconv.Atoi(c.Param("member_id"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, dto.Response{Success: false, Error: "invalid member_id"})
+	var uri dto.MemberIDUri
+	if err := c.ShouldBindUri(&uri); err != nil {
+		delivery.Error(c, err)
 		return
 	}
 
 	file, header, err := c.Request.FormFile("picture")
 	if err != nil {
-		c.JSON(http.StatusBadRequest, dto.Response{Success: false, Error: "missing picture file"})
+		delivery.Error(c, domain.NewValidationError("error.invalid_input", map[string]string{"message": "missing picture file"}))
 		return
 	}
 	defer file.Close()
 
 	data, err := io.ReadAll(file)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, dto.Response{Success: false, Error: "read file"})
+		slog.Error("memberHandler.UploadPicture: read file", "error", err, "member_id", uri.MemberID)
+		delivery.Error(c, domain.NewInternalError(err))
 		return
 	}
 
 	userID := middleware.GetUserID(c)
-	pictureURL, err := h.memberUseCase.UploadPicture(c.Request.Context(), memberID, data, header.Filename, userID)
+	pictureURL, err := h.memberUseCase.UploadPicture(c.Request.Context(), uri.MemberID, data, header.Filename, userID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, dto.Response{Success: false, Error: err.Error()})
+		delivery.Error(c, err)
 		return
 	}
 
-	c.JSON(http.StatusOK, dto.Response{Success: true, Data: gin.H{"picture_url": pictureURL}})
+	response := gin.H{"picture_url": pictureURL}
+
+	delivery.SuccessWithData(c, response)
 }
 
 func (h *memberHandler) DeletePicture(c *gin.Context) {
-	memberID, err := strconv.Atoi(c.Param("member_id"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, dto.Response{Success: false, Error: "invalid member_id"})
+	var uri dto.MemberIDUri
+	if err := c.ShouldBindUri(&uri); err != nil {
+		delivery.Error(c, err)
 		return
 	}
 
 	userID := middleware.GetUserID(c)
-	if err := h.memberUseCase.DeletePicture(c.Request.Context(), memberID, userID); err != nil {
-		c.JSON(http.StatusInternalServerError, dto.Response{Success: false, Error: err.Error()})
+	if err := h.memberUseCase.DeletePicture(c.Request.Context(), uri.MemberID, userID); err != nil {
+		delivery.Error(c, err)
 		return
 	}
 
-	c.JSON(http.StatusOK, dto.Response{Success: true, Data: "picture deleted"})
+	delivery.Success(c, "success.member.picture_deleted", nil)
 }
 
 func (h *memberHandler) GetPicture(c *gin.Context) {
-	memberID, err := strconv.Atoi(c.Param("member_id"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, dto.Response{Success: false, Error: "invalid member_id"})
+	var uri dto.MemberIDUri
+	if err := c.ShouldBindUri(&uri); err != nil {
+		delivery.Error(c, err)
 		return
 	}
 
-	imageData, contentType, err := h.memberUseCase.GetPicture(c.Request.Context(), memberID)
+	imageData, contentType, err := h.memberUseCase.GetPicture(c.Request.Context(), uri.MemberID)
 	if err != nil {
-		c.JSON(http.StatusNotFound, dto.Response{Success: false, Error: err.Error()})
+		delivery.Error(c, err)
 		return
 	}
 

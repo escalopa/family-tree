@@ -43,6 +43,7 @@ func NewRouter(
 
 func (r *Router) Setup(engine *gin.Engine) {
 	engine.Use(middleware.CORS(r.allowedOrigins))
+	engine.Use(middleware.LanguageMiddleware())
 
 	engine.GET("/swagger/", ginSwagger.WrapHandler(swaggerFiles.Handler))
 

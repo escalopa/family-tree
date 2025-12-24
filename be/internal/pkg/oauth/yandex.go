@@ -57,7 +57,7 @@ func (y *YandexProvider) Exchange(ctx context.Context, code string) (*oauth2.Tok
 	token, err := y.config.Exchange(ctx, code)
 	if err != nil {
 		slog.Error("YandexProvider.Exchange: exchange code for token", "error", err)
-		return nil, domain.NewExternalServiceError("Yandex OAuth", err)
+		return nil, domain.NewExternalServiceError(err)
 	}
 	return token, nil
 }
@@ -67,25 +67,25 @@ func (y *YandexProvider) GetUserInfo(ctx context.Context, token *oauth2.Token) (
 	resp, err := client.Get(y.userInfoURL)
 	if err != nil {
 		slog.Error("YandexProvider.GetUserInfo: get user info from API", "error", err)
-		return nil, domain.NewExternalServiceError("Yandex API", err)
+		return nil, domain.NewExternalServiceError(err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
 		slog.Error("YandexProvider.GetUserInfo: non-200 status code", "status_code", resp.StatusCode)
-		return nil, domain.NewExternalServiceError("Yandex API", fmt.Errorf("status code %d", resp.StatusCode))
+		return nil, domain.NewExternalServiceError(fmt.Errorf("status code %d", resp.StatusCode))
 	}
 
 	data, err := io.ReadAll(resp.Body)
 	if err != nil {
 		slog.Error("YandexProvider.GetUserInfo: read response body", "error", err)
-		return nil, domain.NewInternalError("read response", err)
+		return nil, domain.NewInternalError(err)
 	}
 
 	var yandexInfo yandexUserInfo
 	if err := json.Unmarshal(data, &yandexInfo); err != nil {
 		slog.Error("YandexProvider.GetUserInfo: unmarshal response", "error", err)
-		return nil, domain.NewInternalError("parse response", err)
+		return nil, domain.NewInternalError(err)
 	}
 
 	email := yandexInfo.DefaultEmail

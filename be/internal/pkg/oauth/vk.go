@@ -53,7 +53,7 @@ func (v *VKProvider) Exchange(ctx context.Context, code string) (*oauth2.Token, 
 	token, err := v.config.Exchange(ctx, code)
 	if err != nil {
 		slog.Error("VKProvider.Exchange: exchange code for token", "error", err)
-		return nil, domain.NewExternalServiceError("VK OAuth", err)
+		return nil, domain.NewExternalServiceError(err)
 	}
 	return token, nil
 }
@@ -66,29 +66,29 @@ func (v *VKProvider) GetUserInfo(ctx context.Context, token *oauth2.Token) (*dom
 	resp, err := client.Get(url)
 	if err != nil {
 		slog.Error("VKProvider.GetUserInfo: get user info from API", "error", err)
-		return nil, domain.NewExternalServiceError("VK API", err)
+		return nil, domain.NewExternalServiceError(err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
 		slog.Error("VKProvider.GetUserInfo: non-200 status code", "status_code", resp.StatusCode)
-		return nil, domain.NewExternalServiceError("VK API", fmt.Errorf("status code %d", resp.StatusCode))
+		return nil, domain.NewExternalServiceError(fmt.Errorf("status code %d", resp.StatusCode))
 	}
 
 	data, err := io.ReadAll(resp.Body)
 	if err != nil {
 		slog.Error("VKProvider.GetUserInfo: read response body", "error", err)
-		return nil, domain.NewInternalError("read response", err)
+		return nil, domain.NewInternalError(err)
 	}
 
 	var vkInfo vkUserInfo
 	if err := json.Unmarshal(data, &vkInfo); err != nil {
 		slog.Error("VKProvider.GetUserInfo: unmarshal response", "error", err)
-		return nil, domain.NewInternalError("parse response", err)
+		return nil, domain.NewInternalError(err)
 	}
 
 	if len(vkInfo.Response) == 0 {
-		return nil, domain.NewInternalError("VK API", fmt.Errorf("empty response"))
+		return nil, domain.NewInternalError(fmt.Errorf("VK API: empty response"))
 	}
 
 	user := vkInfo.Response[0]

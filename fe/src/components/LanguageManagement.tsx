@@ -198,7 +198,7 @@ const LanguageManagement: React.FC = () => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {languages.length === 0 ? (
+              {!Array.isArray(languages) || languages.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={4} align="center">
                     <Typography color="text.secondary">No languages found</Typography>

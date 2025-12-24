@@ -10,6 +10,11 @@ type HistoryQuery struct {
 	PaginationQuery
 }
 
+type MemberHistoryQuery struct {
+	MemberID int `form:"member_id" binding:"required,min=1"`
+	PaginationQuery
+}
+
 type HistoryResponse struct {
 	HistoryID     int             `json:"history_id"`
 	MemberID      int             `json:"member_id"`

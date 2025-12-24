@@ -2,7 +2,6 @@ package usecase
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/escalopa/family-tree/internal/domain"
 )
@@ -27,11 +26,11 @@ func (uc *languageUseCase) Create(ctx context.Context, language *domain.Language
 	// Check if language already exists
 	existing, _ := uc.langRepo.GetByCode(ctx, language.LanguageCode)
 	if existing != nil {
-		return domain.NewValidationError("language with this code already exists")
+		return domain.NewAlreadyExistsError("language")
 	}
 
 	if err := uc.langRepo.Create(ctx, language); err != nil {
-		return fmt.Errorf("create language: %w", err)
+		return err
 	}
 
 	return nil
@@ -61,25 +60,23 @@ func (uc *languageUseCase) Update(ctx context.Context, language *domain.Language
 	}
 
 	if err := uc.langRepo.Update(ctx, language); err != nil {
-		return fmt.Errorf("update language: %w", err)
+		return err
 	}
 
 	return nil
 }
 
-// UpdateUserLanguagePreference updates a user's language preference
 func (uc *languageUseCase) UpdatePreference(ctx context.Context, pref *domain.UserLanguagePreference) error {
-	// Validate that language exists and is active
 	lang, err := uc.langRepo.GetByCode(ctx, pref.PreferredLanguage)
 	if err != nil {
-		return fmt.Errorf("invalid preferred language: %w", err)
+		return err
 	}
 	if !lang.IsActive {
-		return domain.NewValidationError("preferred language is not active")
+		return domain.NewValidationError("error.language.not_active", nil)
 	}
 
 	if err := uc.langPrefRepo.Upsert(ctx, pref); err != nil {
-		return fmt.Errorf("update user language preference: %w", err)
+		return err
 	}
 
 	return nil

@@ -1,8 +1,7 @@
 package handler
 
 import (
-	"net/http"
-
+	"github.com/escalopa/family-tree/internal/delivery"
 	"github.com/escalopa/family-tree/internal/delivery/http/dto"
 	"github.com/escalopa/family-tree/internal/delivery/http/middleware"
 	"github.com/escalopa/family-tree/internal/domain"
@@ -20,7 +19,7 @@ func NewSpouseHandler(spouseUseCase SpouseUseCase) *spouseHandler {
 func (h *spouseHandler) Create(c *gin.Context) {
 	var req dto.CreateSpouseRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, dto.Response{Success: false, Error: err.Error()})
+		delivery.Error(c, err)
 		return
 	}
 
@@ -33,17 +32,17 @@ func (h *spouseHandler) Create(c *gin.Context) {
 
 	userID := middleware.GetUserID(c)
 	if err := h.spouseUseCase.Create(c.Request.Context(), spouse, userID); err != nil {
-		c.JSON(http.StatusInternalServerError, dto.Response{Success: false, Error: err.Error()})
+		delivery.Error(c, err)
 		return
 	}
 
-	c.JSON(http.StatusCreated, dto.Response{Success: true, Data: "spouse relationship created"})
+	delivery.Success(c, "success.spouse.created", nil)
 }
 
 func (h *spouseHandler) Update(c *gin.Context) {
 	var req dto.UpdateSpouseRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, dto.Response{Success: false, Error: err.Error()})
+		delivery.Error(c, err)
 		return
 	}
 
@@ -55,27 +54,25 @@ func (h *spouseHandler) Update(c *gin.Context) {
 
 	userID := middleware.GetUserID(c)
 	if err := h.spouseUseCase.Update(c.Request.Context(), spouse, userID); err != nil {
-		c.JSON(http.StatusInternalServerError, dto.Response{Success: false, Error: err.Error()})
+		delivery.Error(c, err)
 		return
 	}
 
-	c.JSON(http.StatusOK, dto.Response{Success: true, Data: "spouse relationship updated"})
+	delivery.Success(c, "success.spouse.updated", nil)
 }
 
 func (h *spouseHandler) Delete(c *gin.Context) {
-	var req struct {
-		SpouseID int `json:"spouse_id" binding:"required"`
-	}
+	var req dto.DeleteSpouseRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, dto.Response{Success: false, Error: err.Error()})
+		delivery.Error(c, err)
 		return
 	}
 
 	userID := middleware.GetUserID(c)
 	if err := h.spouseUseCase.Delete(c.Request.Context(), req.SpouseID, userID); err != nil {
-		c.JSON(http.StatusInternalServerError, dto.Response{Success: false, Error: err.Error()})
+		delivery.Error(c, err)
 		return
 	}
 
-	c.JSON(http.StatusOK, dto.Response{Success: true, Data: "spouse relationship removed"})
+	delivery.Success(c, "success.spouse.deleted", nil)
 }

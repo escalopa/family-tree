@@ -1,9 +1,9 @@
 package domain
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 )
 
 type ErrorCode string
@@ -30,35 +30,30 @@ const (
 	ErrCodeExternalService ErrorCode = "EXTERNAL_SERVICE_ERROR"
 )
 
-var (
-	ErrUnauthorized      = errors.New("unauthorized")
-	ErrForbidden         = errors.New("forbidden")
-	ErrNotFound          = errors.New("not found")
-	ErrAlreadyExists     = errors.New("already exists")
-	ErrConflict          = errors.New("conflict")
-	ErrInvalidInput      = errors.New("invalid input")
-	ErrVersionConflict   = errors.New("version conflict")
-	ErrInvalidOAuthState = errors.New("invalid oauth state")
-	ErrInternal          = errors.New("internal error")
-	ErrDatabase          = errors.New("database error")
-	ErrExternalService   = errors.New("external service error")
-)
+func (e ErrorCode) String() string {
+	return string(e)
+}
 
 type DomainError struct {
-	Code    ErrorCode
-	Message string
-	Err     error
+	Code           ErrorCode
+	TranslationKey string
+	Params         map[string]string
+	Err            error
+}
+
+func (e *DomainError) Message() string {
+	if len(e.Params) > 0 {
+		return fmt.Sprintf("%s: %v", e.TranslationKey, e.Params)
+	}
+	return e.TranslationKey
 }
 
 func (e *DomainError) Error() string {
+	msg := e.Message()
 	if e.Err != nil {
-		return fmt.Sprintf("%s: %s (%v)", e.Code, e.Message, e.Err)
+		return fmt.Sprintf("%s: %s (%v)", e.Code, msg, e.Err)
 	}
-	return fmt.Sprintf("%s: %s", e.Code, e.Message)
-}
-
-func (e *DomainError) Unwrap() error {
-	return e.Err
+	return fmt.Sprintf("%s: %s", e.Code, msg)
 }
 
 func (e *DomainError) HTTPStatusCode() int {
@@ -84,74 +79,101 @@ func (e *DomainError) HTTPStatusCode() int {
 	}
 }
 
-func (e *DomainError) Is(target error) bool {
-	switch e.Code {
-	case ErrCodeUnauthorized, ErrCodeInvalidToken, ErrCodeSessionExpired:
-		return errors.Is(target, ErrUnauthorized)
-	case ErrCodeForbidden, ErrCodeInsufficientPermissions:
-		return errors.Is(target, ErrForbidden)
-	case ErrCodeNotFound:
-		return errors.Is(target, ErrNotFound)
-	case ErrCodeAlreadyExists:
-		return errors.Is(target, ErrAlreadyExists)
-	case ErrCodeConflict:
-		return errors.Is(target, ErrConflict)
-	case ErrCodeInvalidInput:
-		return errors.Is(target, ErrInvalidInput)
-	case ErrCodeVersionConflict:
-		return errors.Is(target, ErrVersionConflict)
-	case ErrCodeInvalidOAuthState:
-		return errors.Is(target, ErrInvalidOAuthState)
-	case ErrCodeDatabaseError:
-		return errors.Is(target, ErrDatabase)
-	case ErrCodeExternalService:
-		return errors.Is(target, ErrExternalService)
-	case ErrCodeInternal:
-		return errors.Is(target, ErrInternal)
+func NewUnauthorizedError(translationKey string, err error) *DomainError {
+	if translationKey == "" {
+		translationKey = "error.unauthorized"
 	}
-	return false
+	return &DomainError{
+		Code:           ErrCodeUnauthorized,
+		TranslationKey: translationKey,
+		Err:            err,
+	}
 }
 
-func NewUnauthorizedError(message string, err error) *DomainError {
-	return &DomainError{Code: ErrCodeUnauthorized, Message: message, Err: err}
-}
-
-func NewForbiddenError(message string) *DomainError {
-	return &DomainError{Code: ErrCodeForbidden, Message: message}
+func NewForbiddenError(translationKey string) *DomainError {
+	if translationKey == "" {
+		translationKey = "error.forbidden"
+	}
+	return &DomainError{
+		Code:           ErrCodeForbidden,
+		TranslationKey: translationKey,
+	}
 }
 
 func NewNotFoundError(resource string) *DomainError {
-	return &DomainError{Code: ErrCodeNotFound, Message: fmt.Sprintf("%s not found", resource)}
+	translationKey := fmt.Sprintf("error.%s.not_found", strings.ToLower(resource))
+	return &DomainError{
+		Code:           ErrCodeNotFound,
+		TranslationKey: translationKey,
+		Params:         map[string]string{"resource": resource},
+	}
 }
 
 func NewAlreadyExistsError(resource string) *DomainError {
-	return &DomainError{Code: ErrCodeAlreadyExists, Message: fmt.Sprintf("%s already exists", resource)}
+	translationKey := fmt.Sprintf("error.%s.already_exists", strings.ToLower(resource))
+	return &DomainError{
+		Code:           ErrCodeAlreadyExists,
+		TranslationKey: translationKey,
+		Params:         map[string]string{"resource": resource},
+	}
 }
 
-func NewConflictError(message string) *DomainError {
-	return &DomainError{Code: ErrCodeConflict, Message: message}
+func NewConflictError(translationKey string, params map[string]string) *DomainError {
+	if translationKey == "" {
+		translationKey = "error.conflict"
+	}
+	return &DomainError{
+		Code:           ErrCodeConflict,
+		TranslationKey: translationKey,
+		Params:         params,
+	}
 }
 
-func NewValidationError(message string) *DomainError {
-	return &DomainError{Code: ErrCodeInvalidInput, Message: message}
+func NewValidationError(translationKey string, params map[string]string) *DomainError {
+	if translationKey == "" {
+		translationKey = "error.invalid_input"
+	}
+	return &DomainError{
+		Code:           ErrCodeInvalidInput,
+		TranslationKey: translationKey,
+		Params:         params,
+	}
 }
 
 func NewVersionConflictError() *DomainError {
-	return &DomainError{Code: ErrCodeVersionConflict, Message: "version conflict, resource was modified"}
+	return &DomainError{
+		Code:           ErrCodeVersionConflict,
+		TranslationKey: "error.version_conflict",
+	}
 }
 
-func NewInternalError(message string, err error) *DomainError {
-	return &DomainError{Code: ErrCodeInternal, Message: message, Err: err}
+func NewInternalError(err error) *DomainError {
+	return &DomainError{
+		Code:           ErrCodeInternal,
+		TranslationKey: "error.internal",
+		Err:            err,
+	}
 }
 
 func NewDatabaseError(err error) *DomainError {
-	return &DomainError{Code: ErrCodeDatabaseError, Message: "database operation failed", Err: err}
+	return &DomainError{
+		Code:           ErrCodeDatabaseError,
+		TranslationKey: "error.database",
+		Err:            err,
+	}
 }
 
-func NewExternalServiceError(service string, err error) *DomainError {
-	return &DomainError{Code: ErrCodeExternalService, Message: fmt.Sprintf("%s service error", service), Err: err}
+func NewExternalServiceError(err error) *DomainError {
+	return &DomainError{
+		Code:           ErrCodeExternalService,
+		TranslationKey: "error.external_service",
+		Err:            err,
+	}
 }
 
 func NewInvalidOAuthStateError() *DomainError {
-	return &DomainError{Code: ErrCodeInvalidOAuthState, Message: "invalid or expired OAuth state"}
+	return &DomainError{
+		Code:           ErrCodeInvalidOAuthState,
+		TranslationKey: "error.invalid_oauth_state",
+	}
 }

@@ -1,9 +1,9 @@
 package handler
 
 import (
-	"net/http"
 	"strconv"
 
+	"github.com/escalopa/family-tree/internal/delivery"
 	"github.com/escalopa/family-tree/internal/delivery/http/dto"
 	"github.com/escalopa/family-tree/internal/delivery/http/middleware"
 	"github.com/escalopa/family-tree/internal/domain"
@@ -32,15 +32,15 @@ func NewUserHandler(userUseCase UserUseCase) *userHandler {
 // @Failure 404 {object} dto.Response
 // @Router /api/users/{user_id} [get]
 func (h *userHandler) Get(c *gin.Context) {
-	userID, err := strconv.Atoi(c.Param("user_id"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, dto.Response{Success: false, Error: "invalid user_id"})
+	var uri dto.UserIDUri
+	if err := c.ShouldBindUri(&uri); err != nil {
+		delivery.Error(c, err)
 		return
 	}
 
-	user, err := h.userUseCase.GetWithScore(c.Request.Context(), userID)
+	user, err := h.userUseCase.GetWithScore(c.Request.Context(), uri.UserID)
 	if err != nil {
-		c.JSON(http.StatusNotFound, dto.Response{Success: false, Error: err.Error()})
+		delivery.Error(c, err)
 		return
 	}
 
@@ -53,8 +53,7 @@ func (h *userHandler) Get(c *gin.Context) {
 		IsActive:   user.IsActive,
 		TotalScore: &user.TotalScore,
 	}
-
-	c.JSON(http.StatusOK, dto.Response{Success: true, Data: response})
+	delivery.SuccessWithData(c, response)
 }
 
 // ListUsers godoc
@@ -77,7 +76,7 @@ func (h *userHandler) Get(c *gin.Context) {
 func (h *userHandler) List(c *gin.Context) {
 	var query dto.UserFilterQuery
 	if err := c.ShouldBindQuery(&query); err != nil {
-		c.JSON(http.StatusBadRequest, dto.Response{Success: false, Error: err.Error()})
+		delivery.Error(c, err)
 		return
 	}
 
@@ -89,7 +88,7 @@ func (h *userHandler) List(c *gin.Context) {
 
 	users, nextCursor, err := h.userUseCase.List(c.Request.Context(), filter, query.Cursor, query.Limit)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, dto.Response{Success: false, Error: err.Error()})
+		delivery.Error(c, err)
 		return
 	}
 
@@ -110,50 +109,50 @@ func (h *userHandler) List(c *gin.Context) {
 		NextCursor: nextCursor,
 	}
 
-	c.JSON(http.StatusOK, dto.Response{Success: true, Data: response})
+	delivery.SuccessWithData(c, response)
 }
 
 func (h *userHandler) UpdateRole(c *gin.Context) {
-	userID, err := strconv.Atoi(c.Param("user_id"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, dto.Response{Success: false, Error: "invalid user_id"})
+	var uri dto.UserIDUri
+	if err := c.ShouldBindUri(&uri); err != nil {
+		delivery.Error(c, err)
 		return
 	}
 
 	var req dto.UpdateRoleRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, dto.Response{Success: false, Error: err.Error()})
+		delivery.Error(c, err)
 		return
 	}
 
 	changedBy := middleware.GetUserID(c)
-	if err := h.userUseCase.UpdateRole(c.Request.Context(), userID, req.RoleID, changedBy); err != nil {
-		c.JSON(http.StatusInternalServerError, dto.Response{Success: false, Error: err.Error()})
+	if err := h.userUseCase.UpdateRole(c.Request.Context(), uri.UserID, req.RoleID, changedBy); err != nil {
+		delivery.Error(c, err)
 		return
 	}
 
-	c.JSON(http.StatusOK, dto.Response{Success: true, Data: "role updated"})
+	delivery.Success(c, "success.user.role_updated", nil)
 }
 
 func (h *userHandler) UpdateActive(c *gin.Context) {
-	userID, err := strconv.Atoi(c.Param("user_id"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, dto.Response{Success: false, Error: "invalid user_id"})
+	var uri dto.UserIDUri
+	if err := c.ShouldBindUri(&uri); err != nil {
+		delivery.Error(c, err)
 		return
 	}
 
 	var req dto.UpdateActiveRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, dto.Response{Success: false, Error: err.Error()})
+		delivery.Error(c, err)
 		return
 	}
 
-	if err := h.userUseCase.UpdateActive(c.Request.Context(), userID, req.IsActive); err != nil {
-		c.JSON(http.StatusInternalServerError, dto.Response{Success: false, Error: err.Error()})
+	if err := h.userUseCase.UpdateActive(c.Request.Context(), uri.UserID, req.IsActive); err != nil {
+		delivery.Error(c, err)
 		return
 	}
 
-	c.JSON(http.StatusOK, dto.Response{Success: true, Data: "active status updated"})
+	delivery.Success(c, "success.user.active_status_updated", nil)
 }
 
 // GetLeaderboard godoc
@@ -178,7 +177,7 @@ func (h *userHandler) ListLeaderboard(c *gin.Context) {
 
 	leaderboard, err := h.userUseCase.ListLeaderboard(c.Request.Context(), limit)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, dto.Response{Success: false, Error: err.Error()})
+		delivery.Error(c, err)
 		return
 	}
 
@@ -193,25 +192,25 @@ func (h *userHandler) ListLeaderboard(c *gin.Context) {
 		})
 	}
 
-	c.JSON(http.StatusOK, dto.Response{Success: true, Data: response})
+	delivery.SuccessWithData(c, response)
 }
 
 func (h *userHandler) ListScoreHistory(c *gin.Context) {
-	userID, err := strconv.Atoi(c.Param("user_id"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, dto.Response{Success: false, Error: "invalid user_id"})
+	var uri dto.UserIDUri
+	if err := c.ShouldBindUri(&uri); err != nil {
+		delivery.Error(c, err)
 		return
 	}
 
 	var query dto.PaginationQuery
 	if err := c.ShouldBindQuery(&query); err != nil {
-		c.JSON(http.StatusBadRequest, dto.Response{Success: false, Error: err.Error()})
+		delivery.Error(c, err)
 		return
 	}
 
-	scores, nextCursor, err := h.userUseCase.ListScoreHistory(c.Request.Context(), userID, query.Cursor, query.Limit)
+	scores, nextCursor, err := h.userUseCase.ListScoreHistory(c.Request.Context(), uri.UserID, query.Cursor, query.Limit)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, dto.Response{Success: false, Error: err.Error()})
+		delivery.Error(c, err)
 		return
 	}
 
@@ -219,11 +218,10 @@ func (h *userHandler) ListScoreHistory(c *gin.Context) {
 
 	var scoresResponse []dto.ScoreHistoryResponse
 	for _, s := range scores {
-		memberName := extractName(s.MemberNames, preferredLang)
 		scoresResponse = append(scoresResponse, dto.ScoreHistoryResponse{
 			UserID:        s.UserID,
 			MemberID:      s.MemberID,
-			MemberName:    memberName,
+			MemberName:    extractName(s.MemberNames, preferredLang),
 			FieldName:     s.FieldName,
 			Points:        s.Points,
 			MemberVersion: s.MemberVersion,
@@ -236,25 +234,25 @@ func (h *userHandler) ListScoreHistory(c *gin.Context) {
 		NextCursor: nextCursor,
 	}
 
-	c.JSON(http.StatusOK, dto.Response{Success: true, Data: response})
+	delivery.SuccessWithData(c, response)
 }
 
 func (h *userHandler) ListChanges(c *gin.Context) {
-	userID, err := strconv.Atoi(c.Param("user_id"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, dto.Response{Success: false, Error: "invalid user_id"})
+	var uri dto.UserIDUri
+	if err := c.ShouldBindUri(&uri); err != nil {
+		delivery.Error(c, err)
 		return
 	}
 
 	var query dto.PaginationQuery
 	if err := c.ShouldBindQuery(&query); err != nil {
-		c.JSON(http.StatusBadRequest, dto.Response{Success: false, Error: err.Error()})
+		delivery.Error(c, err)
 		return
 	}
 
-	changes, nextCursor, err := h.userUseCase.ListChanges(c.Request.Context(), userID, query.Cursor, query.Limit)
+	changes, nextCursor, err := h.userUseCase.ListChanges(c.Request.Context(), uri.UserID, query.Cursor, query.Limit)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, dto.Response{Success: false, Error: err.Error()})
+		delivery.Error(c, err)
 		return
 	}
 
@@ -262,11 +260,10 @@ func (h *userHandler) ListChanges(c *gin.Context) {
 
 	var changesResponse []dto.HistoryResponse
 	for _, h := range changes {
-		memberName := extractName(h.MemberNames, preferredLang)
 		changesResponse = append(changesResponse, dto.HistoryResponse{
 			HistoryID:     h.HistoryID,
 			MemberID:      h.MemberID,
-			MemberName:    memberName,
+			MemberName:    extractName(h.MemberNames, preferredLang),
 			UserID:        h.UserID,
 			UserFullName:  h.UserFullName,
 			UserEmail:     h.UserEmail,
@@ -283,5 +280,5 @@ func (h *userHandler) ListChanges(c *gin.Context) {
 		NextCursor: nextCursor,
 	}
 
-	c.JSON(http.StatusOK, dto.Response{Success: true, Data: response})
+	delivery.SuccessWithData(c, response)
 }

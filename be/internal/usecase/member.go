@@ -40,7 +40,7 @@ func NewMemberUseCase(
 
 func (uc *memberUseCase) Create(ctx context.Context, member *domain.Member, userID int) error {
 	if len(member.Names) == 0 {
-		return domain.NewValidationError("at least one name must be provided")
+		return domain.NewValidationError("error.validation.names_required", map[string]string{"language": "all", "code": "all"})
 	}
 
 	if err := uc.validateParentRelationships(ctx, member.MemberID, member.FatherID, member.MotherID); err != nil {
@@ -48,11 +48,11 @@ func (uc *memberUseCase) Create(ctx context.Context, member *domain.Member, user
 	}
 
 	if err := uc.memberRepo.Create(ctx, member); err != nil {
-		return fmt.Errorf("create member: %w", err)
+		return err
 	}
 
 	if err := uc.ensureParentSpouseRelationship(ctx, member.FatherID, member.MotherID, userID); err != nil {
-		return fmt.Errorf("ensure parent spouse relationship: %w", err)
+		return err
 	}
 
 	newValuesJSON, _ := json.Marshal(member)
@@ -65,11 +65,11 @@ func (uc *memberUseCase) Create(ctx context.Context, member *domain.Member, user
 		MemberVersion: member.Version,
 	}
 	if err := uc.historyRepo.Create(ctx, history); err != nil {
-		return fmt.Errorf("record history: %w", err)
+		return err
 	}
 
 	if err := uc.calculateAndRecordScores(ctx, member, userID); err != nil {
-		return fmt.Errorf("record scores: %w", err)
+		return err
 	}
 
 	return nil
@@ -78,20 +78,20 @@ func (uc *memberUseCase) Create(ctx context.Context, member *domain.Member, user
 func (uc *memberUseCase) Update(ctx context.Context, member *domain.Member, expectedVersion, userID int) error {
 	oldMember, err := uc.memberRepo.Get(ctx, member.MemberID)
 	if err != nil {
-		return fmt.Errorf("get old member: %w", err)
+		return err
 	}
 
 	if len(member.Names) == 0 {
-		return domain.NewValidationError("at least one name must be provided")
+		return domain.NewValidationError("error.validation.names_required", map[string]string{"language": "all", "code": "all"})
 	}
 
 	if oldMember.Gender != member.Gender {
 		spouses, err := uc.spouseRepo.GetByMemberID(ctx, member.MemberID)
 		if err != nil {
-			return fmt.Errorf("check for spouses: %w", err)
+			return err
 		}
 		if len(spouses) > 0 {
-			return domain.NewValidationError("cannot change gender: member has spouse relationships")
+			return domain.NewValidationError("error.validation.invalid_gender", nil)
 		}
 	}
 
@@ -100,11 +100,11 @@ func (uc *memberUseCase) Update(ctx context.Context, member *domain.Member, expe
 	}
 
 	if err := uc.memberRepo.Update(ctx, member, expectedVersion); err != nil {
-		return fmt.Errorf("update member: %w", err)
+		return err
 	}
 
 	if err := uc.ensureParentSpouseRelationship(ctx, member.FatherID, member.MotherID, userID); err != nil {
-		return fmt.Errorf("ensure parent spouse relationship: %w", err)
+		return err
 	}
 
 	oldValuesJSON, _ := json.Marshal(oldMember)
@@ -118,11 +118,11 @@ func (uc *memberUseCase) Update(ctx context.Context, member *domain.Member, expe
 		MemberVersion: member.Version,
 	}
 	if err := uc.historyRepo.Create(ctx, history); err != nil {
-		return fmt.Errorf("record history: %w", err)
+		return err
 	}
 
 	if err := uc.updateScores(ctx, oldMember, member, userID); err != nil {
-		return fmt.Errorf("update scores: %w", err)
+		return err
 	}
 
 	return nil
@@ -131,15 +131,15 @@ func (uc *memberUseCase) Update(ctx context.Context, member *domain.Member, expe
 func (uc *memberUseCase) Delete(ctx context.Context, memberID, userID int) error {
 	oldMember, err := uc.memberRepo.Get(ctx, memberID)
 	if err != nil {
-		return fmt.Errorf("get member: %w", err)
+		return err
 	}
 
 	children, err := uc.memberRepo.GetChildrenByParentID(ctx, memberID)
 	if err != nil {
-		return fmt.Errorf("check children: %w", err)
+		return err
 	}
 	if len(children) > 0 {
-		return domain.NewValidationError("cannot delete member: this member has children")
+		return domain.NewConflictError("error.member.has_children", map[string]string{"count": fmt.Sprintf("%d", len(children))})
 	}
 
 	oldValuesJSON, _ := json.Marshal(oldMember)
@@ -157,7 +157,7 @@ func (uc *memberUseCase) Delete(ctx context.Context, memberID, userID int) error
 
 	pictureURL, err := uc.memberRepo.Delete(ctx, memberID)
 	if err != nil {
-		return fmt.Errorf("delete member: %w", err)
+		return err
 	}
 
 	if pictureURL != nil && *pictureURL != "" {
@@ -192,12 +192,12 @@ func (uc *memberUseCase) ListHistory(ctx context.Context, memberID int, cursor *
 func (uc *memberUseCase) UploadPicture(ctx context.Context, memberID int, data []byte, filename string, userID int) (string, error) {
 	oldMember, err := uc.memberRepo.Get(ctx, memberID)
 	if err != nil {
-		return "", fmt.Errorf("get member: %w", err)
+		return "", err
 	}
 
 	newPictureURL, err := uc.s3Client.UploadImage(ctx, data, filename)
 	if err != nil {
-		return "", fmt.Errorf("upload image: %w", err)
+		return "", err
 	}
 
 	if err := uc.memberRepo.UpdatePicture(ctx, memberID, newPictureURL); err != nil {
@@ -208,7 +208,7 @@ func (uc *memberUseCase) UploadPicture(ctx context.Context, memberID int, data [
 				"picture_url", newPictureURL,
 				"original_error", err)
 		}
-		return "", fmt.Errorf("update member picture: %w", err)
+		return "", err
 	}
 
 	if oldMember.Picture != nil && *oldMember.Picture != "" {
@@ -222,7 +222,7 @@ func (uc *memberUseCase) UploadPicture(ctx context.Context, memberID int, data [
 
 	updatedMember, err := uc.memberRepo.Get(ctx, memberID)
 	if err != nil {
-		return "", fmt.Errorf("get updated member: %w", err)
+		return "", err
 	}
 
 	oldValuesJSON, _ := json.Marshal(map[string]any{"picture": oldMember.Picture})
@@ -258,13 +258,13 @@ func (uc *memberUseCase) UploadPicture(ctx context.Context, memberID int, data [
 func (uc *memberUseCase) DeletePicture(ctx context.Context, memberID int, userID int) error {
 	member, err := uc.memberRepo.Get(ctx, memberID)
 	if err != nil {
-		return fmt.Errorf("get member: %w", err)
+		return err
 	}
 
 	oldPictureURL := member.Picture
 
 	if err := uc.memberRepo.DeletePicture(ctx, memberID); err != nil {
-		return fmt.Errorf("delete picture from database: %w", err)
+		return err
 	}
 
 	if oldPictureURL != nil && *oldPictureURL != "" {
@@ -278,7 +278,7 @@ func (uc *memberUseCase) DeletePicture(ctx context.Context, memberID int, userID
 
 	updatedMember, err := uc.memberRepo.Get(ctx, memberID)
 	if err != nil {
-		return fmt.Errorf("get updated member: %w", err)
+		return err
 	}
 
 	oldValuesJSON, _ := json.Marshal(map[string]any{"picture": oldPictureURL})
@@ -301,7 +301,7 @@ func (uc *memberUseCase) DeletePicture(ctx context.Context, memberID int, userID
 func (uc *memberUseCase) GetPicture(ctx context.Context, memberID int) ([]byte, string, error) {
 	member, err := uc.memberRepo.Get(ctx, memberID)
 	if err != nil {
-		return nil, "", fmt.Errorf("get member: %w", err)
+		return nil, "", err
 	}
 
 	if member.Picture == nil || *member.Picture == "" {
@@ -311,7 +311,7 @@ func (uc *memberUseCase) GetPicture(ctx context.Context, memberID int) ([]byte, 
 
 	imageData, err := uc.s3Client.GetImage(ctx, *member.Picture)
 	if err != nil {
-		return nil, "", fmt.Errorf("get image: %w", err)
+		return nil, "", err
 	}
 
 	contentType := mime.TypeByExtension(filepath.Ext(*member.Picture))
@@ -323,22 +323,22 @@ func (uc *memberUseCase) GetPicture(ctx context.Context, memberID int) ([]byte, 
 func (uc *memberUseCase) validateParentRelationships(ctx context.Context, memberID int, fatherID, motherID *int) error {
 	if fatherID != nil && *fatherID == memberID {
 		slog.Warn("memberUseCase.validateParentRelationships: member cannot be their own father", "member_id", memberID, "father_id", *fatherID)
-		return domain.NewValidationError("member cannot be their own father")
+		return domain.NewValidationError("error.member.circular_relationship", nil)
 	}
 	if motherID != nil && *motherID == memberID {
 		slog.Warn("memberUseCase.validateParentRelationships: member cannot be their own mother", "member_id", memberID, "mother_id", *motherID)
-		return domain.NewValidationError("member cannot be their own mother")
+		return domain.NewValidationError("error.member.circular_relationship", nil)
 	}
 
 	if fatherID != nil {
 		if err := uc.checkCircularRelationship(ctx, memberID, *fatherID); err != nil {
-			return fmt.Errorf("invalid father relationship: %w", err)
+			return err
 		}
 	}
 
 	if motherID != nil {
 		if err := uc.checkCircularRelationship(ctx, memberID, *motherID); err != nil {
-			return fmt.Errorf("invalid mother relationship: %w", err)
+			return err
 		}
 	}
 
@@ -358,7 +358,7 @@ func (uc *memberUseCase) ensureParentSpouseRelationship(ctx context.Context, fat
 
 	var domainErr *domain.DomainError
 	if !errors.As(err, &domainErr) || domainErr.Code != domain.ErrCodeNotFound {
-		return fmt.Errorf("check spouse relationship: %w", err)
+		return err
 	}
 
 	spouse := &domain.Spouse{
@@ -369,7 +369,7 @@ func (uc *memberUseCase) ensureParentSpouseRelationship(ctx context.Context, fat
 	}
 
 	if err := uc.spouseRepo.Create(ctx, spouse); err != nil {
-		return fmt.Errorf("create spouse relationship: %w", err)
+		return err
 	}
 
 	newValuesJSON, _ := json.Marshal(spouse)
@@ -426,16 +426,16 @@ func (uc *memberUseCase) recordSpouseHistory(
 func (uc *memberUseCase) checkCircularRelationship(ctx context.Context, memberID, parentID int) error {
 	parent, err := uc.memberRepo.Get(ctx, parentID)
 	if err != nil {
-		return fmt.Errorf("get parent: %w", err)
+		return err
 	}
 
 	if parent.FatherID != nil && *parent.FatherID == memberID {
 		slog.Warn("memberUseCase.checkCircularRelationship: circular relationship detected - parent's father cannot be their child", "member_id", memberID, "parent_id", parentID)
-		return domain.NewValidationError("circular relationship detected: parent's father cannot be their child")
+		return domain.NewValidationError("error.member.circular_relationship", nil)
 	}
 	if parent.MotherID != nil && *parent.MotherID == memberID {
 		slog.Warn("memberUseCase.checkCircularRelationship: circular relationship detected - parent's mother cannot be their child", "member_id", memberID, "parent_id", parentID)
-		return domain.NewValidationError("circular relationship detected: parent's mother cannot be their child")
+		return domain.NewValidationError("error.member.circular_relationship", nil)
 	}
 
 	visited := make(map[int]bool)
@@ -445,7 +445,7 @@ func (uc *memberUseCase) checkCircularRelationship(ctx context.Context, memberID
 func (uc *memberUseCase) checkAncestors(ctx context.Context, currentID, targetID int, visited map[int]bool, depth int) error {
 	if depth > 50 {
 		slog.Warn("memberUseCase.checkAncestors: family tree depth limit exceeded", "current_id", currentID, "target_id", targetID, "depth", depth)
-		return domain.NewValidationError("family tree depth limit exceeded")
+		return domain.NewValidationError("error.member.depth_limit", nil)
 	}
 	if visited[currentID] {
 		return nil
@@ -460,7 +460,7 @@ func (uc *memberUseCase) checkAncestors(ctx context.Context, currentID, targetID
 	if current.FatherID != nil {
 		if *current.FatherID == targetID {
 			slog.Warn("memberUseCase.checkAncestors: circular relationship detected in ancestry (father)", "current_id", currentID, "target_id", targetID, "father_id", *current.FatherID, "depth", depth)
-			return domain.NewValidationError("circular relationship detected in ancestry")
+			return domain.NewValidationError("error.member.circular_relationship", nil)
 		}
 		if err := uc.checkAncestors(ctx, *current.FatherID, targetID, visited, depth+1); err != nil {
 			return err
@@ -470,7 +470,7 @@ func (uc *memberUseCase) checkAncestors(ctx context.Context, currentID, targetID
 	if current.MotherID != nil {
 		if *current.MotherID == targetID {
 			slog.Warn("memberUseCase.checkAncestors: circular relationship detected in ancestry (mother)", "current_id", currentID, "target_id", targetID, "mother_id", *current.MotherID, "depth", depth)
-			return domain.NewValidationError("circular relationship detected in ancestry")
+			return domain.NewValidationError("error.member.circular_relationship", nil)
 		}
 		if err := uc.checkAncestors(ctx, *current.MotherID, targetID, visited, depth+1); err != nil {
 			return err

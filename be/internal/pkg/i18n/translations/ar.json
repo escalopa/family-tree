@@ -1,0 +1,90 @@
+{
+  "error": {
+    "unauthorized": "غير مصرح بالوصول",
+    "invalid_token": "رمز غير صالح أو منتهي الصلاحية",
+    "session_expired": "انتهت صلاحية جلستك. يرجى تسجيل الدخول مرة أخرى",
+    "invalid_oauth_state": "حالة OAuth غير صالحة أو منتهية الصلاحية",
+    "forbidden": "الوصول محظور",
+    "conflict": "{{message}}",
+    "invalid_input": "{{message}}",
+    "version_conflict": "تم تعديل المورد بواسطة مستخدم آخر. يرجى التحديث والمحاولة مرة أخرى",
+    "internal": "خطأ داخلي في الخادم. يرجى المحاولة مرة أخرى لاحقاً",
+    "database": "حدث خطأ في النظام. يرجى المحاولة مرة أخرى لاحقاً",
+    "external_service": "الخدمة الخارجية غير متاحة حالياً. يرجى المحاولة مرة أخرى لاحقاً",
+    "member": {
+      "not_found": "العضو غير موجود",
+      "already_exists": "العضو موجود بالفعل",
+      "invalid_parent": "{{parent}} غير صالح",
+      "circular_relationship": "تم اكتشاف علاقة دائرية بين الوالد والطفل",
+      "has_children": "لا يمكن حذف العضو: لديه أطفال",
+      "depth_limit": "تم تجاوز الحد الأقصى لعمق شجرة العائلة",
+      "no_relation": "لم يتم العثور على علاقة بين الأعضاء"
+    },
+    "spouse": {
+      "not_found": "الزوج/الزوجة غير موجود",
+      "already_exists": "علاقة الزواج موجودة بالفعل",
+      "has_children": "لا يمكن حذف علاقة الزواج: هناك أطفال من كلا الوالدين",
+      "invalid_marriage_date": "تاريخ الطلاق يجب أن يكون بعد تاريخ الزواج"
+    },
+    "user": {
+      "not_found": "المستخدم غير موجود",
+      "already_exists": "يوجد مستخدم بهذا البريد الإلكتروني بالفعل",
+      "inactive": "حسابك غير نشط. يرجى الاتصال بالمسؤول"
+    },
+    "language": {
+      "not_found": "اللغة غير موجودة",
+      "already_exists": "اللغة موجودة بالفعل",
+      "not_active": "اللغة المحددة غير نشطة"
+    },
+    "oauth": {
+      "provider_not_supported": "مزود OAuth '{{provider}}' غير مدعوم"
+    },
+    "image": {
+      "not_found": "الصورة غير موجودة"
+    },
+    "picture": {
+      "not_found": "الصورة غير موجودة"
+    },
+    "validation": {
+      "names_required": "الاسم مطلوب للغة '{{language}}' ({{code}})",
+      "invalid_gender": "لا يمكن تغيير الجنس: العضو لديه علاقات زوجية",
+      "invalid_file": "تنسيق الملف غير صالح",
+      "file_too_large": "حجم الملف يتجاوز الحد الأقصى المسموح به"
+    }
+  },
+  "validation": {
+    "required": "{{field}} مطلوب",
+    "min": "{{field}} يجب أن يكون على الأقل {{min}} حرفاً",
+    "max": "{{field}} يجب أن يكون على الأكثر {{max}} حرفاً",
+    "oneof": "{{field}} يجب أن يكون أحد: {{values}}"
+  },
+  "field": {
+    "names": "الأسماء",
+    "gender": "الجنس",
+    "father_id": "الأب",
+    "mother_id": "الأم",
+    "version": "الإصدار",
+    "language_code": "رمز اللغة",
+    "language_name": "اسم اللغة",
+    "preferred_language": "اللغة المفضلة"
+  },
+  "success": {
+    "auth": {
+      "logout": "تم تسجيل الخروج بنجاح",
+      "logout_all": "تم تسجيل الخروج من جميع الأجهزة بنجاح"
+    },
+    "member": {
+      "deleted": "تم حذف العضو بنجاح",
+      "picture_deleted": "تم حذف الصورة بنجاح"
+    },
+    "spouse": {
+      "created": "تم إنشاء علاقة الزواج بنجاح",
+      "updated": "تم تحديث علاقة الزواج بنجاح",
+      "deleted": "تم حذف علاقة الزواج بنجاح"
+    },
+    "user": {
+      "role_updated": "تم تحديث دور المستخدم بنجاح",
+      "active_status_updated": "تم تحديث حالة نشاط المستخدم بنجاح"
+    }
+  }
+}

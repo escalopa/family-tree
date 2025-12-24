@@ -60,7 +60,7 @@ func (l *LinkedInProvider) Exchange(ctx context.Context, code string) (*oauth2.T
 	token, err := l.config.Exchange(ctx, code)
 	if err != nil {
 		slog.Error("LinkedInProvider.Exchange: exchange code for token", "error", err)
-		return nil, domain.NewExternalServiceError("LinkedIn OAuth", err)
+		return nil, domain.NewExternalServiceError(err)
 	}
 	return token, nil
 }
@@ -72,25 +72,25 @@ func (l *LinkedInProvider) GetUserInfo(ctx context.Context, token *oauth2.Token)
 	resp, err := client.Get(l.userInfoURL)
 	if err != nil {
 		slog.Error("LinkedInProvider.GetUserInfo: get user info from API", "error", err)
-		return nil, domain.NewExternalServiceError("LinkedIn API", err)
+		return nil, domain.NewExternalServiceError(err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
 		slog.Error("LinkedInProvider.GetUserInfo: non-200 status code", "status_code", resp.StatusCode)
-		return nil, domain.NewExternalServiceError("LinkedIn API", fmt.Errorf("status code %d", resp.StatusCode))
+		return nil, domain.NewExternalServiceError(fmt.Errorf("status code %d", resp.StatusCode))
 	}
 
 	data, err := io.ReadAll(resp.Body)
 	if err != nil {
 		slog.Error("LinkedInProvider.GetUserInfo: read response body", "error", err)
-		return nil, domain.NewInternalError("read response", err)
+		return nil, domain.NewInternalError(err)
 	}
 
 	var linkedinInfo linkedinUserInfo
 	if err := json.Unmarshal(data, &linkedinInfo); err != nil {
 		slog.Error("LinkedInProvider.GetUserInfo: unmarshal response", "error", err)
-		return nil, domain.NewInternalError("parse response", err)
+		return nil, domain.NewInternalError(err)
 	}
 
 	// Get email

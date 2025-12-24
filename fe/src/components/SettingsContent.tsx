@@ -3,12 +3,17 @@ import {
   Box,
   Tabs,
   Tab,
-  Divider,
+  Card,
+  CardContent,
+  Typography,
+  Stack,
 } from '@mui/material';
 import { Language as LanguageIcon, AdminPanelSettings } from '@mui/icons-material';
 import { useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import LanguageSettings from './LanguageSettings';
 import LanguageManagement from './LanguageManagement';
+import UILanguageSelector from './UILanguageSelector';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { Roles } from '../types';
@@ -36,6 +41,7 @@ function TabPanel(props: TabPanelProps) {
 }
 
 const SettingsContent: React.FC = () => {
+  const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const { hasRole } = useAuth();
   const { loadLanguages, loadPreferences } = useLanguage();
@@ -94,7 +100,23 @@ const SettingsContent: React.FC = () => {
       </Tabs>
 
       <TabPanel value={tabValue} index={0}>
-        <LanguageSettings onSave={handleLanguagePreferenceSaved} />
+        <Stack spacing={3}>
+          {/* UI Language Selector */}
+          <Card>
+            <CardContent>
+              <Typography variant="h6" gutterBottom>
+                {t('language.uiLanguage')}
+              </Typography>
+              <Typography variant="body2" color="text.secondary" paragraph>
+                Choose your preferred language for the user interface (buttons, labels, messages).
+              </Typography>
+              <UILanguageSelector />
+            </CardContent>
+          </Card>
+
+          {/* Names Language Selector */}
+          <LanguageSettings onSave={handleLanguagePreferenceSaved} />
+        </Stack>
       </TabPanel>
 
       {isSuperAdmin && (

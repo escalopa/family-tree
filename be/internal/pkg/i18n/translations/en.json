@@ -1,0 +1,90 @@
+{
+  "error": {
+    "unauthorized": "Unauthorized access",
+    "invalid_token": "Invalid or expired token",
+    "session_expired": "Your session has expired. Please login again",
+    "invalid_oauth_state": "Invalid or expired OAuth state",
+    "forbidden": "Access forbidden",
+    "conflict": "{{message}}",
+    "invalid_input": "{{message}}",
+    "version_conflict": "Resource was modified by another user. Please refresh and try again",
+    "internal": "Internal server error. Please try again later",
+    "database": "A system error occurred. Please try again later",
+    "external_service": "External service is currently unavailable. Please try again later",
+    "member": {
+      "not_found": "Member not found",
+      "already_exists": "Member already exists",
+      "invalid_parent": "Invalid {{parent}} member",
+      "circular_relationship": "Circular parent-child relationship detected",
+      "has_children": "Cannot delete member: this member has children",
+      "depth_limit": "Family tree depth limit exceeded",
+      "no_relation": "No relation found between members"
+    },
+    "spouse": {
+      "not_found": "Spouse not found",
+      "already_exists": "Spouse relationship already exists",
+      "has_children": "Cannot delete spouse relationship: there are children with both parents",
+      "invalid_marriage_date": "Divorce date must be after marriage date"
+    },
+    "user": {
+      "not_found": "User not found",
+      "already_exists": "User with this email already exists",
+      "inactive": "Your account is inactive. Please contact an administrator"
+    },
+    "language": {
+      "not_found": "Language not found",
+      "already_exists": "Language already exists",
+      "not_active": "Selected language is not active"
+    },
+    "oauth": {
+      "provider_not_supported": "OAuth provider '{{provider}}' not supported"
+    },
+    "image": {
+      "not_found": "Image not found"
+    },
+    "picture": {
+      "not_found": "Picture not found"
+    },
+    "validation": {
+      "names_required": "Name is required for language '{{language}}' ({{code}})",
+      "invalid_gender": "Cannot change gender: member has spouse relationships",
+      "invalid_file": "Invalid file format",
+      "file_too_large": "File size exceeds maximum allowed size"
+    }
+  },
+  "validation": {
+    "required": "{{field}} is required",
+    "min": "{{field}} must be at least {{min}} characters",
+    "max": "{{field}} must be at most {{max}} characters",
+    "oneof": "{{field}} must be one of: {{values}}"
+  },
+  "field": {
+    "names": "Names",
+    "gender": "Gender",
+    "father_id": "Father",
+    "mother_id": "Mother",
+    "version": "Version",
+    "language_code": "Language code",
+    "language_name": "Language name",
+    "preferred_language": "Preferred language"
+  },
+  "success": {
+    "auth": {
+      "logout": "Successfully logged out",
+      "logout_all": "Successfully logged out from all devices"
+    },
+    "member": {
+      "deleted": "Member deleted successfully",
+      "picture_deleted": "Picture deleted successfully"
+    },
+    "spouse": {
+      "created": "Spouse relationship created successfully",
+      "updated": "Spouse relationship updated successfully",
+      "deleted": "Spouse relationship deleted successfully"
+    },
+    "user": {
+      "role_updated": "User role updated successfully",
+      "active_status_updated": "User active status updated successfully"
+    }
+  }
+}

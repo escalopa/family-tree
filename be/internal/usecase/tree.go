@@ -2,7 +2,6 @@ package usecase
 
 import (
 	"context"
-	"fmt"
 	"sort"
 
 	"github.com/escalopa/family-tree/internal/domain"
@@ -26,7 +25,7 @@ func NewTreeUseCase(
 func (uc *treeUseCase) Get(ctx context.Context, rootID *int, userRole int) (*domain.MemberTreeNode, error) {
 	members, err := uc.memberRepo.GetAll(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("get members: %w", err)
+		return nil, err
 	}
 
 	if len(members) == 0 {
@@ -35,20 +34,17 @@ func (uc *treeUseCase) Get(ctx context.Context, rootID *int, userRole int) (*dom
 
 	spouseMap, err := uc.spouseRepo.GetAllSpouses(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("get spouses: %w", err)
+		return nil, err
 	}
 
-	// Create member map
 	memberMap := make(map[int]*domain.Member)
 	for _, m := range members {
 		memberMap[m.MemberID] = m
 	}
 
-	// If root is specified, build tree from that root
 	if rootID != nil {
-		// Validate root exists
 		if _, exists := memberMap[*rootID]; !exists {
-			return nil, fmt.Errorf("root member not found")
+			return nil, domain.NewNotFoundError("member")
 		}
 
 		// Build tree with spouse support
@@ -98,12 +94,12 @@ func (uc *treeUseCase) Get(ctx context.Context, rootID *int, userRole int) (*dom
 func (uc *treeUseCase) List(ctx context.Context, rootID *int, userRole int) ([]*domain.MemberWithComputed, error) {
 	members, err := uc.memberRepo.GetAll(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("get members: %w", err)
+		return nil, err
 	}
 
 	spouseMap, err := uc.spouseRepo.GetAllSpouses(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("get spouses: %w", err)
+		return nil, err
 	}
 
 	memberMap := make(map[int]*domain.Member)
@@ -140,7 +136,7 @@ func (uc *treeUseCase) List(ctx context.Context, rootID *int, userRole int) ([]*
 func (uc *treeUseCase) GetRelation(ctx context.Context, member1ID, member2ID int, userRole int) (*domain.MemberTreeNode, error) {
 	members, err := uc.memberRepo.GetAll(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("get members: %w", err)
+		return nil, err
 	}
 
 	if len(members) == 0 {
@@ -150,7 +146,7 @@ func (uc *treeUseCase) GetRelation(ctx context.Context, member1ID, member2ID int
 	// Get spouse relationships
 	spouseMap, err := uc.spouseRepo.GetAllSpouses(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("get spouses: %w", err)
+		return nil, err
 	}
 
 	// Create member map
@@ -161,16 +157,16 @@ func (uc *treeUseCase) GetRelation(ctx context.Context, member1ID, member2ID int
 
 	// Validate members exist
 	if _, exists := memberMap[member1ID]; !exists {
-		return nil, fmt.Errorf("member1 not found")
+		return nil, domain.NewNotFoundError("member")
 	}
 	if _, exists := memberMap[member2ID]; !exists {
-		return nil, fmt.Errorf("member2 not found")
+		return nil, domain.NewNotFoundError("member")
 	}
 
 	// Find path between members
 	pathMemberIDs := uc.findPath(memberMap, member1ID, member2ID)
 	if pathMemberIDs == nil {
-		return nil, fmt.Errorf("no relation found between members")
+		return nil, domain.NewValidationError("error.member.no_relation", nil)
 	}
 
 	// Create a map for quick lookup of path members

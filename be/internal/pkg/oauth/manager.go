@@ -2,7 +2,6 @@ package oauth
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 
 	"github.com/escalopa/family-tree/internal/config"
@@ -17,14 +16,10 @@ type OAuthManager struct {
 func NewOAuthManager(cfg *config.OAuthConfig) *OAuthManager {
 	manager := &OAuthManager{
 		providers:     make(map[string]OAuthProvider),
-		providerOrder: make([]string, 0),
+		providerOrder: cfg.GetProviderOrder(),
 	}
 
-	// Get the ordered provider names from config
-	orderedProviders := cfg.GetProviderOrder()
-
-	// Initialize providers in the specified order
-	for _, providerName := range orderedProviders {
+	for _, providerName := range manager.providerOrder {
 		providerCfg := cfg.Providers[providerName]
 
 		factory, exists := ProviderFactories[providerName]
@@ -48,7 +43,7 @@ func (m *OAuthManager) GetProvider(providerName string) (OAuthProvider, error) {
 	provider, ok := m.providers[providerName]
 	if !ok {
 		slog.Warn("OAuthManager.GetProvider: OAuth provider not supported", "provider", providerName)
-		return nil, domain.NewValidationError(fmt.Sprintf("OAuth provider '%s' not supported", providerName))
+		return nil, domain.NewValidationError("error.oauth.provider_not_supported", map[string]string{"provider": providerName})
 	}
 	return provider, nil
 }
