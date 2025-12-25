@@ -16,10 +16,12 @@ import {
   AccountCircle,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/AuthContext';
 import { Roles } from '../../types';
 
 const Header: React.FC = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { user, hasRole, isActive } = useAuth();
 
@@ -28,7 +30,7 @@ const Header: React.FC = () => {
       <Toolbar>
         <AccountTree sx={{ mr: 2 }} />
         <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-          Family Tree
+          {t('navigation.familyTree')}
         </Typography>
 
         {user && isActive && (
@@ -38,14 +40,14 @@ const Header: React.FC = () => {
               startIcon={<AccountTree />}
               onClick={() => navigate('/tree')}
             >
-              Tree
+              {t('navigation.tree')}
             </Button>
             <Button
               color="inherit"
               startIcon={<Leaderboard />}
               onClick={() => navigate('/leaderboard')}
             >
-              Leaderboard
+              {t('navigation.leaderboard')}
             </Button>
             {hasRole(Roles.ADMIN) && (
               <Button
@@ -53,7 +55,7 @@ const Header: React.FC = () => {
                 startIcon={<Groups />}
                 onClick={() => navigate('/members')}
               >
-                Members
+                {t('navigation.members')}
               </Button>
             )}
             {hasRole(Roles.SUPER_ADMIN) && (
@@ -62,7 +64,7 @@ const Header: React.FC = () => {
                 startIcon={<AdminPanelSettings />}
                 onClick={() => navigate('/users')}
               >
-                Users
+                {t('navigation.users')}
               </Button>
             )}
           </Box>
@@ -84,7 +86,7 @@ const Header: React.FC = () => {
           </IconButton>
         ) : (
           <Button color="inherit" onClick={() => navigate('/login')}>
-            Login
+            {t('common.login')}
           </Button>
         )}
       </Toolbar>

@@ -52,36 +52,38 @@ func (uc *userUseCase) determineRoleActionType(oldRoleID, newRoleID int) string 
 	return "GRANT"
 }
 
-func (uc *userUseCase) UpdateRole(ctx context.Context, userID, newRoleID, changedBy int) error {
-	user, err := uc.repo.user.Get(ctx, userID)
-	if err != nil {
+func (uc *userUseCase) Update(ctx context.Context, userID int, roleID *int, isActive *bool, changedBy int) error {
+	var oldRoleID int
+	var recordRoleHistory bool
+
+	if roleID != nil {
+		user, err := uc.repo.user.Get(ctx, userID)
+		if err != nil {
+			return err
+		}
+		oldRoleID = user.RoleID
+		recordRoleHistory = true
+	}
+
+	if err := uc.repo.user.Update(ctx, userID, roleID, isActive); err != nil {
 		return err
 	}
 
-	oldRoleID := user.RoleID
-
-	if err := uc.repo.user.UpdateRole(ctx, userID, newRoleID); err != nil {
-		return err
-	}
-
-	actionType := uc.determineRoleActionType(oldRoleID, newRoleID)
-
-	if err := uc.repo.user.CreateRoleHistory(ctx, userID, oldRoleID, newRoleID, changedBy, actionType); err != nil {
-		slog.Error("record role change history",
-			"error", err,
-			"user_id", userID,
-			"old_role_id", oldRoleID,
-			"new_role_id", newRoleID,
-			"changed_by", changedBy,
-			"action_type", actionType,
-		)
+	if recordRoleHistory {
+		actionType := uc.determineRoleActionType(oldRoleID, *roleID)
+		if err := uc.repo.user.CreateRoleHistory(ctx, userID, oldRoleID, *roleID, changedBy, actionType); err != nil {
+			slog.Error("record role change history",
+				"error", err,
+				"user_id", userID,
+				"old_role_id", oldRoleID,
+				"new_role_id", *roleID,
+				"changed_by", changedBy,
+				"action_type", actionType,
+			)
+		}
 	}
 
 	return nil
-}
-
-func (uc *userUseCase) UpdateActive(ctx context.Context, userID int, isActive bool) error {
-	return uc.repo.user.UpdateActive(ctx, userID, isActive)
 }
 
 func (uc *userUseCase) ListLeaderboard(ctx context.Context, limit int) ([]*domain.UserScore, error) {

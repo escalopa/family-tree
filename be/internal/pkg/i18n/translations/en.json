@@ -69,7 +69,8 @@
       "invalid_gender": "Cannot change gender: member has spouse relationships",
       "invalid_file": "Invalid file format",
       "file_too_large": "File size exceeds maximum allowed size",
-      "missing_picture_file": "Picture file is required"
+      "missing_picture_file": "Picture file is required",
+      "at_least_one_field_required": "At least one field must be provided"
     }
   },
   "validation": {
@@ -109,8 +110,7 @@
       "deleted": "Spouse relationship deleted successfully"
     },
     "user": {
-      "role_updated": "User role updated successfully",
-      "active_status_updated": "User active status updated successfully"
+      "updated": "User updated successfully"
     },
     "language": {
       "order_updated": "Language display order updated successfully"

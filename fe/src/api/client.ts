@@ -45,21 +45,40 @@ class ApiClient {
         return response;
       },
       (error: AxiosError<any>) => {
+        const currentPath = window.location.pathname;
+        const publicPaths = ['/login', '/auth', '/inactive', '/unauthorized'];
+        const isPublicPage = publicPaths.some(path => currentPath.startsWith(path));
+
         // Handle 401 - Unauthorized
         if (error.response?.status === 401) {
-          const currentPath = window.location.pathname;
-          const publicPaths = ['/login', '/auth', '/inactive', '/unauthorized'];
-          const isPublicPage = publicPaths.some(path => currentPath.startsWith(path));
-
           if (!isPublicPage) {
             // Clear user data and redirect to login (no notification for auth errors)
             localStorage.removeItem('user');
             window.location.href = '/login';
           }
-        } else if (error.response?.status !== 404) {
+        }
+        // Handle 403 - Forbidden with account deactivation
+        else if (error.response?.status === 403) {
+          const errorCode = error.response?.data?.error_code;
+
+          // Check if it's an account deactivation error
+          if (errorCode === 'ACCOUNT_DEACTIVATED' && !isPublicPage) {
+            // Redirect to inactive page without showing notification
+            window.location.href = '/inactive';
+          } else {
+            // For other 403 errors (insufficient permissions), show error notification
+            const errorMessage = error.response?.data?.error ||
+                                'You do not have permission to perform this action.';
+            enqueueSnackbar(errorMessage, {
+              variant: 'error',
+              persist: false,
+            });
+          }
+        }
+        else if (error.response?.status !== 404) {
           // Show error notification for all other errors except 404
-          const errorMessage = error.response?.data?.message ||
-                              error.response?.data?.error ||
+          const errorMessage = error.response?.data?.error ||
+                              error.response?.data?.message ||
                               'An error occurred. Please try again.';
           enqueueSnackbar(errorMessage, {
             variant: 'error',

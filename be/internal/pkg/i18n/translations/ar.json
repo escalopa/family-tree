@@ -69,7 +69,8 @@
       "invalid_gender": "لا يمكن تغيير الجنس: العضو لديه علاقات زوجية",
       "invalid_file": "تنسيق الملف غير صالح",
       "file_too_large": "حجم الملف يتجاوز الحد الأقصى المسموح به",
-      "missing_picture_file": "ملف الصورة مطلوب"
+      "missing_picture_file": "ملف الصورة مطلوب",
+      "at_least_one_field_required": "يجب توفير حقل واحد على الأقل"
     }
   },
   "validation": {
@@ -109,8 +110,7 @@
       "deleted": "تم حذف علاقة الزواج بنجاح"
     },
     "user": {
-      "role_updated": "تم تحديث دور المستخدم بنجاح",
-      "active_status_updated": "تم تحديث حالة نشاط المستخدم بنجاح"
+      "updated": "تم تحديث المستخدم بنجاح"
     },
     "language": {
       "order_updated": "تم تحديث ترتيب اللغات بنجاح"

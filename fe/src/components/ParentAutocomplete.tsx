@@ -47,7 +47,6 @@ const ParentAutocomplete: React.FC<ParentAutocompleteProps> = ({
           gender,
           limit: 20,
         });
-        console.log('Parent search results:', result); // Debug log
         if (Array.isArray(result.members)) {
           setOptions(result.members);
         } else {
@@ -55,7 +54,7 @@ const ParentAutocomplete: React.FC<ParentAutocompleteProps> = ({
           setOptions([]);
         }
       } catch (error) {
-        console.error('search parents:', error);
+
         setOptions([]);
       } finally {
         setLoading(false);

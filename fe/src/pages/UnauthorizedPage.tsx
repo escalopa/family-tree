@@ -3,8 +3,10 @@ import { Box, Card, CardContent, Typography, Container, Button } from '@mui/mate
 import { Block } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 const UnauthorizedPage: React.FC = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
 
   return (
@@ -26,13 +28,13 @@ const UnauthorizedPage: React.FC = () => {
           <CardContent sx={{ textAlign: 'center', p: 4 }}>
             <Block color="error" sx={{ fontSize: 60, mb: 2 }} />
             <Typography variant="h5" gutterBottom>
-              Unauthorized Access
+              {t('unauthorized.title')}
             </Typography>
             <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-              You don't have permission to access this page.
+              {t('unauthorized.message')}
             </Typography>
             <Button variant="contained" onClick={() => navigate('/tree')}>
-              Go to Home
+              {t('unauthorized.goToHome')}
             </Button>
           </CardContent>
         </Card>

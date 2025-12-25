@@ -1,11 +1,8 @@
 package dto
 
-type UpdateRoleRequest struct {
-	RoleID int `json:"role_id" binding:"required,oneof=100 200 300 400"`
-}
-
-type UpdateActiveRequest struct {
-	IsActive bool `json:"is_active" binding:"required"`
+type UpdateUserRequest struct {
+	RoleID   *int  `json:"role_id,omitempty" binding:"omitempty,oneof=100 200 300 400"`
+	IsActive *bool `json:"is_active,omitempty" binding:"omitempty"`
 }
 
 type UserResponse struct {

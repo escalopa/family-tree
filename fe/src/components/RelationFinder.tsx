@@ -18,7 +18,8 @@ interface RelationFinderProps {
 }
 
 const RelationFinder: React.FC<RelationFinderProps> = ({ onFindRelation, loading }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isRTL = i18n.dir() === 'rtl';
   const [member1, setMember1] = useState<MemberListItem | null>(null);
   const [member2, setMember2] = useState<MemberListItem | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -88,7 +89,17 @@ const RelationFinder: React.FC<RelationFinderProps> = ({ onFindRelation, loading
       </Box>
 
       {error && (
-        <Alert severity="error" sx={{ mt: 2 }}>
+        <Alert
+          severity="error"
+          sx={{
+            mt: 2,
+            textAlign: isRTL ? 'right' : 'left',
+            '& .MuiAlert-icon': {
+              marginInlineEnd: 1.5,
+              marginInlineStart: 0,
+            }
+          }}
+        >
           {error}
         </Alert>
       )}

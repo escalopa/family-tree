@@ -22,6 +22,9 @@ func (r *UserRepository) Create(ctx context.Context, user *domain.User) error {
 	query := `
 		INSERT INTO users (full_name, email, avatar, role_id, is_active)
 		VALUES ($1, $2, $3, $4, $5)
+		ON CONFLICT (email) DO UPDATE SET
+			full_name = EXCLUDED.full_name,
+			avatar = EXCLUDED.avatar
 		RETURNING user_id, created_at
 	`
 	err := r.db.QueryRow(ctx, query, user.FullName, user.Email, user.Avatar, user.RoleID, user.IsActive).
@@ -70,7 +73,7 @@ func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*domain.
 		&user.RoleID, &user.IsActive, &user.CreatedAt, &user.PreferredLanguage,
 	)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return nil, nil
+		return nil, domain.NewNotFoundError("user")
 	}
 	if err != nil {
 		return nil, domain.NewDatabaseError(err)
@@ -78,33 +81,20 @@ func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*domain.
 	return user, nil
 }
 
-func (r *UserRepository) Update(ctx context.Context, user *domain.User) error {
+func (r *UserRepository) Update(ctx context.Context, userID int, roleID *int, isActive *bool) error {
 	query := `
 		UPDATE users
-		SET full_name = $1, avatar = $2, role_id = $3, is_active = $4
-		WHERE user_id = $5
+		SET
+			role_id = COALESCE($1, role_id),
+			is_active = COALESCE($2, is_active)
+		WHERE user_id = $3
 	`
-	_, err := r.db.Exec(ctx, query, user.FullName, user.Avatar, user.RoleID, user.IsActive, user.UserID)
+	result, err := r.db.Exec(ctx, query, roleID, isActive, userID)
 	if err != nil {
 		return domain.NewDatabaseError(err)
 	}
-	return nil
-}
-
-func (r *UserRepository) UpdateRole(ctx context.Context, userID, roleID int) error {
-	query := `UPDATE users SET role_id = $1 WHERE user_id = $2`
-	_, err := r.db.Exec(ctx, query, roleID, userID)
-	if err != nil {
-		return domain.NewDatabaseError(err)
-	}
-	return nil
-}
-
-func (r *UserRepository) UpdateActive(ctx context.Context, userID int, isActive bool) error {
-	query := `UPDATE users SET is_active = $1 WHERE user_id = $2`
-	_, err := r.db.Exec(ctx, query, isActive, userID)
-	if err != nil {
-		return domain.NewDatabaseError(err)
+	if result.RowsAffected() == 0 {
+		return domain.NewNotFoundError("user")
 	}
 	return nil
 }

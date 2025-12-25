@@ -37,8 +37,7 @@ type UserUseCase interface {
 	Get(ctx context.Context, userID int) (*domain.User, error)
 	GetWithScore(ctx context.Context, userID int) (*domain.UserWithScore, error)
 	List(ctx context.Context, filter domain.UserFilter, cursor *string, limit int) ([]*domain.User, *string, error)
-	UpdateRole(ctx context.Context, userID, newRoleID, changedBy int) error
-	UpdateActive(ctx context.Context, userID int, isActive bool) error
+	Update(ctx context.Context, userID int, roleID *int, isActive *bool, changedBy int) error
 	ListLeaderboard(ctx context.Context, limit int) ([]*domain.UserScore, error)
 	ListScoreHistory(ctx context.Context, userID int, cursor *string, limit int) ([]*domain.ScoreHistory, *string, error)
 	ListChanges(ctx context.Context, userID int, cursor *string, limit int) ([]*domain.HistoryWithUser, *string, error)

@@ -125,7 +125,7 @@ const MembersPage: React.FC = () => {
       setNextCursor(validCursor);
       setHasMore(!!validCursor);
     } catch (error) {
-      console.error('Search failed:', error);
+
       if (!loadMore) {
         setMembers([]);
       }
@@ -231,12 +231,12 @@ const MembersPage: React.FC = () => {
             const historyResponse = await membersApi.getMemberHistory(memberId);
             setMemberHistory(historyResponse.history || []);
           } catch (error) {
-            console.error('load member history:', error);
+
           }
         }
       } catch (error) {
-        console.error('load member details:', error);
-        enqueueSnackbar('Failed to load member details', { variant: 'error' });
+
+        enqueueSnackbar(t('apiErrors.failedToLoadMemberDetails'), { variant: 'error' });
         return;
       }
     } else {
@@ -337,7 +337,7 @@ const MembersPage: React.FC = () => {
     } catch (error: any) {
       const errorMsg = error?.response?.data?.error || 'Failed to save member';
       enqueueSnackbar(errorMsg, { variant: 'error' });
-      console.error('save member:', error);
+
     }
   };
 
@@ -357,7 +357,7 @@ const MembersPage: React.FC = () => {
       handleCloseDialog(); // Close dialog after delete
       performSearch(searchQuery); // Refresh list
     } catch (error: any) {
-      console.error('delete member:', error);
+
       const errorMessage = error?.response?.data?.error || t('member.failedToDeleteMember');
       enqueueSnackbar(errorMessage, { variant: 'error' });
     } finally {
@@ -386,7 +386,7 @@ const MembersPage: React.FC = () => {
         const updatedMember = await membersApi.getMember(memberId);
         setEditingMember(updatedMember);
       } catch (error) {
-        console.error('refresh member data after photo change:', error);
+
       }
     }
   };
@@ -990,7 +990,7 @@ const MembersPage: React.FC = () => {
                                 const updated = await membersApi.getMember(editingMember.member_id);
                                 setEditingMember(updated);
                               } catch (error) {
-                                console.error('refresh member after spouse update:', error);
+
                               }
                             }}
                             editable={true}
@@ -1211,7 +1211,7 @@ const MembersPage: React.FC = () => {
                   const updated = await membersApi.getMember(editingMember.member_id);
                   setEditingMember(updated);
                 } catch (error) {
-                  console.error('refresh member:', error);
+
                 }
               };
               refreshMember();

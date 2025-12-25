@@ -65,10 +65,9 @@ const AddSpouseDialog: React.FC<AddSpouseDialogProps> = ({
       const members = result.members || [];
       // Filter out the current member
       const filteredMembers = members.filter(option => option.member_id !== memberId);
-      console.log('Spouse search results:', filteredMembers); // Debug log
       setSpouseOptions(filteredMembers);
     } catch (error) {
-      console.error('search for spouse:', error);
+
       setSpouseOptions([]);
     } finally {
       setLoadingSpouses(false);
@@ -96,7 +95,7 @@ const AddSpouseDialog: React.FC<AddSpouseDialogProps> = ({
       onSuccess();
       handleClose();
     } catch (error: any) {
-      console.error('add spouse:', error);
+
       const errorMessage = error?.response?.data?.error || t('spouse.failedToAddSpouse');
       enqueueSnackbar(errorMessage, { variant: 'error' });
     } finally {
@@ -130,12 +129,10 @@ const AddSpouseDialog: React.FC<AddSpouseDialogProps> = ({
               loading={loadingSpouses}
               value={selectedSpouse}
               onChange={(_, newValue) => {
-                console.log('Selected spouse:', newValue); // Debug log
                 setSelectedSpouse(newValue);
               }}
               inputValue={inputValue}
               onInputChange={(_, newInputValue, reason) => {
-                console.log('Input change:', newInputValue, 'reason:', reason); // Debug log
                 setInputValue(newInputValue);
                 if (reason === 'input') {
                   handleSearchSpouse(newInputValue);

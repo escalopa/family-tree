@@ -56,10 +56,11 @@ type ViewMode = 'tree' | 'list' | 'relation';
 type TreeLayout = 'hierarchical' | 'force';
 
 const TreePage: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { hasRole } = useAuth();
   const { getPreferredName, getAllNamesFormatted } = useLanguage();
   const isSuperAdmin = hasRole(Roles.SUPER_ADMIN);
+  const isRTL = i18n.dir() === 'rtl';
   const [searchParams, setSearchParams] = useSearchParams();
 
   // Initialize from URL params
@@ -87,8 +88,8 @@ const TreePage: React.FC = () => {
     const married = searchParams.get('married');
 
     if (name) params.name = name;
-    if (gender) params.gender = gender;
-    if (married) params.married = Number(married);
+    if (gender && (gender === 'M' || gender === 'F')) params.gender = gender;
+    if (married !== null) params.married = married === '1';
 
     return params;
   });
@@ -118,7 +119,7 @@ const TreePage: React.FC = () => {
     if (viewMode === 'list') {
       if (searchQuery.name) params.set('name', searchQuery.name);
       if (searchQuery.gender) params.set('gender', searchQuery.gender);
-      if (searchQuery.married !== undefined) params.set('married', String(searchQuery.married));
+      if (searchQuery.married !== undefined) params.set('married', searchQuery.married ? '1' : '0');
     }
     setSearchParams(params, { replace: true });
   }, [viewMode, treeLayout, rootId, searchQuery, setSearchParams]);
@@ -139,8 +140,8 @@ const TreePage: React.FC = () => {
       const data = await treeApi.getTree({ root: rootId, style: 'tree' });
       setTreeData(data);
     } catch (error) {
-      console.error('load tree:', error);
-      setError('Failed to load family tree. Please try again.');
+
+      setError(t('apiErrors.failedToLoadTree'));
     } finally {
       setLoading(false);
     }
@@ -179,8 +180,8 @@ const TreePage: React.FC = () => {
       setHasMore(!!validCursor);
 
     } catch (error) {
-      console.error('load list view:', error);
-      setError('Failed to load member list. Please try again.');
+
+      setError(t('apiErrors.failedToLoadMemberList'));
       if (!loadMore) {
         setListMembers([]);
       }
@@ -235,8 +236,8 @@ const TreePage: React.FC = () => {
       setRelationTree(data);
       setViewMode('relation');
     } catch (error) {
-      console.error('find relation:', error);
-      setError('No relation found between the selected members.');
+
+      setError(t('apiErrors.noRelationFound'));
     } finally {
       setRelationLoading(false);
     }
@@ -248,7 +249,7 @@ const TreePage: React.FC = () => {
       setSelectedMember(fullMember);
       setDrawerOpen(true);
     } catch (error) {
-      console.error('load member details:', error);
+
     }
   };
 
@@ -416,7 +417,18 @@ const TreePage: React.FC = () => {
 
         {/* Error Display */}
         {error && (
-          <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
+          <Alert
+            severity="error"
+            sx={{
+              mb: 3,
+              textAlign: isRTL ? 'right' : 'left',
+              '& .MuiAlert-icon': {
+                marginInlineEnd: 1.5,
+                marginInlineStart: 0,
+              }
+            }}
+            onClose={() => setError(null)}
+          >
             {error}
           </Alert>
         )}
@@ -427,33 +439,35 @@ const TreePage: React.FC = () => {
             <CircularProgress />
           </Box>
         ) : (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.2 }}
-          >
+          <>
             {/* Tree View */}
             {viewMode === 'tree' && treeData && (
-              <Box>
-                <Typography variant="h6" gutterBottom>
-                  {treeLayout === 'force' ? t('tree.interactiveFamilyGraph') : t('tree.hierarchicalTreeView')}
-                </Typography>
-                {treeLayout === 'force' ? (
-                  <ForceDirectedTree
-                    data={treeData}
-                    onNodeClick={handleMemberClick}
-                    onSetRoot={handleSetRoot}
-                    currentRootId={rootId}
-                  />
-                ) : (
-                  <TreeVisualization
-                    data={treeData}
-                    onNodeClick={handleMemberClick}
-                    onSetRoot={handleSetRoot}
-                    currentRootId={rootId}
-                  />
-                )}
-              </Box>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.2 }}
+              >
+                <Box>
+                  <Typography variant="h6" gutterBottom>
+                    {treeLayout === 'force' ? t('tree.interactiveFamilyGraph') : t('tree.hierarchicalTreeView')}
+                  </Typography>
+                  {treeLayout === 'force' ? (
+                    <ForceDirectedTree
+                      data={treeData}
+                      onNodeClick={handleMemberClick}
+                      onSetRoot={handleSetRoot}
+                      currentRootId={rootId}
+                    />
+                  ) : (
+                    <TreeVisualization
+                      data={treeData}
+                      onNodeClick={handleMemberClick}
+                      onSetRoot={handleSetRoot}
+                      currentRootId={rootId}
+                    />
+                  )}
+                </Box>
+              </motion.div>
             )}
 
             {/* List View */}
@@ -508,9 +522,13 @@ const TreePage: React.FC = () => {
                         <Select
                           value={searchQuery.gender || ''}
                           label={t('member.gender')}
-                          onChange={(e) =>
-                            setSearchQuery({ ...searchQuery, gender: e.target.value || undefined })
-                          }
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            setSearchQuery({
+                              ...searchQuery,
+                              gender: value === 'M' || value === 'F' ? value : undefined
+                            });
+                          }}
                           endAdornment={
                             searchQuery.gender && (
                               <InputAdornment position="end" sx={{ marginInlineEnd: 3 }}>
@@ -535,12 +553,12 @@ const TreePage: React.FC = () => {
                       <FormControl fullWidth>
                         <InputLabel>{t('member.married')}</InputLabel>
                         <Select
-                          value={searchQuery.married ?? ''}
+                          value={searchQuery.married === undefined ? '' : searchQuery.married ? 1 : 0}
                           label={t('member.married')}
                           onChange={(e) =>
                             setSearchQuery({
                               ...searchQuery,
-                              married: e.target.value === '' ? undefined : Number(e.target.value),
+                              married: e.target.value === '' ? undefined : e.target.value === 1,
                             })
                           }
                           endAdornment={
@@ -602,7 +620,7 @@ const TreePage: React.FC = () => {
                   <Table>
                     <TableHead>
                       <TableRow>
-                        <TableCell>ID</TableCell>
+                        <TableCell>{t('general.id')}</TableCell>
                         <TableCell>{t('member.avatar')}</TableCell>
                         <TableCell>{t('member.name')}</TableCell>
                         <TableCell>{t('member.gender')}</TableCell>
@@ -706,26 +724,32 @@ const TreePage: React.FC = () => {
 
             {/* Relation View */}
             {viewMode === 'relation' && relationTree && (
-              <Box>
-                <Typography variant="h6" gutterBottom>
-                  {t('tree.relationPath')} {t('tree.relationPathDescription')}
-                </Typography>
-                {treeLayout === 'force' ? (
-                  <ForceDirectedTree
-                    data={relationTree}
-                    onNodeClick={handleMemberClick}
-                    onSetRoot={handleSetRoot}
-                    currentRootId={rootId}
-                  />
-                ) : (
-                  <TreeVisualization
-                    data={relationTree}
-                    onNodeClick={handleMemberClick}
-                    onSetRoot={handleSetRoot}
-                    currentRootId={rootId}
-                  />
-                )}
-              </Box>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.2 }}
+              >
+                <Box>
+                  <Typography variant="h6" gutterBottom>
+                    {t('tree.relationPath')} {t('tree.relationPathDescription')}
+                  </Typography>
+                  {treeLayout === 'force' ? (
+                    <ForceDirectedTree
+                      data={relationTree}
+                      onNodeClick={handleMemberClick}
+                      onSetRoot={handleSetRoot}
+                      currentRootId={rootId}
+                    />
+                  ) : (
+                    <TreeVisualization
+                      data={relationTree}
+                      onNodeClick={handleMemberClick}
+                      onSetRoot={handleSetRoot}
+                      currentRootId={rootId}
+                    />
+                  )}
+                </Box>
+              </motion.div>
             )}
 
             {/* Empty State */}
@@ -739,13 +763,20 @@ const TreePage: React.FC = () => {
                 </Typography>
               </Paper>
             )}
-          </motion.div>
+          </>
         )}
       </Box>
 
       {/* Member Details Drawer */}
-      <Drawer anchor="right" open={drawerOpen} onClose={() => setDrawerOpen(false)}>
-        <Box sx={{ width: 450, p: 3 }}>
+      <Drawer
+        anchor={isRTL ? 'left' : 'right'}
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        SlideProps={{
+          direction: isRTL ? 'right' : 'left',
+        }}
+      >
+        <Box sx={{ width: { xs: '100vw', sm: 450 }, maxWidth: 450, p: 3 }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
             <Typography variant="h6">{t('member.memberDetails')}</Typography>
             <Button onClick={() => setDrawerOpen(false)} startIcon={<Close />}>
@@ -782,22 +813,13 @@ const TreePage: React.FC = () => {
                 <Typography variant="h6" gutterBottom>
                   {getPreferredName(selectedMember)}
                 </Typography>
-                <Typography variant="body2" color="text.secondary" gutterBottom>
-                  {getAllNamesFormatted(selectedMember)}
-                </Typography>
-              </Box>
-
-              {/* Full Name */}
-              {selectedMember.full_names && Object.keys(selectedMember.full_names).length > 0 && (
-                <Box sx={{ mt: 2, p: 2, bgcolor: 'background.default', borderRadius: 1 }}>
-                  <Typography variant="caption" color="text.secondary" gutterBottom display="block">
-                    {t('member.fullName')}
-                  </Typography>
-                  <Typography variant="body2" fontWeight="medium">
+                {/* Display full names if different from preferred name */}
+                {selectedMember.full_names && Object.keys(selectedMember.full_names).length > 0 && (
+                  <Typography variant="body2" color="text.secondary" gutterBottom>
                     {getAllNamesFormatted({ names: selectedMember.full_names })}
                   </Typography>
-                </Box>
-              )}
+                )}
+              </Box>
 
               <Divider sx={{ my: 2 }} />
 
@@ -813,7 +835,7 @@ const TreePage: React.FC = () => {
                         ? t('member.male')
                         : selectedMember.gender === 'F'
                         ? t('member.female')
-                        : 'Other'
+                        : t('general.other')
                     }
                     size="small"
                     sx={{ bgcolor: getGenderColor(selectedMember.gender), color: 'white' }}

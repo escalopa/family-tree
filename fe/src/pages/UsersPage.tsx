@@ -104,7 +104,7 @@ const UsersPage: React.FC = () => {
 
       setNextCursor(response.next_cursor);
     } catch (error) {
-      console.error('load users:', error);
+
     } finally {
       setLoading(false);
       setLoadingMore(false);
@@ -133,20 +133,27 @@ const UsersPage: React.FC = () => {
     if (!selectedUser) return;
 
     try {
-      // Update role if changed
+      const updates: { role_id?: number; is_active?: boolean } = {};
+
+      // Add role to updates if changed
       if (newRole !== selectedUser.role_id) {
-        await usersApi.updateRole(selectedUser.user_id, { role_id: newRole });
+        updates.role_id = newRole;
       }
 
-      // Update active status if changed
+      // Add active status to updates if changed
       if (isActive !== selectedUser.is_active) {
-        await usersApi.updateActive(selectedUser.user_id, { is_active: isActive });
+        updates.is_active = isActive;
+      }
+
+      // Only make API call if there are changes
+      if (Object.keys(updates).length > 0) {
+        await usersApi.updateUser(selectedUser.user_id, updates);
       }
 
       handleCloseDialog();
       loadUsers(); // Refresh list
     } catch (error) {
-      console.error('update user:', error);
+
     }
   };
 

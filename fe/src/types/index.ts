@@ -150,12 +150,9 @@ export interface UpdateSpouseRequest {
   divorce_date?: string;
 }
 
-export interface UpdateRoleRequest {
-  role_id: number;
-}
-
-export interface UpdateActiveRequest {
-  is_active: boolean;
+export interface UpdateUserRequest {
+  role_id?: number;
+  is_active?: boolean;
 }
 
 // Search/Query Types

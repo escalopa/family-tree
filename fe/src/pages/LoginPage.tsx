@@ -66,7 +66,7 @@ const LoginPage: React.FC = () => {
         const availableProviders = await authApi.getProviders();
         setProviders(availableProviders);
       } catch (error) {
-        console.error('fetch providers:', error);
+
         // Fallback to google if API fails
         setProviders(['google']);
       } finally {
@@ -82,7 +82,7 @@ const LoginPage: React.FC = () => {
       const { url } = await authApi.getAuthURL(provider);
       window.location.href = url;
     } catch (error) {
-      console.error(`Failed to get auth URL for ${provider}:`, error);
+
     }
   };
 

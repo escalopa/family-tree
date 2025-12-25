@@ -20,9 +20,9 @@ func RequireRole(minRole int) gin.HandlerFunc {
 
 func RequireActive() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		userRole := GetUserRole(c)
-		if userRole == domain.RoleNone {
-			delivery.Error(c, domain.NewForbiddenError("error.account_not_activated_by_admin"))
+		isActive := GetIsActive(c)
+		if !isActive {
+			delivery.Error(c, domain.NewAccountDeactivatedError("error.account_not_activated_by_admin"))
 			c.Abort()
 			return
 		}

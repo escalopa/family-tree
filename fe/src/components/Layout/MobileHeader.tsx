@@ -69,7 +69,7 @@ const MobileHeader: React.FC<MobileHeaderProps> = ({ onMenuClick }) => {
       setUser(null);
       navigate('/login');
     } catch (error) {
-      console.error('Logout failed:', error);
+
     }
     handleLogoutMenuClose();
   };
@@ -80,7 +80,7 @@ const MobileHeader: React.FC<MobileHeaderProps> = ({ onMenuClick }) => {
       setUser(null);
       navigate('/login');
     } catch (error) {
-      console.error('Logout from all devices failed:', error);
+
     }
     handleLogoutMenuClose();
   };

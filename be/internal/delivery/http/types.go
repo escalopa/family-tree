@@ -14,8 +14,7 @@ type AuthHandler interface {
 type UserHandler interface {
 	Get(c *gin.Context)
 	List(c *gin.Context)
-	UpdateRole(c *gin.Context)
-	UpdateActive(c *gin.Context)
+	Update(c *gin.Context)
 	ListLeaderboard(c *gin.Context)
 	ListScoreHistory(c *gin.Context)
 	ListChanges(c *gin.Context)

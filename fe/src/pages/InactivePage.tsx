@@ -3,13 +3,16 @@ import { Box, Card, CardContent, Typography, Container, Button, CircularProgress
 import { Info, Refresh } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 
 const InactivePage: React.FC = () => {
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { refreshUser, isActive, user } = useAuth();
   const [checking, setChecking] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const isRTL = i18n.dir() === 'rtl';
 
   // Automatically redirect if user becomes active
   useEffect(() => {
@@ -28,12 +31,12 @@ const InactivePage: React.FC = () => {
       await new Promise(resolve => setTimeout(resolve, 100));
       // Check if user is still inactive after refresh
       if (user && !user.is_active) {
-        setError('Your account is still inactive. Please contact an administrator.');
+        setError(t('inactive.accountStillInactive'));
       }
       // If user is active, the useEffect above will redirect
     } catch (err: any) {
-      console.error('refresh user data:', err);
-      setError('Failed to check account status. Please try again.');
+
+      setError(t('inactive.failedToCheckStatus'));
     } finally {
       setChecking(false);
     }
@@ -58,18 +61,27 @@ const InactivePage: React.FC = () => {
           <CardContent sx={{ textAlign: 'center', p: 4 }}>
             <Info color="warning" sx={{ fontSize: 60, mb: 2 }} />
             <Typography variant="h5" gutterBottom>
-              Account Pending Activation
+              {t('inactive.accountPendingActivation')}
             </Typography>
             <Typography variant="body1" color="text.secondary" paragraph>
-              Your account has been created successfully, but it needs to be activated by an
-              administrator before you can access the system.
+              {t('inactive.accountCreatedSuccessfully')}
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-              Please contact an administrator to activate your account.
+              {t('inactive.pleaseContactAdmin')}
             </Typography>
 
             {error && (
-              <Alert severity="warning" sx={{ mb: 2 }}>
+              <Alert
+                severity="warning"
+                sx={{
+                  mb: 2,
+                  textAlign: isRTL ? 'right' : 'left',
+                  '& .MuiAlert-icon': {
+                    marginInlineEnd: 1.5,
+                    marginInlineStart: 0,
+                  }
+                }}
+              >
                 {error}
               </Alert>
             )}
@@ -83,7 +95,7 @@ const InactivePage: React.FC = () => {
                 disabled={checking}
                 fullWidth
               >
-                {checking ? 'Checking Status...' : 'Check Account Status'}
+                {checking ? t('inactive.checkingStatus') : t('inactive.checkAccountStatus')}
               </Button>
             </Box>
           </CardContent>

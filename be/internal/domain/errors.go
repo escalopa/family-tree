@@ -17,6 +17,7 @@ const (
 
 	ErrCodeForbidden               ErrorCode = "FORBIDDEN"
 	ErrCodeInsufficientPermissions ErrorCode = "INSUFFICIENT_PERMISSIONS"
+	ErrCodeAccountDeactivated      ErrorCode = "ACCOUNT_DEACTIVATED"
 
 	ErrCodeNotFound      ErrorCode = "NOT_FOUND"
 	ErrCodeAlreadyExists ErrorCode = "ALREADY_EXISTS"
@@ -65,7 +66,7 @@ func (e *DomainError) HTTPStatusCode() int {
 		return http.StatusUnauthorized
 	case ErrCodeInvalidOAuthState:
 		return http.StatusBadRequest
-	case ErrCodeForbidden, ErrCodeInsufficientPermissions:
+	case ErrCodeForbidden, ErrCodeInsufficientPermissions, ErrCodeAccountDeactivated:
 		return http.StatusForbidden
 	case ErrCodeNotFound:
 		return http.StatusNotFound
@@ -101,6 +102,16 @@ func NewForbiddenError(translationKey string) *DomainError {
 	}
 	return &DomainError{
 		Code:           ErrCodeForbidden,
+		TranslationKey: translationKey,
+	}
+}
+
+func NewAccountDeactivatedError(translationKey string) *DomainError {
+	if translationKey == "" {
+		translationKey = "error.account_not_activated_by_admin"
+	}
+	return &DomainError{
+		Code:           ErrCodeAccountDeactivated,
 		TranslationKey: translationKey,
 	}
 }

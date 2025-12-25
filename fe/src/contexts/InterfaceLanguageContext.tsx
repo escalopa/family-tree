@@ -56,7 +56,7 @@ export const InterfaceLanguageProvider: React.FC<InterfaceLanguageProviderProps>
           setSupportedLanguagesWithNames(languages);
         }
       } catch (err) {
-        console.error('Failed to load supported languages:', err);
+
         // Keep default supported languages
       } finally {
         setLoading(false);

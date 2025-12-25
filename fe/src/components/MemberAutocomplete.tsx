@@ -37,7 +37,7 @@ const MemberAutocomplete: React.FC<MemberAutocompleteProps> = ({
         });
         setOptions(result.members || []);
       } catch (error) {
-        console.error('search members:', error);
+
         setOptions([]);
       } finally {
         setLoading(false);

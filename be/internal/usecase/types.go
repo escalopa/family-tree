@@ -11,9 +11,7 @@ type UserRepository interface {
 	Create(ctx context.Context, user *domain.User) error
 	Get(ctx context.Context, userID int) (*domain.User, error)
 	GetByEmail(ctx context.Context, email string) (*domain.User, error)
-	Update(ctx context.Context, user *domain.User) error
-	UpdateRole(ctx context.Context, userID, roleID int) error
-	UpdateActive(ctx context.Context, userID int, isActive bool) error
+	Update(ctx context.Context, userID int, roleID *int, isActive *bool) error
 	List(ctx context.Context, filter domain.UserFilter, cursor *string, limit int) ([]*domain.User, *string, error)
 	GetWithScore(ctx context.Context, userID int) (*domain.UserWithScore, error)
 	CreateRoleHistory(ctx context.Context, userID, oldRoleID, newRoleID, changedBy int, actionType string) error

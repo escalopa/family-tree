@@ -368,6 +368,46 @@
     "remaining": "متبقية",
     "noRecentChanges": "لا توجد تغييرات حديثة متاحة",
     "changeType": "نوع التغيير",
-    "deleted": "محذوف"
+    "deleted": "محذوف",
+    "userNotFound": "لم يتم العثور على المستخدم"
+  },
+  "callback": {
+    "invalidParameters": "معاملات استدعاء غير صالحة",
+    "authenticationFailed": "فشلت المصادقة",
+    "signingIn": "جاري تسجيل الدخول..."
+  },
+  "inactive": {
+    "accountPendingActivation": "الحساب في انتظار التفعيل",
+    "accountCreatedSuccessfully": "تم إنشاء حسابك بنجاح، ولكن يحتاج إلى تفعيله من قبل المسؤول قبل أن تتمكن من الوصول إلى النظام.",
+    "pleaseContactAdmin": "يرجى الاتصال بالمسؤول لتفعيل حسابك.",
+    "accountStillInactive": "حسابك لا يزال غير نشط. يرجى الاتصال بالمسؤول.",
+    "failedToCheckStatus": "فشل في التحقق من حالة الحساب. يرجى المحاولة مرة أخرى.",
+    "checkingStatus": "جاري التحقق من الحالة...",
+    "checkAccountStatus": "التحقق من حالة الحساب"
+  },
+  "unauthorized": {
+    "title": "وصول غير مصرح به",
+    "message": "ليس لديك إذن للوصول إلى هذه الصفحة.",
+    "goToHome": "الذهاب إلى الصفحة الرئيسية"
+  },
+  "apiErrors": {
+    "failedToLoadMemberDetails": "فشل في تحميل تفاصيل العضو",
+    "failedToLoadTree": "فشل في تحميل شجرة العائلة. يرجى المحاولة مرة أخرى.",
+    "failedToLoadMemberList": "فشل في تحميل قائمة الأعضاء. يرجى المحاولة مرة أخرى.",
+    "noRelationFound": "لم يتم العثور على علاقة بين الأعضاء المحددين.",
+    "failedToLoadLanguages": "فشل في تحميل اللغات",
+    "failedToToggleLanguage": "فشل في تبديل اللغة",
+    "failedToUpdateLanguageOrder": "فشل في تحديث ترتيب اللغات",
+    "failedToLoadPreferences": "فشل في تحميل التفضيلات",
+    "failedToUpdatePreferences": "فشل في تحديث التفضيلات",
+    "failedToSavePreference": "فشل في حفظ التفضيلات",
+    "pleaseSelectPreferredLanguage": "يرجى اختيار اللغة المفضلة",
+    "noLanguagesAvailableContactAdmin": "لا توجد لغات متاحة. يرجى الاتصال بالمسؤول لتفعيل اللغات."
+  },
+  "general": {
+    "na": "غير متاح",
+    "unknown": "غير معروف",
+    "other": "آخر",
+    "id": "المعرف"
   }
 }

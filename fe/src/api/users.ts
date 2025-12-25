@@ -5,8 +5,7 @@ import {
   LeaderboardResponse,
   PaginatedScoreHistoryResponse,
   PaginatedHistoryResponse,
-  UpdateRoleRequest,
-  UpdateActiveRequest,
+  UpdateUserRequest,
 } from '../types';
 
 export const usersApi = {
@@ -53,11 +52,7 @@ export const usersApi = {
     return response.data.data;
   },
 
-  updateRole: async (userId: number, data: UpdateRoleRequest): Promise<void> => {
-    await apiClient.put(`/api/users/${userId}/role`, data);
-  },
-
-  updateActive: async (userId: number, data: UpdateActiveRequest): Promise<void> => {
-    await apiClient.put(`/api/users/${userId}/active`, data);
+  updateUser: async (userId: number, data: UpdateUserRequest): Promise<void> => {
+    await apiClient.put(`/api/users/${userId}`, data);
   },
 };

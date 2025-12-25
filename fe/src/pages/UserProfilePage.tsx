@@ -134,7 +134,7 @@ const UserProfilePage: React.FC = () => {
       const userResponse = await usersApi.getUser(Number(userId));
       setUser(userResponse);
     } catch (error) {
-      console.error('load user data:', error);
+
     } finally {
       setLoading(false);
     }
@@ -164,7 +164,7 @@ const UserProfilePage: React.FC = () => {
       setScoreHistory(allScores);
       setDisplayedScoreCount(10); // Reset pagination
     } catch (error) {
-      console.error('load score history:', error);
+
     } finally {
       setLoadingScoreHistory(false);
     }
@@ -194,7 +194,7 @@ const UserProfilePage: React.FC = () => {
       setUserChanges(allChanges);
       setDisplayedChangesCount(10); // Reset pagination
     } catch (error) {
-      console.error('load user changes:', error);
+
     } finally {
       setLoadingUserChanges(false);
     }
@@ -204,7 +204,7 @@ const UserProfilePage: React.FC = () => {
   if (loading) {
     return (
       <Layout>
-        <Typography>Loading...</Typography>
+        <Typography>{t('common.loading')}</Typography>
       </Layout>
     );
   }
@@ -212,7 +212,7 @@ const UserProfilePage: React.FC = () => {
   if (!user) {
     return (
       <Layout>
-        <Typography>User not found</Typography>
+        <Typography>{t('userProfile.userNotFound')}</Typography>
       </Layout>
     );
   }

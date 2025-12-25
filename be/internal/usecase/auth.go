@@ -95,7 +95,7 @@ func (uc *authUseCase) HandleCallback(ctx context.Context, provider, code, state
 	}
 
 	user, err := uc.repo.user.GetByEmail(ctx, userInfo.Email)
-	if err != nil {
+	if err != nil && !domain.IsDomainError(err, domain.ErrCodeNotFound) {
 		return nil, nil, err
 	}
 
@@ -107,15 +107,13 @@ func (uc *authUseCase) HandleCallback(ctx context.Context, provider, code, state
 			RoleID:   domain.RoleNone,
 			IsActive: false, // needs admin approval
 		}
-		if err := uc.repo.user.Create(ctx, user); err != nil {
-			return nil, nil, err
-		}
 	} else {
 		user.FullName = userInfo.Name
 		user.Avatar = &userInfo.Picture
-		if err := uc.repo.user.Update(ctx, user); err != nil {
-			return nil, nil, err
-		}
+	}
+
+	if err := uc.repo.user.Create(ctx, user); err != nil {
+		return nil, nil, err
 	}
 
 	sessionID := uuid.New().String()

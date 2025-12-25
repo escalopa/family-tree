@@ -1,10 +1,12 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Box, CircularProgress, Typography } from '@mui/material';
+import { useTranslation } from 'react-i18next';
 import { authApi } from '../api';
 import { useAuth } from '../contexts/AuthContext';
 
 const CallbackPage: React.FC = () => {
+  const { t } = useTranslation();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { setUser } = useAuth();
@@ -22,7 +24,7 @@ const CallbackPage: React.FC = () => {
       const provider = window.location.pathname.split('/')[2];
 
       if (!code || !state) {
-        setError('Invalid callback parameters');
+        setError(t('callback.invalidParameters'));
         return;
       }
 
@@ -38,8 +40,8 @@ const CallbackPage: React.FC = () => {
           navigate('/inactive');
         }
       } catch (err) {
-        console.error('Auth callback failed:', err);
-        setError('Authentication failed');
+
+        setError(t('callback.authenticationFailed'));
         setTimeout(() => navigate('/login'), 2000);
       }
     };
@@ -62,7 +64,7 @@ const CallbackPage: React.FC = () => {
       ) : (
         <>
           <CircularProgress />
-          <Typography sx={{ mt: 2 }}>Signing you in...</Typography>
+          <Typography sx={{ mt: 2 }}>{t('callback.signingIn')}</Typography>
         </>
       )}
     </Box>

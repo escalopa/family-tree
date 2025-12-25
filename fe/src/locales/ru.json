@@ -368,6 +368,46 @@
     "remaining": "осталось",
     "noRecentChanges": "Нет недавних изменений",
     "changeType": "Тип изменения",
-    "deleted": "удален"
+    "deleted": "удален",
+    "userNotFound": "Пользователь не найден"
+  },
+  "callback": {
+    "invalidParameters": "Неверные параметры обратного вызова",
+    "authenticationFailed": "Ошибка аутентификации",
+    "signingIn": "Вход в систему..."
+  },
+  "inactive": {
+    "accountPendingActivation": "Ожидание активации учетной записи",
+    "accountCreatedSuccessfully": "Ваша учетная запись успешно создана, но ее необходимо активировать администратором, прежде чем вы сможете получить доступ к системе.",
+    "pleaseContactAdmin": "Пожалуйста, свяжитесь с администратором для активации вашей учетной записи.",
+    "accountStillInactive": "Ваша учетная запись все еще неактивна. Пожалуйста, свяжитесь с администратором.",
+    "failedToCheckStatus": "Не удалось проверить статус учетной записи. Пожалуйста, попробуйте снова.",
+    "checkingStatus": "Проверка статуса...",
+    "checkAccountStatus": "Проверить статус учетной записи"
+  },
+  "unauthorized": {
+    "title": "Несанкционированный доступ",
+    "message": "У вас нет прав доступа к этой странице.",
+    "goToHome": "Перейти на главную"
+  },
+  "apiErrors": {
+    "failedToLoadMemberDetails": "Не удалось загрузить данные члена семьи",
+    "failedToLoadTree": "Не удалось загрузить семейное дерево. Пожалуйста, попробуйте снова.",
+    "failedToLoadMemberList": "Не удалось загрузить список членов семьи. Пожалуйста, попробуйте снова.",
+    "noRelationFound": "Не найдено связи между выбранными членами семьи.",
+    "failedToLoadLanguages": "Не удалось загрузить языки",
+    "failedToToggleLanguage": "Не удалось переключить язык",
+    "failedToUpdateLanguageOrder": "Не удалось обновить порядок языков",
+    "failedToLoadPreferences": "Не удалось загрузить предпочтения",
+    "failedToUpdatePreferences": "Не удалось обновить предпочтения",
+    "failedToSavePreference": "Не удалось сохранить предпочтения",
+    "pleaseSelectPreferredLanguage": "Пожалуйста, выберите предпочитаемый язык",
+    "noLanguagesAvailableContactAdmin": "Нет доступных языков. Пожалуйста, свяжитесь с администратором для активации языков."
+  },
+  "general": {
+    "na": "Н/Д",
+    "unknown": "Неизвестно",
+    "other": "Другое",
+    "id": "ID"
   }
 }

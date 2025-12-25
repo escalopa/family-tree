@@ -24,7 +24,8 @@ interface LanguageSettingsProps {
 }
 
 const LanguageSettings: React.FC<LanguageSettingsProps> = ({ onSave }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isRTL = i18n.dir() === 'rtl';
   const { languages, preferences, loading, error, updatePreferences } = useLanguage();
   const [preferredLanguage, setPreferredLanguage] = useState('');
   const [saving, setSaving] = useState(false);
@@ -41,7 +42,7 @@ const LanguageSettings: React.FC<LanguageSettingsProps> = ({ onSave }) => {
   const handleSave = async () => {
     // Validate
     if (!preferredLanguage) {
-      setSaveError('Please select a preferred language');
+      setSaveError(t('apiErrors.pleaseSelectPreferredLanguage'));
       return;
     }
 
@@ -60,7 +61,7 @@ const LanguageSettings: React.FC<LanguageSettingsProps> = ({ onSave }) => {
       // Clear success message after 3 seconds
       setTimeout(() => setSaveSuccess(false), 3000);
     } catch (err: any) {
-      setSaveError(err?.response?.data?.error || 'Failed to save preference');
+      setSaveError(err?.response?.data?.error || t('apiErrors.failedToSavePreference'));
     } finally {
       setSaving(false);
     }
@@ -85,26 +86,66 @@ const LanguageSettings: React.FC<LanguageSettingsProps> = ({ onSave }) => {
         </Typography>
 
         {error && (
-          <Alert severity="warning" sx={{ mb: 2 }}>
+          <Alert
+            severity="warning"
+            sx={{
+              mb: 2,
+              textAlign: isRTL ? 'right' : 'left',
+              '& .MuiAlert-icon': {
+                marginInlineEnd: 1.5,
+                marginInlineStart: 0,
+              }
+            }}
+          >
             {error}
           </Alert>
         )}
 
         {saveSuccess && (
-          <Alert severity="success" sx={{ mb: 2 }}>
+          <Alert
+            severity="success"
+            sx={{
+              mb: 2,
+              textAlign: isRTL ? 'right' : 'left',
+              '& .MuiAlert-icon': {
+                marginInlineEnd: 1.5,
+                marginInlineStart: 0,
+              }
+            }}
+          >
             {t('language.languageUpdated')}
           </Alert>
         )}
 
         {saveError && (
-          <Alert severity="error" sx={{ mb: 2 }}>
+          <Alert
+            severity="error"
+            sx={{
+              mb: 2,
+              textAlign: isRTL ? 'right' : 'left',
+              '& .MuiAlert-icon': {
+                marginInlineEnd: 1.5,
+                marginInlineStart: 0,
+              }
+            }}
+          >
             {saveError}
           </Alert>
         )}
 
         {!Array.isArray(languages) || languages.length === 0 ? (
-          <Alert severity="info" sx={{ mb: 2 }}>
-            No languages available. Please contact an administrator to activate languages.
+          <Alert
+            severity="info"
+            sx={{
+              mb: 2,
+              textAlign: isRTL ? 'right' : 'left',
+              '& .MuiAlert-icon': {
+                marginInlineEnd: 1.5,
+                marginInlineStart: 0,
+              }
+            }}
+          >
+            {t('apiErrors.noLanguagesAvailableContactAdmin')}
           </Alert>
         ) : null}
 

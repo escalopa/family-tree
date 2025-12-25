@@ -123,7 +123,7 @@ const Sidebar: React.FC<SidebarProps> = ({ open, onToggle }) => {
       setUser(null);
       navigate('/login');
     } catch (error) {
-      console.error('Logout failed:', error);
+
     }
     handleLogoutMenuClose();
   };
@@ -134,7 +134,7 @@ const Sidebar: React.FC<SidebarProps> = ({ open, onToggle }) => {
       setUser(null);
       navigate('/login');
     } catch (error) {
-      console.error('Logout from all devices failed:', error);
+
     }
     handleLogoutMenuClose();
   };

@@ -94,8 +94,7 @@ func (r *Router) Setup(engine *gin.Engine) {
 			userGroup.GET("/members/:user_id", middleware.RequireRole(domain.RoleAdmin), r.userHandler.ListChanges)
 			userGroup.GET("/:user_id", r.userHandler.Get)
 
-			userGroup.PUT("/:user_id/role", middleware.RequireRole(domain.RoleSuperAdmin), r.userHandler.UpdateRole)
-			userGroup.PUT("/:user_id/active", middleware.RequireRole(domain.RoleSuperAdmin), r.userHandler.UpdateActive)
+			userGroup.PUT("/:user_id", middleware.RequireRole(domain.RoleSuperAdmin), r.userHandler.Update)
 		}
 
 		treeGroup := api.Group("/tree")

@@ -112,47 +112,45 @@ func (h *userHandler) List(c *gin.Context) {
 	delivery.SuccessWithData(c, response)
 }
 
-func (h *userHandler) UpdateRole(c *gin.Context) {
+// UpdateUser godoc
+// @Summary Update user
+// @Description Update user role and/or active status
+// @Tags users
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param user_id path int true "User ID"
+// @Param request body dto.UpdateUserRequest true "Update user request"
+// @Success 200 {object} dto.Response
+// @Failure 400 {object} dto.Response
+// @Failure 401 {object} dto.Response
+// @Failure 404 {object} dto.Response
+// @Router /api/users/{user_id} [put]
+func (h *userHandler) Update(c *gin.Context) {
 	var uri dto.UserIDUri
 	if err := c.ShouldBindUri(&uri); err != nil {
 		delivery.Error(c, err)
 		return
 	}
 
-	var req dto.UpdateRoleRequest
+	var req dto.UpdateUserRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		delivery.Error(c, err)
+		return
+	}
+
+	if req.RoleID == nil && req.IsActive == nil {
+		delivery.Error(c, domain.NewValidationError("error.validation.at_least_one_field_required"))
 		return
 	}
 
 	changedBy := middleware.GetUserID(c)
-	if err := h.userUseCase.UpdateRole(c.Request.Context(), uri.UserID, req.RoleID, changedBy); err != nil {
+	if err := h.userUseCase.Update(c.Request.Context(), uri.UserID, req.RoleID, req.IsActive, changedBy); err != nil {
 		delivery.Error(c, err)
 		return
 	}
 
-	delivery.Success(c, "success.user.role_updated", nil)
-}
-
-func (h *userHandler) UpdateActive(c *gin.Context) {
-	var uri dto.UserIDUri
-	if err := c.ShouldBindUri(&uri); err != nil {
-		delivery.Error(c, err)
-		return
-	}
-
-	var req dto.UpdateActiveRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		delivery.Error(c, err)
-		return
-	}
-
-	if err := h.userUseCase.UpdateActive(c.Request.Context(), uri.UserID, req.IsActive); err != nil {
-		delivery.Error(c, err)
-		return
-	}
-
-	delivery.Success(c, "success.user.active_status_updated", nil)
+	delivery.Success(c, "success.user.updated", nil)
 }
 
 // GetLeaderboard godoc

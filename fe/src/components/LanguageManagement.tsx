@@ -94,7 +94,8 @@ function SortableRow({ language, onToggleActive, loading, t }: SortableRowProps)
 }
 
 const LanguageManagement: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isRTL = i18n.dir() === 'rtl';
   const [languages, setLanguages] = useState<Language[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -122,8 +123,8 @@ const LanguageManagement: React.FC = () => {
       setLanguages(langs.sort((a, b) => a.display_order - b.display_order));
       setHasChanges(false);
     } catch (err: any) {
-      setError(err?.response?.data?.error || 'Failed to load languages');
-      console.error('load languages:', err);
+      setError(err?.response?.data?.error || t('apiErrors.failedToLoadLanguages'));
+
     } finally {
       setLoading(false);
     }
@@ -138,8 +139,8 @@ const LanguageManagement: React.FC = () => {
       await languageApi.toggleLanguageActive(language.language_code, !language.is_active);
       await loadLanguages();
     } catch (err: any) {
-      setError(err?.response?.data?.error || 'Failed to toggle language');
-      console.error('toggle language:', err);
+      setError(err?.response?.data?.error || t('apiErrors.failedToToggleLanguage'));
+
     } finally {
       setLoading(false);
     }
@@ -187,8 +188,8 @@ const LanguageManagement: React.FC = () => {
       // Clear success message after 3 seconds
       setTimeout(() => setSuccess(null), 3000);
     } catch (err: any) {
-      setError(err?.response?.data?.error || 'Failed to update language order');
-      console.error('update language order:', err);
+      setError(err?.response?.data?.error || t('apiErrors.failedToUpdateLanguageOrder'));
+
     } finally {
       setSaving(false);
     }
@@ -212,13 +213,35 @@ const LanguageManagement: React.FC = () => {
       </Box>
 
       {error && (
-        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
+        <Alert
+          severity="error"
+          sx={{
+            mb: 2,
+            textAlign: isRTL ? 'right' : 'left',
+            '& .MuiAlert-icon': {
+              marginInlineEnd: 1.5,
+              marginInlineStart: 0,
+            }
+          }}
+          onClose={() => setError(null)}
+        >
           {error}
         </Alert>
       )}
 
       {success && (
-        <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess(null)}>
+        <Alert
+          severity="success"
+          sx={{
+            mb: 2,
+            textAlign: isRTL ? 'right' : 'left',
+            '& .MuiAlert-icon': {
+              marginInlineEnd: 1.5,
+              marginInlineStart: 0,
+            }
+          }}
+          onClose={() => setSuccess(null)}
+        >
           {success}
         </Alert>
       )}

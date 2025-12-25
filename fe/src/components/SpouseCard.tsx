@@ -67,7 +67,7 @@ const SpouseCard: React.FC<SpouseCardProps> = ({
         onUpdate();
       }
     } catch (error) {
-      console.error('update spouse:', error);
+
       enqueueSnackbar(t('spouse.failedToUpdateSpouse'), { variant: 'error' });
     } finally {
       setSaving(false);
@@ -83,7 +83,7 @@ const SpouseCard: React.FC<SpouseCardProps> = ({
         onUpdate();
       }
     } catch (error: any) {
-      console.error('delete spouse:', error);
+
       const errorMessage = error?.response?.data?.error || t('spouse.failedToDeleteSpouse');
       enqueueSnackbar(errorMessage, { variant: 'error' });
     } finally {
@@ -130,7 +130,7 @@ const SpouseCard: React.FC<SpouseCardProps> = ({
         </Avatar>
         <CardContent sx={{ flex: 1, p: 0 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-            <Typography variant="h6">{spouse.name || 'N/A'}</Typography>
+            <Typography variant="h6">{spouse.name || t('general.na')}</Typography>
             {isDivorced && (
               <Chip
                 icon={<HeartBroken />}
@@ -173,7 +173,7 @@ const SpouseCard: React.FC<SpouseCardProps> = ({
           <Grid container spacing={2} sx={{ mt: 1 }}>
             <Grid item xs={12}>
               <Typography variant="body2" color="text.secondary" gutterBottom>
-                {t('spouse.editingMarriageInfo', { name: spouse.name || 'Unknown' })}
+                {t('spouse.editingMarriageInfo', { name: spouse.name || t('general.unknown') })}
               </Typography>
             </Grid>
             <Grid item xs={12} sm={6}>
@@ -213,7 +213,7 @@ const SpouseCard: React.FC<SpouseCardProps> = ({
         <DialogTitle>{t('spouse.deleteSpouse')}</DialogTitle>
         <DialogContent>
           <Typography>
-            {t('spouse.deleteConfirmation', { name: spouse.name || 'Unknown' })}
+            {t('spouse.deleteConfirmation', { name: spouse.name || t('general.unknown') })}
           </Typography>
           <Typography variant="body2" color="error" sx={{ mt: 2 }}>
             {t('spouse.deleteWarning')}

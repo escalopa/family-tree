@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Language, UserLanguagePreference } from '../types';
 import { languageApi, userLanguagePreferenceApi } from '../api';
 import { useAuth } from './AuthContext';
@@ -33,6 +34,7 @@ interface LanguageProviderProps {
 }
 
 export const LanguageProvider: React.FC<LanguageProviderProps> = ({ children }) => {
+  const { t } = useTranslation();
   const { isAuthenticated, loading: authLoading } = useAuth();
   const [languages, setLanguages] = useState<Language[]>([]);
   const [preferences, setPreferences] = useState<UserLanguagePreference | null>(null);
@@ -47,8 +49,8 @@ export const LanguageProvider: React.FC<LanguageProviderProps> = ({ children }) 
       const langs = await languageApi.getLanguages(true);
       setLanguages(langs);
     } catch (err: any) {
-      setError(err?.response?.data?.error || 'Failed to load languages');
-      console.error('load languages:', err);
+      setError(t('apiErrors.failedToLoadLanguages'));
+
     } finally {
       setLoading(false);
     }
@@ -76,8 +78,8 @@ export const LanguageProvider: React.FC<LanguageProviderProps> = ({ children }) 
         });
       }
 
-      setError(err?.response?.data?.error || 'Failed to load preferences');
-      console.error('load language preferences:', err);
+      setError(t('apiErrors.failedToLoadPreferences'));
+
     } finally {
       setLoading(false);
     }
@@ -96,8 +98,8 @@ export const LanguageProvider: React.FC<LanguageProviderProps> = ({ children }) 
       // Update localStorage
       localStorage.setItem('language_preferences', JSON.stringify(updated));
     } catch (err: any) {
-      setError(err?.response?.data?.error || 'Failed to update preferences');
-      console.error('update language preferences:', err);
+      setError(t('apiErrors.failedToUpdatePreferences'));
+
       throw err;
     } finally {
       setLoading(false);
@@ -124,14 +126,15 @@ export const LanguageProvider: React.FC<LanguageProviderProps> = ({ children }) 
   };
 
   // Get name in preferred language with fallback
-  const getPreferredName = (obj: NameProvider, fallback = 'N/A'): string => {
+  const getPreferredName = (obj: NameProvider, fallback?: string): string => {
+    const defaultFallback = fallback || 'N/A';
     const names = extractNames(obj);
     if (!names || Object.keys(names).length === 0) {
-      return fallback;
+      return defaultFallback;
     }
 
     const preferredLang = preferences?.preferred_language || 'ar';
-    return names[preferredLang] || names['ar'] || names['en'] || Object.values(names)[0] || fallback;
+    return names[preferredLang] || names['ar'] || names['en'] || Object.values(names)[0] || defaultFallback;
   };
 
   // Get all names formatted for display (e.g., "أحمد | Ahmed | Ахмад")

@@ -368,6 +368,46 @@
     "remaining": "remaining",
     "noRecentChanges": "No recent changes available",
     "changeType": "Change Type",
-    "deleted": "deleted"
+    "deleted": "deleted",
+    "userNotFound": "User not found"
+  },
+  "callback": {
+    "invalidParameters": "Invalid callback parameters",
+    "authenticationFailed": "Authentication failed",
+    "signingIn": "Signing you in..."
+  },
+  "inactive": {
+    "accountPendingActivation": "Account Pending Activation",
+    "accountCreatedSuccessfully": "Your account has been created successfully, but it needs to be activated by an administrator before you can access the system.",
+    "pleaseContactAdmin": "Please contact an administrator to activate your account.",
+    "accountStillInactive": "Your account is still inactive. Please contact an administrator.",
+    "failedToCheckStatus": "Failed to check account status. Please try again.",
+    "checkingStatus": "Checking Status...",
+    "checkAccountStatus": "Check Account Status"
+  },
+  "unauthorized": {
+    "title": "Unauthorized Access",
+    "message": "You don't have permission to access this page.",
+    "goToHome": "Go to Home"
+  },
+  "apiErrors": {
+    "failedToLoadMemberDetails": "Failed to load member details",
+    "failedToLoadTree": "Failed to load family tree. Please try again.",
+    "failedToLoadMemberList": "Failed to load member list. Please try again.",
+    "noRelationFound": "No relation found between the selected members.",
+    "failedToLoadLanguages": "Failed to load languages",
+    "failedToToggleLanguage": "Failed to toggle language",
+    "failedToUpdateLanguageOrder": "Failed to update language order",
+    "failedToLoadPreferences": "Failed to load preferences",
+    "failedToUpdatePreferences": "Failed to update preferences",
+    "failedToSavePreference": "Failed to save preference",
+    "pleaseSelectPreferredLanguage": "Please select a preferred language",
+    "noLanguagesAvailableContactAdmin": "No languages available. Please contact an administrator to activate languages."
+  },
+  "general": {
+    "na": "N/A",
+    "unknown": "Unknown",
+    "other": "Other",
+    "id": "ID"
   }
 }
