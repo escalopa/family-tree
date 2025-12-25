@@ -61,7 +61,7 @@ func (uc *languageUseCase) UpdatePreference(ctx context.Context, pref *domain.Us
 		return err
 	}
 	if !lang.IsActive {
-		return domain.NewValidationError("error.language.not_active", nil)
+		return domain.NewValidationError("error.language.not_active")
 	}
 
 	if err := uc.repo.langPref.Upsert(ctx, pref); err != nil {

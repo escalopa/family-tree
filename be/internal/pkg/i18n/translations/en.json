@@ -22,7 +22,8 @@
     "external_service": "External service is currently unavailable. Please try again later",
     "member": {
       "not_found": "Member not found",
-      "invalid_parent": "Invalid {{parent}} member",
+      "invalid_father": "Invalid father member",
+      "invalid_mother": "Invalid mother member",
       "circular_relationship": "Circular parent-child relationship detected",
       "has_children": "Cannot delete member: this member has children",
       "depth_limit": "Family tree depth limit exceeded",
@@ -67,7 +68,8 @@
       "names_required": "Name is required for language '{{language}}' ({{code}})",
       "invalid_gender": "Cannot change gender: member has spouse relationships",
       "invalid_file": "Invalid file format",
-      "file_too_large": "File size exceeds maximum allowed size"
+      "file_too_large": "File size exceeds maximum allowed size",
+      "missing_picture_file": "Picture file is required"
     }
   },
   "validation": {

@@ -54,13 +54,13 @@ func NewS3Client(ctx context.Context, endpoint, region, accessKey, secretKey, bu
 func (s *S3Client) UploadImage(ctx context.Context, data []byte, filename string) (string, error) {
 	if int64(len(data)) > s.maxImageSize {
 		slog.Warn("S3Client.UploadImage: image size exceeds maximum", "size", len(data), "max_size", s.maxImageSize, "filename", filename)
-		return "", domain.NewValidationError("error.validation.file_too_large", nil)
+		return "", domain.NewValidationError("error.validation.file_too_large")
 	}
 
 	ext := strings.ToLower(filepath.Ext(filename))
 	if !s.allowedImageTypes[ext] {
 		slog.Warn("S3Client.UploadImage: unsupported image type", "extension", ext, "filename", filename)
-		return "", domain.NewValidationError("error.validation.invalid_file", nil)
+		return "", domain.NewValidationError("error.validation.invalid_file")
 	}
 
 	if err := s.validateImageContent(data); err != nil {
@@ -128,7 +128,7 @@ func (s *S3Client) GetImage(ctx context.Context, key string) ([]byte, error) {
 
 func (s *S3Client) validateImageContent(data []byte) error {
 	if len(data) < 12 {
-		return domain.NewValidationError("error.validation.invalid_file", nil)
+		return domain.NewValidationError("error.validation.invalid_file")
 	}
 
 	// Check magic numbers for common image formats
@@ -155,5 +155,5 @@ func (s *S3Client) validateImageContent(data []byte) error {
 	}
 
 	slog.Warn("S3Client.validateImageContent: invalid image content", "first_bytes", fmt.Sprintf("%X", data[:min(12, len(data))]))
-	return domain.NewValidationError("error.validation.invalid_file", nil)
+	return domain.NewValidationError("error.validation.invalid_file")
 }

@@ -34,7 +34,9 @@ func (h *memberHandler) validateNames(c *gin.Context, names map[string]string) e
 	for _, lang := range activeLanguages {
 		name, exists := names[lang.LanguageCode]
 		if !exists || name == "" {
-			validationErr := domain.NewValidationError("error.validation.names_required", map[string]string{"code": lang.LanguageCode})
+			validationErr := domain.
+				NewValidationError("error.validation.names_required").
+				WithParams(map[string]string{"code": lang.LanguageCode})
 			delivery.Error(c, validationErr)
 			return validationErr
 		}
@@ -395,7 +397,7 @@ func (h *memberHandler) UploadPicture(c *gin.Context) {
 
 	file, header, err := c.Request.FormFile("picture")
 	if err != nil {
-		delivery.Error(c, domain.NewValidationError("error.invalid_input", map[string]string{"message": "missing picture file"}))
+		delivery.Error(c, domain.NewValidationError("error.validation.missing_picture_file"))
 		return
 	}
 	defer file.Close()

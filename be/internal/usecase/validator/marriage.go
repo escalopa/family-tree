@@ -7,13 +7,11 @@ import (
 	"github.com/escalopa/family-tree/internal/usecase"
 )
 
-// MarriageValidator implements marriage prohibition validation
 type MarriageValidator struct {
 	memberRepo usecase.MemberRepository
 	spouseRepo usecase.SpouseRepository
 }
 
-// NewMarriageValidator creates a new marriage validator
 func NewMarriageValidator(memberRepo usecase.MemberRepository, spouseRepo usecase.SpouseRepository) usecase.MarriageValidator {
 	return &MarriageValidator{
 		memberRepo: memberRepo,
@@ -59,7 +57,7 @@ func (v *MarriageValidator) validateBloodRelationships(ctx context.Context, pers
 		return err
 	}
 	if isAncestor {
-		return domain.NewValidationError("error.spouse.ancestor_descendant", nil)
+		return domain.NewValidationError("error.spouse.ancestor_descendant")
 	}
 
 	isAncestor, err = v.isAncestor(ctx, personB.MemberID, personA.MemberID)
@@ -67,12 +65,12 @@ func (v *MarriageValidator) validateBloodRelationships(ctx context.Context, pers
 		return err
 	}
 	if isAncestor {
-		return domain.NewValidationError("error.spouse.ancestor_descendant", nil)
+		return domain.NewValidationError("error.spouse.ancestor_descendant")
 	}
 
 	// 2. Siblings check (full or half siblings)
 	if v.areSiblings(personA, personB) {
-		return domain.NewValidationError("error.spouse.siblings", nil)
+		return domain.NewValidationError("error.spouse.siblings")
 	}
 
 	// 3. Aunt/Niece check (parent's sibling or sibling's child)
@@ -81,7 +79,7 @@ func (v *MarriageValidator) validateBloodRelationships(ctx context.Context, pers
 		return err
 	}
 	if isAuntNiece {
-		return domain.NewValidationError("error.spouse.aunt_niece", nil)
+		return domain.NewValidationError("error.spouse.aunt_niece")
 	}
 
 	return nil
@@ -95,7 +93,7 @@ func (v *MarriageValidator) validateInLawRelationships(ctx context.Context, pers
 		return err
 	}
 	if isInLaw {
-		return domain.NewValidationError("error.spouse.in_law", nil)
+		return domain.NewValidationError("error.spouse.in_law")
 	}
 
 	// 2. Parent's spouse or child's spouse
@@ -104,7 +102,7 @@ func (v *MarriageValidator) validateInLawRelationships(ctx context.Context, pers
 		return err
 	}
 	if isStepRelation {
-		return domain.NewValidationError("error.spouse.step_relation", nil)
+		return domain.NewValidationError("error.spouse.step_relation")
 	}
 
 	return nil
@@ -117,7 +115,7 @@ func (v *MarriageValidator) validateMarriageState(ctx context.Context, personA, 
 		return err
 	}
 	if isMarried {
-		return domain.NewValidationError("error.spouse.already_married", map[string]string{"person": personA.Gender})
+		return domain.NewValidationError("error.spouse.already_married")
 	}
 
 	isMarried, err = v.isCurrentlyMarried(ctx, personB.MemberID)
@@ -125,7 +123,7 @@ func (v *MarriageValidator) validateMarriageState(ctx context.Context, personA, 
 		return err
 	}
 	if isMarried {
-		return domain.NewValidationError("error.spouse.already_married", map[string]string{"person": personB.Gender})
+		return domain.NewValidationError("error.spouse.already_married")
 	}
 
 	return nil

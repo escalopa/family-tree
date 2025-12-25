@@ -35,7 +35,6 @@ type App struct {
 func NewApp(cfg *config.Config) (*App, error) {
 	gin.SetMode(cfg.Server.Mode)
 
-
 	ctx := context.Background()
 	pool, err := db.NewPool(ctx, &cfg.Database)
 	if err != nil {
@@ -95,10 +94,11 @@ func NewApp(cfg *config.Config) (*App, error) {
 	// Create validators
 	marriageValidator := validator.NewMarriageValidator(memberRepo, spouseRepo)
 	birthDateValidator := validator.NewBirthDateValidator(memberRepo, spouseRepo)
+	relationshipValidator := validator.NewRelationshipValidator(memberRepo, spouseRepo)
 
 	authUseCase := usecase.NewAuthUseCase(userRepo, sessionRepo, oauthStateRepo, oauthManager, tokenMgr)
 	userUseCase := usecase.NewUserUseCase(userRepo, scoreRepo, historyRepo)
-	memberUseCase := usecase.NewMemberUseCase(memberRepo, spouseRepo, historyRepo, scoreRepo, s3Client, marriageValidator, birthDateValidator)
+	memberUseCase := usecase.NewMemberUseCase(memberRepo, spouseRepo, historyRepo, scoreRepo, s3Client, marriageValidator, birthDateValidator, relationshipValidator)
 	spouseUseCase := usecase.NewSpouseUseCase(spouseRepo, memberRepo, historyRepo, scoreRepo, marriageValidator)
 	treeUseCase := usecase.NewTreeUseCase(memberRepo, spouseRepo)
 	languageUseCase := usecase.NewLanguageUseCase(langRepo, langPrefRepo)

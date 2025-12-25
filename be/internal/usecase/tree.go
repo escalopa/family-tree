@@ -174,7 +174,7 @@ func (uc *treeUseCase) GetRelation(ctx context.Context, member1ID, member2ID int
 	// Find path between members
 	pathMemberIDs := uc.findPath(memberMap, member1ID, member2ID)
 	if pathMemberIDs == nil {
-		return nil, domain.NewValidationError("error.member.no_relation", nil)
+		return nil, domain.NewValidationError("error.member.no_relation")
 	}
 
 	// Create a map for quick lookup of path members

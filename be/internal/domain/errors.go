@@ -134,15 +134,19 @@ func NewConflictError(translationKey string, params map[string]string) *DomainEr
 	}
 }
 
-func NewValidationError(translationKey string, params map[string]string) *DomainError {
+func NewValidationError(translationKey string) *DomainError {
 	if translationKey == "" {
 		translationKey = "error.invalid_input"
 	}
 	return &DomainError{
 		Code:           ErrCodeInvalidInput,
 		TranslationKey: translationKey,
-		Params:         params,
 	}
+}
+
+func (e *DomainError) WithParams(params map[string]string) *DomainError {
+	e.Params = params
+	return e
 }
 
 func NewVersionConflictError() *DomainError {

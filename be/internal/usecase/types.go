@@ -97,8 +97,6 @@ type OAuthManager interface {
 	GetSupportedProviders() []string
 }
 
-// LanguageRepository provides access to languages
-// Languages are static and managed via i18n translation files, but can be enabled/disabled
 type LanguageRepository interface {
 	GetByCode(ctx context.Context, code string) (*domain.Language, error)
 	GetAll(ctx context.Context, filter domain.LanguageFilter) ([]*domain.Language, error)
@@ -117,4 +115,8 @@ type MarriageValidator interface {
 type BirthDateValidator interface {
 	Update(ctx context.Context, memberID int, newBirthDate *time.Time) error
 	Create(ctx context.Context, childBirth *time.Time, fatherID, motherID *int) error
+}
+
+type RelationshipValidator interface {
+	CheckParents(ctx context.Context, memberID int, fatherID, motherID *int) error
 }

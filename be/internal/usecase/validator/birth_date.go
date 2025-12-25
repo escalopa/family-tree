@@ -63,7 +63,7 @@ func (v *BirthDateValidator) Create(ctx context.Context, childBirth *time.Time, 
 			return err
 		}
 		if father.DateOfBirth != nil && !father.DateOfBirth.Before(*childBirth) {
-			return domain.NewValidationError("error.member.parent_born_after_child", map[string]string{"parent": father.Gender})
+			return domain.NewValidationError("error.member.parent_born_after_child")
 		}
 	}
 
@@ -73,7 +73,7 @@ func (v *BirthDateValidator) Create(ctx context.Context, childBirth *time.Time, 
 			return err
 		}
 		if mother.DateOfBirth != nil && !mother.DateOfBirth.Before(*childBirth) {
-			return domain.NewValidationError("error.member.parent_born_after_child", map[string]string{"parent": mother.Gender})
+			return domain.NewValidationError("error.member.parent_born_after_child")
 		}
 	}
 
@@ -96,7 +96,7 @@ func (v *BirthDateValidator) validateBirthBeforeMarriages(ctx context.Context, m
 
 	for _, spouse := range spouses {
 		if spouse.MarriageDate != nil && !birthDate.Before(*spouse.MarriageDate) {
-			return domain.NewValidationError("error.member.birth_after_marriage", nil)
+			return domain.NewValidationError("error.member.birth_after_marriage")
 		}
 	}
 
@@ -111,7 +111,7 @@ func (v *BirthDateValidator) validateBirthAfterParents(ctx context.Context, memb
 			return err
 		}
 		if err == nil && father.DateOfBirth != nil && !father.DateOfBirth.Before(*birthDate) {
-			return domain.NewValidationError("error.member.parent_born_after_child", map[string]string{"parent": father.Gender})
+			return domain.NewValidationError("error.member.parent_born_after_child")
 		}
 	}
 
@@ -121,7 +121,7 @@ func (v *BirthDateValidator) validateBirthAfterParents(ctx context.Context, memb
 			return err
 		}
 		if err == nil && mother.DateOfBirth != nil && !mother.DateOfBirth.Before(*birthDate) {
-			return domain.NewValidationError("error.member.parent_born_after_child", map[string]string{"parent": mother.Gender})
+			return domain.NewValidationError("error.member.parent_born_after_child")
 		}
 	}
 
@@ -137,7 +137,7 @@ func (v *BirthDateValidator) validateBirthBeforeChildren(ctx context.Context, me
 
 	for _, child := range children {
 		if child.DateOfBirth != nil && !birthDate.Before(*child.DateOfBirth) {
-			return domain.NewValidationError("error.member.parent_born_after_child", nil)
+			return domain.NewValidationError("error.member.parent_born_after_child")
 		}
 	}
 
@@ -155,7 +155,7 @@ func (v *BirthDateValidator) validateBirthAfterParentsMarriage(ctx context.Conte
 	}
 
 	if spouse.MarriageDate != nil && childBirth.Before(*spouse.MarriageDate) {
-		return domain.NewValidationError("error.member.birth_before_parents_marriage", nil)
+		return domain.NewValidationError("error.member.birth_before_parents_marriage")
 	}
 
 	return nil

@@ -95,7 +95,7 @@ func (uc *spouseUseCase) recordSpouseHistory(
 
 func (uc *spouseUseCase) Create(ctx context.Context, spouse *domain.Spouse, userID int) error {
 	if !validator.ValidateDateOrder(spouse.MarriageDate, spouse.DivorceDate) {
-		return domain.NewValidationError("error.spouse.invalid_marriage_date", nil)
+		return domain.NewValidationError("error.spouse.invalid_marriage_date")
 	}
 
 	existingSpouse, err := uc.repo.spouse.GetByParents(ctx, spouse.FatherID, spouse.MotherID)
@@ -111,7 +111,7 @@ func (uc *spouseUseCase) Create(ctx context.Context, spouse *domain.Spouse, user
 		return err
 	}
 	if father.Gender != "M" {
-		return domain.NewValidationError("error.member.invalid_parent", map[string]string{"parent": "father"})
+		return domain.NewValidationError("error.member.invalid_father")
 	}
 
 	mother, err := uc.repo.member.Get(ctx, spouse.MotherID)
@@ -119,7 +119,7 @@ func (uc *spouseUseCase) Create(ctx context.Context, spouse *domain.Spouse, user
 		return err
 	}
 	if mother.Gender != "F" {
-		return domain.NewValidationError("error.member.invalid_parent", map[string]string{"parent": "mother"})
+		return domain.NewValidationError("error.member.invalid_mother")
 	}
 
 	// Validate Islamic marriage prohibitions
@@ -164,7 +164,7 @@ func (uc *spouseUseCase) Create(ctx context.Context, spouse *domain.Spouse, user
 
 func (uc *spouseUseCase) Update(ctx context.Context, spouse *domain.Spouse, userID int) error {
 	if !validator.ValidateDateOrder(spouse.MarriageDate, spouse.DivorceDate) {
-		return domain.NewValidationError("error.spouse.invalid_marriage_date", nil)
+		return domain.NewValidationError("error.spouse.invalid_marriage_date")
 	}
 
 	oldSpouse, err := uc.repo.spouse.Get(ctx, spouse.SpouseID)
@@ -241,11 +241,11 @@ func (uc *spouseUseCase) validateMarriageDateAgainstBirth(father, mother *domain
 	}
 
 	if father.DateOfBirth != nil && marriageDate.Before(*father.DateOfBirth) {
-		return domain.NewValidationError("error.spouse.marriage_before_father_birth", nil)
+		return domain.NewValidationError("error.spouse.marriage_before_father_birth")
 	}
 
 	if mother.DateOfBirth != nil && marriageDate.Before(*mother.DateOfBirth) {
-		return domain.NewValidationError("error.spouse.marriage_before_mother_birth", nil)
+		return domain.NewValidationError("error.spouse.marriage_before_mother_birth")
 	}
 
 	return nil
@@ -263,7 +263,7 @@ func (uc *spouseUseCase) validateMarriageDateAgainstChildren(ctx context.Context
 
 	for _, child := range children {
 		if child.DateOfBirth != nil && marriageDate.After(*child.DateOfBirth) {
-			return domain.NewValidationError("error.spouse.marriage_after_child_birth", nil)
+			return domain.NewValidationError("error.spouse.marriage_after_child_birth")
 		}
 	}
 

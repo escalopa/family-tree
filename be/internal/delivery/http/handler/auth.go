@@ -139,10 +139,6 @@ func (h *authHandler) Logout(c *gin.Context) {
 // @Router /api/auth/logout-all [post]
 func (h *authHandler) LogoutAll(c *gin.Context) {
 	userID := middleware.GetUserID(c)
-	if userID == 0 {
-		delivery.Error(c, domain.NewValidationError("error.invalid_input", map[string]string{"message": "invalid user"}))
-		return
-	}
 
 	if err := h.authUseCase.LogoutAll(c.Request.Context(), userID); err != nil {
 		delivery.Error(c, err)

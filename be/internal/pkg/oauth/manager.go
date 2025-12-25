@@ -42,7 +42,9 @@ func (m *OAuthManager) GetProvider(providerName string) (OAuthProvider, error) {
 	provider, ok := m.providers[providerName]
 	if !ok {
 		slog.Warn("OAuthManager.GetProvider: OAuth provider not supported", "provider", providerName)
-		return nil, domain.NewValidationError("error.oauth.provider_not_supported", map[string]string{"provider": providerName})
+		return nil, domain.
+			NewValidationError("error.oauth.provider_not_supported").
+			WithParams(map[string]string{"provider": providerName})
 	}
 	return provider, nil
 }

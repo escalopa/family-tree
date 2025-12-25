@@ -15,8 +15,9 @@ import (
 
 type (
 	memberUseCaseValidator struct {
-		marriage  MarriageValidator
-		birthDate BirthDateValidator
+		marriage     MarriageValidator
+		birthDate    BirthDateValidator
+		relationship RelationshipValidator
 	}
 
 	memberUseCaseRepo struct {
@@ -41,24 +42,26 @@ func NewMemberUseCase(
 	s3Client S3Client,
 	marriageValidator MarriageValidator,
 	birthDateValidator BirthDateValidator,
+	relationshipValidator RelationshipValidator,
 ) *memberUseCase {
 	return &memberUseCase{
 		repo:      memberUseCaseRepo{memberRepo, spouseRepo, historyRepo, scoreRepo},
-		validator: memberUseCaseValidator{marriageValidator, birthDateValidator},
+		validator: memberUseCaseValidator{marriageValidator, birthDateValidator, relationshipValidator},
 		s3Client:  s3Client,
 	}
 }
 
 func (uc *memberUseCase) Create(ctx context.Context, member *domain.Member, userID int) error {
 	if len(member.Names) == 0 {
-		return domain.NewValidationError("error.validation.names_required", map[string]string{"language": "all", "code": "all"})
+		return domain.
+			NewValidationError("error.validation.names_required").
+			WithParams(map[string]string{"language": "all", "code": "all"})
 	}
 
-	if err := uc.validateParentRelationships(ctx, member.MemberID, member.FatherID, member.MotherID); err != nil {
+	if err := uc.validator.relationship.CheckParents(ctx, member.MemberID, member.FatherID, member.MotherID); err != nil {
 		return err
 	}
 
-	// Validate birth date against family relationships
 	if err := uc.validator.birthDate.Create(ctx, member.DateOfBirth, member.FatherID, member.MotherID); err != nil {
 		return err
 	}
@@ -98,7 +101,9 @@ func (uc *memberUseCase) Update(ctx context.Context, member *domain.Member, expe
 	}
 
 	if len(member.Names) == 0 {
-		return domain.NewValidationError("error.validation.names_required", map[string]string{"language": "all", "code": "all"})
+		return domain.
+			NewValidationError("error.validation.names_required").
+			WithParams(map[string]string{"language": "all", "code": "all"})
 	}
 
 	if oldMember.Gender != member.Gender {
@@ -107,15 +112,14 @@ func (uc *memberUseCase) Update(ctx context.Context, member *domain.Member, expe
 			return err
 		}
 		if len(spouses) > 0 {
-			return domain.NewValidationError("error.validation.invalid_gender", nil)
+			return domain.NewValidationError("error.validation.invalid_gender")
 		}
 	}
 
-	if err := uc.validateParentRelationships(ctx, member.MemberID, member.FatherID, member.MotherID); err != nil {
+	if err := uc.validator.relationship.CheckParents(ctx, member.MemberID, member.FatherID, member.MotherID); err != nil {
 		return err
 	}
 
-	// Validate birth date against family relationships
 	if err := uc.validator.birthDate.Update(ctx, member.MemberID, member.DateOfBirth); err != nil {
 		return err
 	}
@@ -344,54 +348,19 @@ func (uc *memberUseCase) GetPicture(ctx context.Context, memberID int) ([]byte, 
 	return imageData, contentType, nil
 }
 
-// validateParentRelationships checks for circular relationships and parent age validation in the family tree
-func (uc *memberUseCase) validateParentRelationships(ctx context.Context, memberID int, fatherID, motherID *int) error {
-	if fatherID != nil && *fatherID == memberID {
-		slog.Warn("memberUseCase.validateParentRelationships: member cannot be their own father", "member_id", memberID, "father_id", *fatherID)
-		return domain.NewValidationError("error.member.circular_relationship", nil)
-	}
-	if motherID != nil && *motherID == memberID {
-		slog.Warn("memberUseCase.validateParentRelationships: member cannot be their own mother", "member_id", memberID, "mother_id", *motherID)
-		return domain.NewValidationError("error.member.circular_relationship", nil)
-	}
-
-	if fatherID != nil {
-		if err := uc.checkCircularRelationship(ctx, memberID, *fatherID); err != nil {
-			return err
-		}
-	}
-
-	if motherID != nil {
-		if err := uc.checkCircularRelationship(ctx, memberID, *motherID); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-// ensureParentSpouseRelationship creates a spouse relationship between father and mother if both exist
 func (uc *memberUseCase) ensureParentSpouseRelationship(ctx context.Context, fatherID, motherID *int, userID int) error {
 	if fatherID == nil || motherID == nil {
 		return nil
 	}
 
-	// Check if spouse relationship already exists
-	_, err := uc.repo.spouse.GetByParents(ctx, *fatherID, *motherID)
-	if err == nil {
-		return nil // Relationship already exists
-	}
-
-	if !domain.IsDomainError(err, domain.ErrCodeNotFound) {
+	existingSpouse, err := uc.repo.spouse.GetByParents(ctx, *fatherID, *motherID)
+	if err != nil && !domain.IsDomainError(err, domain.ErrCodeNotFound) {
 		return err
 	}
-
-	// Validate Islamic marriage prohibitions
-	if err := uc.validator.marriage.Create(ctx, *fatherID, *motherID); err != nil {
-		return err
+	if existingSpouse != nil {
+		return nil
 	}
 
-	// Create the spouse relationship
 	spouse := &domain.Spouse{
 		FatherID:     *fatherID,
 		MotherID:     *motherID,
@@ -452,63 +421,6 @@ func (uc *memberUseCase) recordSpouseHistory(
 	if err := uc.repo.history.CreateBatch(ctx, histories...); err != nil {
 		slog.Error("create batch history for spouse", "error", err, "father_id", fatherID, "mother_id", motherID, "change_type", changeType)
 	}
-}
-
-func (uc *memberUseCase) checkCircularRelationship(ctx context.Context, memberID, parentID int) error {
-	parent, err := uc.repo.member.Get(ctx, parentID)
-	if err != nil {
-		return err
-	}
-
-	if parent.FatherID != nil && *parent.FatherID == memberID {
-		slog.Warn("memberUseCase.checkCircularRelationship: circular relationship detected - parent's father cannot be their child", "member_id", memberID, "parent_id", parentID)
-		return domain.NewValidationError("error.member.circular_relationship", nil)
-	}
-	if parent.MotherID != nil && *parent.MotherID == memberID {
-		slog.Warn("memberUseCase.checkCircularRelationship: circular relationship detected - parent's mother cannot be their child", "member_id", memberID, "parent_id", parentID)
-		return domain.NewValidationError("error.member.circular_relationship", nil)
-	}
-
-	visited := make(map[int]bool)
-	return uc.checkAncestors(ctx, parentID, memberID, visited, 0)
-}
-
-func (uc *memberUseCase) checkAncestors(ctx context.Context, currentID, targetID int, visited map[int]bool, depth int) error {
-	if depth > 50 {
-		slog.Warn("memberUseCase.checkAncestors: family tree depth limit exceeded", "current_id", currentID, "target_id", targetID, "depth", depth)
-		return domain.NewValidationError("error.member.depth_limit", nil)
-	}
-	if visited[currentID] {
-		return nil
-	}
-	visited[currentID] = true
-
-	current, err := uc.repo.member.Get(ctx, currentID)
-	if err != nil {
-		return nil // If member not found, skip
-	}
-
-	if current.FatherID != nil {
-		if *current.FatherID == targetID {
-			slog.Warn("memberUseCase.checkAncestors: circular relationship detected in ancestry (father)", "current_id", currentID, "target_id", targetID, "father_id", *current.FatherID, "depth", depth)
-			return domain.NewValidationError("error.member.circular_relationship", nil)
-		}
-		if err := uc.checkAncestors(ctx, *current.FatherID, targetID, visited, depth+1); err != nil {
-			return err
-		}
-	}
-
-	if current.MotherID != nil {
-		if *current.MotherID == targetID {
-			slog.Warn("memberUseCase.checkAncestors: circular relationship detected in ancestry (mother)", "current_id", currentID, "target_id", targetID, "mother_id", *current.MotherID, "depth", depth)
-			return domain.NewValidationError("error.member.circular_relationship", nil)
-		}
-		if err := uc.checkAncestors(ctx, *current.MotherID, targetID, visited, depth+1); err != nil {
-			return err
-		}
-	}
-
-	return nil
 }
 
 func (uc *memberUseCase) calculateAndRecordScores(ctx context.Context, member *domain.Member, userID int) error {
