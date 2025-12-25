@@ -132,19 +132,19 @@ prod-deploy: ## Deploy application to production
 	./scripts/deploy.sh
 
 prod-up: ## Start production services
-	docker-compose -f docker-compose.prod.yml up -d
+	docker compose -f docker-compose.prod.yml --env-file .env up -d
 
 prod-down: ## Stop production services
-	docker-compose -f docker-compose.prod.yml down
+	docker compose -f docker-compose.prod.yml --env-file .env down
 
 prod-logs: ## View production logs
-	docker-compose -f docker-compose.prod.yml logs -f
+	docker compose -f docker-compose.prod.yml --env-file .env logs -f
 
 prod-status: ## Check production services status
-	docker-compose -f docker-compose.prod.yml ps
+	docker compose -f docker-compose.prod.yml --env-file .env ps
 
 prod-restart: ## Restart production services
-	docker-compose -f docker-compose.prod.yml restart
+	docker compose -f docker-compose.prod.yml --env-file .env restart
 
 prod-backup: ## Backup production data
 	@echo "Creating backup..."
@@ -157,10 +157,10 @@ prod-maintenance: ## Run maintenance menu
 	./scripts/maintenance.sh
 
 prod-shell-db: ## Access production database shell
-	docker-compose -f docker-compose.prod.yml exec postgres psql -U familytree -d familytree
+	docker compose -f docker-compose.prod.yml --env-file .env exec postgres psql -U familytree -d familytree
 
 prod-shell-redis: ## Access production Redis shell
-	docker-compose -f docker-compose.prod.yml exec redis redis-cli
+	docker compose -f docker-compose.prod.yml --env-file .env exec redis redis-cli
 
 prod-clean: ## Clean up production Docker resources
 	docker system prune -f

@@ -51,13 +51,13 @@ show_menu() {
 # Function to view service status
 view_status() {
     print_info "Service Status:"
-    docker-compose -f docker-compose.prod.yml ps
+    docker compose -f docker-compose.prod.yml --env-file .env ps
 }
 
 # Function to view all logs
 view_all_logs() {
     print_info "Viewing all logs (Press Ctrl+C to exit)..."
-    docker-compose -f docker-compose.prod.yml logs -f --tail=100
+    docker compose -f docker-compose.prod.yml --env-file .env logs -f --tail=100
 }
 
 # Function to view specific service logs
@@ -65,13 +65,13 @@ view_service_logs() {
     echo "Available services: backend, frontend, nginx, postgres, redis, minio"
     read -p "Enter service name: " service
     print_info "Viewing logs for $service (Press Ctrl+C to exit)..."
-    docker-compose -f docker-compose.prod.yml logs -f --tail=100 $service
+    docker compose -f docker-compose.prod.yml --env-file .env logs -f --tail=100 $service
 }
 
 # Function to restart all services
 restart_all() {
     print_warning "Restarting all services..."
-    docker-compose -f docker-compose.prod.yml restart
+    docker compose -f docker-compose.prod.yml --env-file .env restart
     print_info "All services restarted"
 }
 
@@ -80,7 +80,7 @@ restart_service() {
     echo "Available services: backend, frontend, nginx, postgres, redis, minio"
     read -p "Enter service name: " service
     print_info "Restarting $service..."
-    docker-compose -f docker-compose.prod.yml restart $service
+    docker compose -f docker-compose.prod.yml --env-file .env restart $service
     print_info "$service restarted"
 }
 
@@ -139,8 +139,8 @@ check_ssl() {
 # Function to renew SSL
 renew_ssl() {
     print_info "Renewing SSL certificates..."
-    docker-compose -f docker-compose.prod.yml run --rm certbot renew
-    docker-compose -f docker-compose.prod.yml restart nginx
+    docker compose -f docker-compose.prod.yml --env-file .env run --rm certbot renew
+    docker compose -f docker-compose.prod.yml --env-file .env restart nginx
     print_info "SSL certificates renewed and Nginx restarted"
 }
 
@@ -156,20 +156,20 @@ check_disk() {
 # Function to access database shell
 db_shell() {
     print_info "Connecting to PostgreSQL..."
-    docker-compose -f docker-compose.prod.yml exec postgres psql -U familytree -d familytree
+    docker compose -f docker-compose.prod.yml --env-file .env exec postgres psql -U familytree -d familytree
 }
 
 # Function to access Redis shell
 redis_shell() {
     print_info "Connecting to Redis..."
-    docker-compose -f docker-compose.prod.yml exec redis redis-cli
+    docker compose -f docker-compose.prod.yml --env-file .env exec redis redis-cli
 }
 
 # Main loop
 while true; do
     show_menu
     read choice
-    
+
     case $choice in
         1) view_status ;;
         2) view_all_logs ;;
@@ -184,7 +184,7 @@ while true; do
         11) check_disk ;;
         12) db_shell ;;
         13) redis_shell ;;
-        0) 
+        0)
             print_info "Goodbye!"
             exit 0
             ;;
@@ -192,8 +192,7 @@ while true; do
             print_error "Invalid option. Please try again."
             ;;
     esac
-    
+
     echo ""
     read -p "Press Enter to continue..."
 done
-

@@ -92,3 +92,4 @@ func (i *InstagramProvider) GetUserInfo(ctx context.Context, token *oauth2.Token
 	}, nil
 }
 
+

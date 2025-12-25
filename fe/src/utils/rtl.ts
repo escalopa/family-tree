@@ -45,3 +45,4 @@ export const getLTRCellClass = (content: string | null | undefined): string => {
   return dir === 'ltr' ? 'force-ltr' : '';
 };
 
+

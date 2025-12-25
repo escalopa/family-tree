@@ -1,5 +1,5 @@
 import React from 'react';
-import { Button, ButtonProps, Box } from '@mui/material';
+import { Button, ButtonProps } from '@mui/material';
 import { useIsRTL } from '../utils/rtl';
 
 interface DirectionalButtonProps extends Omit<ButtonProps, 'startIcon' | 'endIcon'> {

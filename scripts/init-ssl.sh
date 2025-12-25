@@ -13,7 +13,9 @@ if [ ! -f .env ]; then
 fi
 
 # Load environment variables
-export $(cat .env | grep -v '^#' | xargs)
+set -a
+source .env
+set +a
 
 # Validate required variables
 if [ -z "$DOMAIN" ] || [ "$DOMAIN" = "your-domain.com" ]; then
@@ -40,14 +42,14 @@ mv nginx/nginx.conf.tmp nginx/nginx.conf
 
 # Start services without SSL first
 echo "Starting services without SSL..."
-docker-compose -f docker-compose.prod.yml up -d postgres redis minio createbuckets migrate backend frontend
+docker compose -f docker-compose.prod.yml --env-file .env up -d postgres redis minio createbuckets migrate backend frontend
 
 # Wait for backend to be healthy
 echo "Waiting for backend to be ready..."
 sleep 10
 
 # Start nginx with initial configuration
-docker-compose -f docker-compose.prod.yml up -d nginx
+docker compose -f docker-compose.prod.yml --env-file .env up -d nginx
 
 # Wait for nginx to start
 echo "Waiting for Nginx to start..."
@@ -55,7 +57,9 @@ sleep 5
 
 # Obtain SSL certificate
 echo "Obtaining SSL certificate from Let's Encrypt..."
-docker-compose -f docker-compose.prod.yml run --rm certbot certonly \
+docker compose -f docker-compose.prod.yml --env-file .env run --rm \
+    --entrypoint certbot \
+    certbot certonly \
     --webroot \
     --webroot-path=/var/www/certbot \
     --email $EMAIL \
@@ -70,11 +74,11 @@ mv nginx/nginx.conf.final nginx/nginx.conf
 
 # Restart nginx with SSL configuration
 echo "Restarting Nginx with SSL configuration..."
-docker-compose -f docker-compose.prod.yml restart nginx
+docker compose -f docker-compose.prod.yml --env-file .env restart nginx
 
 # Start certbot renewal service
 echo "Starting SSL certificate auto-renewal service..."
-docker-compose -f docker-compose.prod.yml up -d certbot
+docker compose -f docker-compose.prod.yml --env-file .env up -d certbot
 
 echo ""
 echo "✅ SSL certificates have been successfully initialized!"

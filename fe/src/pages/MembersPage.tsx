@@ -774,7 +774,7 @@ const MembersPage: React.FC = () => {
                 <Grid item xs={12} sm={6} key={lang.language_code}>
                   <TextField
                     fullWidth
-                    label={`${t('member.name')} (${getLocalizedLanguageName(lang.language_code, t)})`}
+                    label={`${t('member.name')} (${getLocalizedLanguageName(lang.language_code)})`}
                     value={formData.names?.[lang.language_code] || ''}
                     onChange={(e) =>
                       setFormData({
@@ -785,7 +785,7 @@ const MembersPage: React.FC = () => {
                         },
                       })
                     }
-                    helperText={`${t('common.add')} ${t('member.name')} (${getLocalizedLanguageName(lang.language_code, t)})`}
+                    helperText={`${t('common.add')} ${t('member.name')} (${getLocalizedLanguageName(lang.language_code)})`}
                   />
                 </Grid>
               ))}

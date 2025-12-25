@@ -166,7 +166,7 @@ export const getChangeTypeColor = (changeType: string): 'default' | 'primary' | 
   }
 };
 
-export const getLocalizedLanguageName = (languageCode: string, t: (key: string) => string): string => {
+export const getLocalizedLanguageName = (languageCode: string): string => {
   // Return native language names (not translated)
   const lowerCode = languageCode.toLowerCase();
   switch (lowerCode) {

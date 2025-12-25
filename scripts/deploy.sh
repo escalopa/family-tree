@@ -15,7 +15,9 @@ if [ ! -f .env ]; then
 fi
 
 # Load environment variables
-export $(cat .env | grep -v '^#' | xargs)
+set -a
+source .env
+set +a
 
 # Validate required variables
 if [ -z "$DOMAIN" ] || [ "$DOMAIN" = "your-domain.com" ]; then
@@ -59,10 +61,10 @@ fi
 
 # Build and start services
 echo "🏗️  Building Docker images..."
-docker-compose -f docker-compose.prod.yml build --no-cache
+docker compose -f docker-compose.prod.yml --env-file .env build --no-cache
 
 echo "🔄 Starting services..."
-docker-compose -f docker-compose.prod.yml up -d
+docker compose -f docker-compose.prod.yml --env-file .env up -d
 
 # Wait for services to be healthy
 echo "⏳ Waiting for services to be ready..."
@@ -70,12 +72,12 @@ sleep 15
 
 # Check service health
 echo "🔍 Checking service health..."
-docker-compose -f docker-compose.prod.yml ps
+docker compose -f docker-compose.prod.yml --env-file .env ps
 
 # Show logs
 echo ""
 echo "📋 Recent logs:"
-docker-compose -f docker-compose.prod.yml logs --tail=50
+docker compose -f docker-compose.prod.yml --env-file .env logs --tail=50
 
 echo ""
 echo "✅ Deployment completed successfully!"
@@ -84,8 +86,8 @@ echo "Your application is available at:"
 echo "  https://$DOMAIN"
 echo ""
 echo "To view logs, run:"
-echo "  docker-compose -f docker-compose.prod.yml logs -f [service-name]"
+echo "  docker compose -f docker-compose.prod.yml logs -f [service-name]"
 echo ""
 echo "To stop services, run:"
-echo "  docker-compose -f docker-compose.prod.yml down"
+echo "  docker compose -f docker-compose.prod.yml down"
 echo ""
