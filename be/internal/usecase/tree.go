@@ -7,23 +7,31 @@ import (
 	"github.com/escalopa/family-tree/internal/domain"
 )
 
-type treeUseCase struct {
-	memberRepo MemberRepository
-	spouseRepo SpouseRepository
-}
+type (
+	treeUseCaseRepo struct {
+		member MemberRepository
+		spouse SpouseRepository
+	}
+
+	treeUseCase struct {
+		repo treeUseCaseRepo
+	}
+)
 
 func NewTreeUseCase(
 	memberRepo MemberRepository,
 	spouseRepo SpouseRepository,
 ) *treeUseCase {
 	return &treeUseCase{
-		memberRepo: memberRepo,
-		spouseRepo: spouseRepo,
+		repo: treeUseCaseRepo{
+			member: memberRepo,
+			spouse: spouseRepo,
+		},
 	}
 }
 
 func (uc *treeUseCase) Get(ctx context.Context, rootID *int, userRole int) (*domain.MemberTreeNode, error) {
-	members, err := uc.memberRepo.GetAll(ctx)
+	members, err := uc.repo.member.GetAll(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -32,7 +40,7 @@ func (uc *treeUseCase) Get(ctx context.Context, rootID *int, userRole int) (*dom
 		return nil, nil
 	}
 
-	spouseMap, err := uc.spouseRepo.GetAllSpouses(ctx)
+	spouseMap, err := uc.repo.spouse.GetAllSpouses(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -92,12 +100,12 @@ func (uc *treeUseCase) Get(ctx context.Context, rootID *int, userRole int) (*dom
 }
 
 func (uc *treeUseCase) List(ctx context.Context, rootID *int, userRole int) ([]*domain.MemberWithComputed, error) {
-	members, err := uc.memberRepo.GetAll(ctx)
+	members, err := uc.repo.member.GetAll(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	spouseMap, err := uc.spouseRepo.GetAllSpouses(ctx)
+	spouseMap, err := uc.repo.spouse.GetAllSpouses(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -134,7 +142,7 @@ func (uc *treeUseCase) List(ctx context.Context, rootID *int, userRole int) ([]*
 }
 
 func (uc *treeUseCase) GetRelation(ctx context.Context, member1ID, member2ID int, userRole int) (*domain.MemberTreeNode, error) {
-	members, err := uc.memberRepo.GetAll(ctx)
+	members, err := uc.repo.member.GetAll(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -144,7 +152,7 @@ func (uc *treeUseCase) GetRelation(ctx context.Context, member1ID, member2ID int
 	}
 
 	// Get spouse relationships
-	spouseMap, err := uc.spouseRepo.GetAllSpouses(ctx)
+	spouseMap, err := uc.repo.spouse.GetAllSpouses(ctx)
 	if err != nil {
 		return nil, err
 	}

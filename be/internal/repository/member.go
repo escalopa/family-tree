@@ -414,6 +414,53 @@ func (r *MemberRepository) HasChildrenWithParents(ctx context.Context, fatherID,
 	return hasChildren, nil
 }
 
+func (r *MemberRepository) GetChildrenByParents(ctx context.Context, fatherID, motherID int) ([]*domain.Member, error) {
+	query := `
+		SELECT member_id, gender, picture, date_of_birth, date_of_death,
+		       father_id, mother_id, nicknames, profession, version, deleted_at
+		FROM members
+		WHERE deleted_at IS NULL
+		  AND father_id = $1 AND mother_id = $2
+		ORDER BY date_of_birth ASC NULLS LAST, member_id ASC
+	`
+	rows, err := r.db.Query(ctx, query, fatherID, motherID)
+	if err != nil {
+		return nil, domain.NewDatabaseError(err)
+	}
+	defer rows.Close()
+
+	var children []*domain.Member
+	var memberIDs []int
+	for rows.Next() {
+		member := &domain.Member{}
+		err := rows.Scan(
+			&member.MemberID, &member.Gender,
+			&member.Picture, &member.DateOfBirth, &member.DateOfDeath,
+			&member.FatherID, &member.MotherID, &member.Nicknames, &member.Profession,
+			&member.Version, &member.DeletedAt,
+		)
+		if err != nil {
+			return nil, domain.NewDatabaseError(err)
+		}
+		children = append(children, member)
+		memberIDs = append(memberIDs, member.MemberID)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, domain.NewDatabaseError(err)
+	}
+
+	namesMap, err := r.GetMemberNamesByIDs(ctx, memberIDs)
+	if err != nil {
+		return nil, err
+	}
+	for _, member := range children {
+		member.Names = namesMap[member.MemberID]
+	}
+
+	return children, nil
+}
+
 func (r *MemberRepository) GetChildrenByParentID(ctx context.Context, parentID int) ([]*domain.Member, error) {
 	query := `
 		SELECT member_id, gender, picture, date_of_birth, date_of_death,

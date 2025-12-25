@@ -7,23 +7,31 @@ import (
 	"github.com/escalopa/family-tree/internal/pkg/i18n"
 )
 
-type languageUseCase struct {
-	langRepo     LanguageRepository
-	langPrefRepo UserLanguagePreferenceRepository
-}
+type (
+	languageUseCaseRepo struct {
+		lang     LanguageRepository
+		langPref UserLanguagePreferenceRepository
+	}
+
+	languageUseCase struct {
+		repo languageUseCaseRepo
+	}
+)
 
 func NewLanguageUseCase(
 	langRepo LanguageRepository,
 	langPrefRepo UserLanguagePreferenceRepository,
 ) *languageUseCase {
 	return &languageUseCase{
-		langRepo:     langRepo,
-		langPrefRepo: langPrefRepo,
+		repo: languageUseCaseRepo{
+			lang:     langRepo,
+			langPref: langPrefRepo,
+		},
 	}
 }
 
 func (uc *languageUseCase) Get(ctx context.Context, code string) (*domain.Language, error) {
-	return uc.langRepo.GetByCode(ctx, code)
+	return uc.repo.lang.GetByCode(ctx, code)
 }
 
 func (uc *languageUseCase) List(ctx context.Context, activeOnly bool) ([]*domain.Language, error) {
@@ -32,7 +40,7 @@ func (uc *languageUseCase) List(ctx context.Context, activeOnly bool) ([]*domain
 		active := true
 		filter.IsActive = &active
 	}
-	return uc.langRepo.GetAll(ctx, filter)
+	return uc.repo.lang.GetAll(ctx, filter)
 }
 
 func (uc *languageUseCase) ToggleActive(ctx context.Context, code string, isActive bool) error {
@@ -40,7 +48,7 @@ func (uc *languageUseCase) ToggleActive(ctx context.Context, code string, isActi
 		return domain.NewNotFoundError("language")
 	}
 
-	return uc.langRepo.ToggleActive(ctx, code, isActive)
+	return uc.repo.lang.ToggleActive(ctx, code, isActive)
 }
 
 func (uc *languageUseCase) UpdatePreference(ctx context.Context, pref *domain.UserLanguagePreference) error {
@@ -48,7 +56,7 @@ func (uc *languageUseCase) UpdatePreference(ctx context.Context, pref *domain.Us
 		return domain.NewNotFoundError("language")
 	}
 
-	lang, err := uc.langRepo.GetByCode(ctx, pref.PreferredLanguage)
+	lang, err := uc.repo.lang.GetByCode(ctx, pref.PreferredLanguage)
 	if err != nil {
 		return err
 	}
@@ -56,7 +64,7 @@ func (uc *languageUseCase) UpdatePreference(ctx context.Context, pref *domain.Us
 		return domain.NewValidationError("error.language.not_active", nil)
 	}
 
-	if err := uc.langPrefRepo.Upsert(ctx, pref); err != nil {
+	if err := uc.repo.langPref.Upsert(ctx, pref); err != nil {
 		return err
 	}
 
@@ -70,5 +78,5 @@ func (uc *languageUseCase) UpdateDisplayOrder(ctx context.Context, orders map[st
 		}
 	}
 
-	return uc.langRepo.UpdateDisplayOrder(ctx, orders)
+	return uc.repo.lang.UpdateDisplayOrder(ctx, orders)
 }

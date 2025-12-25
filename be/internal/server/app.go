@@ -18,6 +18,7 @@ import (
 	"github.com/escalopa/family-tree/internal/pkg/token"
 	"github.com/escalopa/family-tree/internal/repository"
 	"github.com/escalopa/family-tree/internal/usecase"
+	"github.com/escalopa/family-tree/internal/usecase/validator"
 	"github.com/escalopa/family-tree/internal/worker"
 
 	"github.com/gin-gonic/gin"
@@ -91,10 +92,14 @@ func NewApp(cfg *config.Config) (*App, error) {
 
 	cookieManager := cookie.NewManager(&cfg.Server.Cookie)
 
+	// Create validators
+	marriageValidator := validator.NewMarriageValidator(memberRepo, spouseRepo)
+	birthDateValidator := validator.NewBirthDateValidator(memberRepo, spouseRepo)
+
 	authUseCase := usecase.NewAuthUseCase(userRepo, sessionRepo, oauthStateRepo, oauthManager, tokenMgr)
 	userUseCase := usecase.NewUserUseCase(userRepo, scoreRepo, historyRepo)
-	memberUseCase := usecase.NewMemberUseCase(memberRepo, spouseRepo, historyRepo, scoreRepo, s3Client)
-	spouseUseCase := usecase.NewSpouseUseCase(spouseRepo, memberRepo, historyRepo, scoreRepo)
+	memberUseCase := usecase.NewMemberUseCase(memberRepo, spouseRepo, historyRepo, scoreRepo, s3Client, marriageValidator, birthDateValidator)
+	spouseUseCase := usecase.NewSpouseUseCase(spouseRepo, memberRepo, historyRepo, scoreRepo, marriageValidator)
 	treeUseCase := usecase.NewTreeUseCase(memberRepo, spouseRepo)
 	languageUseCase := usecase.NewLanguageUseCase(langRepo, langPrefRepo)
 

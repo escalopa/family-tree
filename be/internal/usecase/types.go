@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"time"
 
 	"github.com/escalopa/family-tree/internal/domain"
 )
@@ -36,6 +37,7 @@ type MemberRepository interface {
 	List(ctx context.Context, filter domain.MemberFilter, cursor *string, limit int) ([]*domain.Member, *string, error)
 	GetAll(ctx context.Context) ([]*domain.Member, error)
 	GetChildrenByParentID(ctx context.Context, parentID int) ([]*domain.Member, error)
+	GetChildrenByParents(ctx context.Context, fatherID, motherID int) ([]*domain.Member, error)
 	GetSiblingsByMemberID(ctx context.Context, memberID int) ([]*domain.Member, error)
 	HasChildrenWithParents(ctx context.Context, fatherID, motherID int) (bool, error)
 }
@@ -106,4 +108,13 @@ type LanguageRepository interface {
 
 type UserLanguagePreferenceRepository interface {
 	Upsert(ctx context.Context, pref *domain.UserLanguagePreference) error
+}
+
+type MarriageValidator interface {
+	Create(ctx context.Context, memberAID, memberBID int) error
+}
+
+type BirthDateValidator interface {
+	Update(ctx context.Context, memberID int, newBirthDate *time.Time) error
+	Create(ctx context.Context, childBirth *time.Time, fatherID, motherID *int) error
 }

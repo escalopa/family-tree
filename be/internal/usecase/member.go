@@ -3,7 +3,6 @@ package usecase
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log/slog"
 	"mime"
@@ -14,13 +13,25 @@ import (
 	"github.com/escalopa/family-tree/internal/domain"
 )
 
-type memberUseCase struct {
-	memberRepo  MemberRepository
-	spouseRepo  SpouseRepository
-	historyRepo HistoryRepository
-	scoreRepo   ScoreRepository
-	s3Client    S3Client
-}
+type (
+	memberUseCaseValidator struct {
+		marriage  MarriageValidator
+		birthDate BirthDateValidator
+	}
+
+	memberUseCaseRepo struct {
+		member  MemberRepository
+		spouse  SpouseRepository
+		history HistoryRepository
+		score   ScoreRepository
+	}
+
+	memberUseCase struct {
+		repo      memberUseCaseRepo
+		validator memberUseCaseValidator
+		s3Client  S3Client
+	}
+)
 
 func NewMemberUseCase(
 	memberRepo MemberRepository,
@@ -28,13 +39,13 @@ func NewMemberUseCase(
 	historyRepo HistoryRepository,
 	scoreRepo ScoreRepository,
 	s3Client S3Client,
+	marriageValidator MarriageValidator,
+	birthDateValidator BirthDateValidator,
 ) *memberUseCase {
 	return &memberUseCase{
-		memberRepo:  memberRepo,
-		spouseRepo:  spouseRepo,
-		historyRepo: historyRepo,
-		scoreRepo:   scoreRepo,
-		s3Client:    s3Client,
+		repo:      memberUseCaseRepo{memberRepo, spouseRepo, historyRepo, scoreRepo},
+		validator: memberUseCaseValidator{marriageValidator, birthDateValidator},
+		s3Client:  s3Client,
 	}
 }
 
@@ -47,7 +58,12 @@ func (uc *memberUseCase) Create(ctx context.Context, member *domain.Member, user
 		return err
 	}
 
-	if err := uc.memberRepo.Create(ctx, member); err != nil {
+	// Validate birth date against family relationships
+	if err := uc.validator.birthDate.Create(ctx, member.DateOfBirth, member.FatherID, member.MotherID); err != nil {
+		return err
+	}
+
+	if err := uc.repo.member.Create(ctx, member); err != nil {
 		return err
 	}
 
@@ -64,7 +80,7 @@ func (uc *memberUseCase) Create(ctx context.Context, member *domain.Member, user
 		NewValues:     newValuesJSON,
 		MemberVersion: member.Version,
 	}
-	if err := uc.historyRepo.Create(ctx, history); err != nil {
+	if err := uc.repo.history.Create(ctx, history); err != nil {
 		return err
 	}
 
@@ -76,7 +92,7 @@ func (uc *memberUseCase) Create(ctx context.Context, member *domain.Member, user
 }
 
 func (uc *memberUseCase) Update(ctx context.Context, member *domain.Member, expectedVersion, userID int) error {
-	oldMember, err := uc.memberRepo.Get(ctx, member.MemberID)
+	oldMember, err := uc.repo.member.Get(ctx, member.MemberID)
 	if err != nil {
 		return err
 	}
@@ -86,7 +102,7 @@ func (uc *memberUseCase) Update(ctx context.Context, member *domain.Member, expe
 	}
 
 	if oldMember.Gender != member.Gender {
-		spouses, err := uc.spouseRepo.GetByMemberID(ctx, member.MemberID)
+		spouses, err := uc.repo.spouse.GetByMemberID(ctx, member.MemberID)
 		if err != nil {
 			return err
 		}
@@ -99,7 +115,16 @@ func (uc *memberUseCase) Update(ctx context.Context, member *domain.Member, expe
 		return err
 	}
 
-	if err := uc.memberRepo.Update(ctx, member, expectedVersion); err != nil {
+	// Validate birth date against family relationships
+	if err := uc.validator.birthDate.Update(ctx, member.MemberID, member.DateOfBirth); err != nil {
+		return err
+	}
+
+	if err := uc.validator.birthDate.Create(ctx, member.DateOfBirth, member.FatherID, member.MotherID); err != nil {
+		return err
+	}
+
+	if err := uc.repo.member.Update(ctx, member, expectedVersion); err != nil {
 		return err
 	}
 
@@ -117,7 +142,7 @@ func (uc *memberUseCase) Update(ctx context.Context, member *domain.Member, expe
 		NewValues:     newValuesJSON,
 		MemberVersion: member.Version,
 	}
-	if err := uc.historyRepo.Create(ctx, history); err != nil {
+	if err := uc.repo.history.Create(ctx, history); err != nil {
 		return err
 	}
 
@@ -129,12 +154,12 @@ func (uc *memberUseCase) Update(ctx context.Context, member *domain.Member, expe
 }
 
 func (uc *memberUseCase) Delete(ctx context.Context, memberID, userID int) error {
-	oldMember, err := uc.memberRepo.Get(ctx, memberID)
+	oldMember, err := uc.repo.member.Get(ctx, memberID)
 	if err != nil {
 		return err
 	}
 
-	children, err := uc.memberRepo.GetChildrenByParentID(ctx, memberID)
+	children, err := uc.repo.member.GetChildrenByParentID(ctx, memberID)
 	if err != nil {
 		return err
 	}
@@ -151,11 +176,11 @@ func (uc *memberUseCase) Delete(ctx context.Context, memberID, userID int) error
 		NewValues:     nil,
 		MemberVersion: oldMember.Version + 1,
 	}
-	if err := uc.historyRepo.Create(ctx, history); err != nil {
+	if err := uc.repo.history.Create(ctx, history); err != nil {
 		slog.Error("record delete history", "error", err, "member_id", memberID)
 	}
 
-	pictureURL, err := uc.memberRepo.Delete(ctx, memberID)
+	pictureURL, err := uc.repo.member.Delete(ctx, memberID)
 	if err != nil {
 		return err
 	}
@@ -170,27 +195,27 @@ func (uc *memberUseCase) Delete(ctx context.Context, memberID, userID int) error
 }
 
 func (uc *memberUseCase) Get(ctx context.Context, memberID int) (*domain.Member, error) {
-	return uc.memberRepo.Get(ctx, memberID)
+	return uc.repo.member.Get(ctx, memberID)
 }
 
 func (uc *memberUseCase) ListChildren(ctx context.Context, parentID int) ([]*domain.Member, error) {
-	return uc.memberRepo.GetChildrenByParentID(ctx, parentID)
+	return uc.repo.member.GetChildrenByParentID(ctx, parentID)
 }
 
 func (uc *memberUseCase) ListSiblings(ctx context.Context, memberID int) ([]*domain.Member, error) {
-	return uc.memberRepo.GetSiblingsByMemberID(ctx, memberID)
+	return uc.repo.member.GetSiblingsByMemberID(ctx, memberID)
 }
 
 func (uc *memberUseCase) List(ctx context.Context, filter domain.MemberFilter, cursor *string, limit int) ([]*domain.Member, *string, error) {
-	return uc.memberRepo.List(ctx, filter, cursor, limit)
+	return uc.repo.member.List(ctx, filter, cursor, limit)
 }
 
 func (uc *memberUseCase) ListHistory(ctx context.Context, memberID int, cursor *string, limit int) ([]*domain.HistoryWithUser, *string, error) {
-	return uc.historyRepo.GetByMemberID(ctx, memberID, cursor, limit)
+	return uc.repo.history.GetByMemberID(ctx, memberID, cursor, limit)
 }
 
 func (uc *memberUseCase) UploadPicture(ctx context.Context, memberID int, data []byte, filename string, userID int) (string, error) {
-	oldMember, err := uc.memberRepo.Get(ctx, memberID)
+	oldMember, err := uc.repo.member.Get(ctx, memberID)
 	if err != nil {
 		return "", err
 	}
@@ -200,7 +225,7 @@ func (uc *memberUseCase) UploadPicture(ctx context.Context, memberID int, data [
 		return "", err
 	}
 
-	if err := uc.memberRepo.UpdatePicture(ctx, memberID, newPictureURL); err != nil {
+	if err := uc.repo.member.UpdatePicture(ctx, memberID, newPictureURL); err != nil {
 		if deleteErr := uc.s3Client.DeleteImage(ctx, newPictureURL); deleteErr != nil {
 			slog.Error("rollback S3 upload after DB error",
 				"error", deleteErr,
@@ -220,7 +245,7 @@ func (uc *memberUseCase) UploadPicture(ctx context.Context, memberID int, data [
 		}
 	}
 
-	updatedMember, err := uc.memberRepo.Get(ctx, memberID)
+	updatedMember, err := uc.repo.member.Get(ctx, memberID)
 	if err != nil {
 		return "", err
 	}
@@ -235,7 +260,7 @@ func (uc *memberUseCase) UploadPicture(ctx context.Context, memberID int, data [
 		NewValues:     newValuesJSON,
 		MemberVersion: updatedMember.Version,
 	}
-	if err := uc.historyRepo.Create(ctx, history); err != nil {
+	if err := uc.repo.history.Create(ctx, history); err != nil {
 		slog.Error("create history for picture upload", "error", err, "member_id", memberID)
 	}
 
@@ -249,21 +274,21 @@ func (uc *memberUseCase) UploadPicture(ctx context.Context, memberID int, data [
 				MemberVersion: oldMember.Version + 1,
 			},
 		}
-		_ = uc.scoreRepo.Create(ctx, scores...)
+		_ = uc.repo.score.Create(ctx, scores...)
 	}
 
 	return newPictureURL, nil
 }
 
 func (uc *memberUseCase) DeletePicture(ctx context.Context, memberID int, userID int) error {
-	member, err := uc.memberRepo.Get(ctx, memberID)
+	member, err := uc.repo.member.Get(ctx, memberID)
 	if err != nil {
 		return err
 	}
 
 	oldPictureURL := member.Picture
 
-	if err := uc.memberRepo.DeletePicture(ctx, memberID); err != nil {
+	if err := uc.repo.member.DeletePicture(ctx, memberID); err != nil {
 		return err
 	}
 
@@ -276,7 +301,7 @@ func (uc *memberUseCase) DeletePicture(ctx context.Context, memberID int, userID
 		}
 	}
 
-	updatedMember, err := uc.memberRepo.Get(ctx, memberID)
+	updatedMember, err := uc.repo.member.Get(ctx, memberID)
 	if err != nil {
 		return err
 	}
@@ -291,7 +316,7 @@ func (uc *memberUseCase) DeletePicture(ctx context.Context, memberID int, userID
 		NewValues:     newValuesJSON,
 		MemberVersion: updatedMember.Version,
 	}
-	if err := uc.historyRepo.Create(ctx, history); err != nil {
+	if err := uc.repo.history.Create(ctx, history); err != nil {
 		slog.Error("create history for picture deletion", "error", err, "member_id", memberID)
 	}
 
@@ -299,7 +324,7 @@ func (uc *memberUseCase) DeletePicture(ctx context.Context, memberID int, userID
 }
 
 func (uc *memberUseCase) GetPicture(ctx context.Context, memberID int) ([]byte, string, error) {
-	member, err := uc.memberRepo.Get(ctx, memberID)
+	member, err := uc.repo.member.Get(ctx, memberID)
 	if err != nil {
 		return nil, "", err
 	}
@@ -319,7 +344,7 @@ func (uc *memberUseCase) GetPicture(ctx context.Context, memberID int) ([]byte, 
 	return imageData, contentType, nil
 }
 
-// validateParentRelationships checks for circular relationships in the family tree
+// validateParentRelationships checks for circular relationships and parent age validation in the family tree
 func (uc *memberUseCase) validateParentRelationships(ctx context.Context, memberID int, fatherID, motherID *int) error {
 	if fatherID != nil && *fatherID == memberID {
 		slog.Warn("memberUseCase.validateParentRelationships: member cannot be their own father", "member_id", memberID, "father_id", *fatherID)
@@ -351,16 +376,22 @@ func (uc *memberUseCase) ensureParentSpouseRelationship(ctx context.Context, fat
 		return nil
 	}
 
-	_, err := uc.spouseRepo.GetByParents(ctx, *fatherID, *motherID)
+	// Check if spouse relationship already exists
+	_, err := uc.repo.spouse.GetByParents(ctx, *fatherID, *motherID)
 	if err == nil {
-		return nil
+		return nil // Relationship already exists
 	}
 
-	var domainErr *domain.DomainError
-	if !errors.As(err, &domainErr) || domainErr.Code != domain.ErrCodeNotFound {
+	if !domain.IsDomainError(err, domain.ErrCodeNotFound) {
 		return err
 	}
 
+	// Validate Islamic marriage prohibitions
+	if err := uc.validator.marriage.Create(ctx, *fatherID, *motherID); err != nil {
+		return err
+	}
+
+	// Create the spouse relationship
 	spouse := &domain.Spouse{
 		FatherID:     *fatherID,
 		MotherID:     *motherID,
@@ -368,7 +399,7 @@ func (uc *memberUseCase) ensureParentSpouseRelationship(ctx context.Context, fat
 		DivorceDate:  nil,
 	}
 
-	if err := uc.spouseRepo.Create(ctx, spouse); err != nil {
+	if err := uc.repo.spouse.Create(ctx, spouse); err != nil {
 		return err
 	}
 
@@ -386,14 +417,14 @@ func (uc *memberUseCase) recordSpouseHistory(
 	userID int,
 ) {
 	fatherVersion := 0
-	if father, err := uc.memberRepo.Get(ctx, fatherID); err != nil {
+	if father, err := uc.repo.member.Get(ctx, fatherID); err != nil {
 		slog.Error("get father for history", "error", err, "father_id", fatherID)
 	} else {
 		fatherVersion = father.Version
 	}
 
 	motherVersion := 0
-	if mother, err := uc.memberRepo.Get(ctx, motherID); err != nil {
+	if mother, err := uc.repo.member.Get(ctx, motherID); err != nil {
 		slog.Error("get mother for history", "error", err, "mother_id", motherID)
 	} else {
 		motherVersion = mother.Version
@@ -418,13 +449,13 @@ func (uc *memberUseCase) recordSpouseHistory(
 		},
 	}
 
-	if err := uc.historyRepo.CreateBatch(ctx, histories...); err != nil {
+	if err := uc.repo.history.CreateBatch(ctx, histories...); err != nil {
 		slog.Error("create batch history for spouse", "error", err, "father_id", fatherID, "mother_id", motherID, "change_type", changeType)
 	}
 }
 
 func (uc *memberUseCase) checkCircularRelationship(ctx context.Context, memberID, parentID int) error {
-	parent, err := uc.memberRepo.Get(ctx, parentID)
+	parent, err := uc.repo.member.Get(ctx, parentID)
 	if err != nil {
 		return err
 	}
@@ -452,7 +483,7 @@ func (uc *memberUseCase) checkAncestors(ctx context.Context, currentID, targetID
 	}
 	visited[currentID] = true
 
-	current, err := uc.memberRepo.Get(ctx, currentID)
+	current, err := uc.repo.member.Get(ctx, currentID)
 	if err != nil {
 		return nil // If member not found, skip
 	}
@@ -516,7 +547,7 @@ func (uc *memberUseCase) calculateAndRecordScores(ctx context.Context, member *d
 		scores = append(scores, domain.Score{UserID: userID, MemberID: member.MemberID, FieldName: "profession", Points: domain.PointsProfession, MemberVersion: member.Version})
 	}
 
-	return uc.scoreRepo.Create(ctx, scores...)
+	return uc.repo.score.Create(ctx, scores...)
 
 }
 
@@ -564,7 +595,7 @@ func (uc *memberUseCase) updateScores(ctx context.Context, oldMember, newMember 
 		scores = append(scores, domain.Score{UserID: userID, MemberID: newMember.MemberID, FieldName: "profession", Points: domain.PointsProfession, MemberVersion: newMember.Version})
 	}
 
-	return uc.scoreRepo.Create(ctx, scores...)
+	return uc.repo.score.Create(ctx, scores...)
 }
 
 func (uc *memberUseCase) Compute(ctx context.Context, member *domain.Member, userRole int) *domain.MemberWithComputed {
@@ -583,7 +614,7 @@ func (uc *memberUseCase) Compute(ctx context.Context, member *domain.Member, use
 		computed.Age = &age
 	}
 
-	spouses, _ := uc.spouseRepo.GetByMemberID(ctx, member.MemberID)
+	spouses, _ := uc.repo.spouse.GetByMemberID(ctx, member.MemberID)
 	computed.IsMarried = len(spouses) > 0
 	computed.Spouses = spouses
 
@@ -618,11 +649,11 @@ func (uc *memberUseCase) buildFullNamesForAllLanguages(ctx context.Context, memb
 
 	if member.FatherID != nil {
 		currentFatherID := member.FatherID
-		maxDepth := 10 // Prevent infinite loops
+		maxDepth := 100 // Prevent infinite loops
 		depth := 0
 
 		for currentFatherID != nil && depth < maxDepth {
-			father, err := uc.memberRepo.Get(ctx, *currentFatherID)
+			father, err := uc.repo.member.Get(ctx, *currentFatherID)
 			if err != nil {
 				break
 			}

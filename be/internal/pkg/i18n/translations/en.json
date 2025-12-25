@@ -26,12 +26,25 @@
       "circular_relationship": "Circular parent-child relationship detected",
       "has_children": "Cannot delete member: this member has children",
       "depth_limit": "Family tree depth limit exceeded",
-      "no_relation": "No relation found between members"
+      "no_relation": "No relation found between members",
+      "parent_born_after_child": "Parent's birth date must be before child's birth date",
+      "birth_after_marriage": "Member's birth date must be before their marriage dates",
+      "birth_before_parents_marriage": "Child's birth date must be after parents' marriage date"
     },
     "spouse": {
       "not_found": "Spouse not found",
+      "already_exists": "Spouse relationship already exists between these members",
       "has_children": "Cannot delete spouse relationship: there are children with both parents",
-      "invalid_marriage_date": "Divorce date must be after marriage date"
+      "invalid_marriage_date": "Divorce date must be after marriage date",
+      "marriage_before_father_birth": "Marriage date must be after father's birth date",
+      "marriage_before_mother_birth": "Marriage date must be after mother's birth date",
+      "marriage_after_child_birth": "Marriage date must be before all children's birth dates",
+      "ancestor_descendant": "Marriage prohibited: one person is ancestor or descendant of the other",
+      "siblings": "Marriage prohibited: siblings cannot marry each other",
+      "aunt_niece": "Marriage prohibited: aunt/uncle cannot marry niece/nephew",
+      "in_law": "Marriage prohibited: in-law relationship (spouse's parent or child)",
+      "step_relation": "Marriage prohibited: stepparent or child-in-law relationship",
+      "already_married": "Marriage prohibited: person is already married"
     },
     "user": {
       "not_found": "User not found",

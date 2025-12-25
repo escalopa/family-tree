@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -187,4 +188,12 @@ func NewRateLimitError() *DomainError {
 		Code:           ErrCodeTooManyRequests,
 		TranslationKey: "error.rate_limit_exceeded",
 	}
+}
+
+func IsDomainError(err error, code ErrorCode) bool {
+	var domainErr *DomainError
+	if errors.As(err, &domainErr) {
+		return domainErr.Code == code
+	}
+	return false
 }
