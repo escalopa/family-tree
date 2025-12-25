@@ -1,4 +1,6 @@
-import axios, { AxiosInstance, InternalAxiosRequestConfig } from 'axios';
+import axios, { AxiosInstance, InternalAxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
+import { enqueueSnackbar } from 'notistack';
+import i18n from '../i18n';
 
 class ApiClient {
   private client: AxiosInstance;
@@ -30,18 +32,39 @@ class ApiClient {
     // The backend auth middleware automatically handles token refresh
     // If we get a 401, it means both access and refresh tokens are expired/invalid
     this.client.interceptors.response.use(
-      (response) => response,
-      (error) => {
+      (response: AxiosResponse) => {
+        // Show success notification for POST, PUT, PATCH, DELETE requests
+        const method = response.config.method?.toUpperCase();
+        if (method && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
+          const message = response.data?.message || i18n.t('notification.operationSuccessful');
+          enqueueSnackbar(message, {
+            variant: 'success',
+            persist: false,
+          });
+        }
+        return response;
+      },
+      (error: AxiosError<any>) => {
+        // Handle 401 - Unauthorized
         if (error.response?.status === 401) {
           const currentPath = window.location.pathname;
           const publicPaths = ['/login', '/auth', '/inactive', '/unauthorized'];
           const isPublicPage = publicPaths.some(path => currentPath.startsWith(path));
 
           if (!isPublicPage) {
-            // Clear user data and redirect to login
+            // Clear user data and redirect to login (no notification for auth errors)
             localStorage.removeItem('user');
             window.location.href = '/login';
           }
+        } else if (error.response?.status !== 404) {
+          // Show error notification for all other errors except 404
+          const errorMessage = error.response?.data?.message ||
+                              error.response?.data?.error ||
+                              'An error occurred. Please try again.';
+          enqueueSnackbar(errorMessage, {
+            variant: 'error',
+            persist: false,
+          });
         }
         return Promise.reject(error);
       }

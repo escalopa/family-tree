@@ -1,17 +1,34 @@
 import { Roles } from '../types';
 
-export const getRoleName = (roleId: number): string => {
+export const getRoleName = (roleId: number, t?: (key: string) => string): string => {
+  if (!t) {
+    // Fallback to English if no translation function provided
+    switch (roleId) {
+      case Roles.NONE:
+        return 'None';
+      case Roles.GUEST:
+        return 'Guest';
+      case Roles.ADMIN:
+        return 'Admin';
+      case Roles.SUPER_ADMIN:
+        return 'Super Admin';
+      default:
+        return 'Unknown';
+    }
+  }
+
+  // Use translations
   switch (roleId) {
     case Roles.NONE:
-      return 'None';
+      return t('roles.none');
     case Roles.GUEST:
-      return 'Guest';
+      return t('roles.guest');
     case Roles.ADMIN:
-      return 'Admin';
+      return t('roles.admin');
     case Roles.SUPER_ADMIN:
-      return 'Super Admin';
+      return t('roles.superAdmin');
     default:
-      return 'Unknown';
+      return t('roles.unknown');
   }
 };
 
@@ -45,7 +62,7 @@ export const formatDateTime = (dateTimeString: string | null): string => {
   })}`;
 };
 
-export const formatRelativeTime = (dateTimeString: string | null): string => {
+export const formatRelativeTime = (dateTimeString: string | null, t?: (key: string, options?: any) => string): string => {
   if (!dateTimeString) return '-';
 
   const date = new Date(dateTimeString);
@@ -56,6 +73,8 @@ export const formatRelativeTime = (dateTimeString: string | null): string => {
   const diffHours = Math.floor(diffMinutes / 60);
   const diffDays = Math.floor(diffHours / 24);
 
+  if (!t) {
+    // Fallback to English if no translation function
   if (diffSeconds < 60) {
     return 'just now';
   } else if (diffMinutes < 60) {
@@ -64,6 +83,20 @@ export const formatRelativeTime = (dateTimeString: string | null): string => {
     return `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`;
   } else if (diffDays < 7) {
     return `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`;
+    } else {
+      return formatDateTime(dateTimeString);
+    }
+  }
+
+  // Use translations
+  if (diffSeconds < 60) {
+    return t('common.justNow');
+  } else if (diffMinutes < 60) {
+    return t(diffMinutes === 1 ? 'common.minuteAgo' : 'common.minutesAgo', { count: diffMinutes });
+  } else if (diffHours < 24) {
+    return t(diffHours === 1 ? 'common.hourAgo' : 'common.hoursAgo', { count: diffHours });
+  } else if (diffDays < 7) {
+    return t(diffDays === 1 ? 'common.dayAgo' : 'common.daysAgo', { count: diffDays });
   } else {
     return formatDateTime(dateTimeString);
   }
@@ -102,7 +135,7 @@ export const debounce = <T extends (...args: any[]) => any>(
   func: T,
   wait: number
 ): ((...args: Parameters<T>) => void) => {
-  let timeout: NodeJS.Timeout | null = null;
+  let timeout: ReturnType<typeof setTimeout> | null = null;
 
   return (...args: Parameters<T>) => {
     if (timeout) clearTimeout(timeout);
@@ -130,5 +163,19 @@ export const getChangeTypeColor = (changeType: string): 'default' | 'primary' | 
       return 'warning';
     default:
       return 'default';
+  }
+};
+
+export const getLocalizedLanguageName = (languageCode: string, t: (key: string) => string): string => {
+  const lowerCode = languageCode.toLowerCase();
+  switch (lowerCode) {
+    case 'en':
+      return t('language.english');
+    case 'ar':
+      return t('language.arabic');
+    case 'ru':
+      return t('language.russian');
+    default:
+      return languageCode.toUpperCase();
   }
 };

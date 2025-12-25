@@ -28,6 +28,7 @@ import {
   ResponsiveContainer,
   Legend,
 } from 'recharts';
+import { useTranslation } from 'react-i18next';
 import { usersApi } from '../api';
 import { User, ScoreHistory, HistoryRecord } from '../types';
 import { getRoleName, formatDateTime, formatRelativeTime, getChangeTypeColor } from '../utils/helpers';
@@ -37,6 +38,7 @@ import { Roles } from '../types';
 import HistoryDiffDialog from '../components/HistoryDiffDialog';
 
 const UserProfilePage: React.FC = () => {
+  const { t } = useTranslation();
   const { userId } = useParams<{ userId: string }>();
   const { hasRole } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -232,18 +234,18 @@ const UserProfilePage: React.FC = () => {
               </Typography>
               <Box sx={{ mt: 2, display: 'flex', gap: 1, justifyContent: 'center' }}>
                 <Chip
-                  label={getRoleName(user.role_id)}
+                  label={getRoleName(user.role_id, t)}
                   color={user.role_id >= Roles.ADMIN ? 'primary' : 'default'}
                 />
                 <Chip
-                  label={user.is_active ? 'Active' : 'Inactive'}
+                  label={user.is_active ? t('user.active') : t('user.inactive')}
                   color={user.is_active ? 'success' : 'default'}
                 />
               </Box>
             </Grid>
             <Grid item xs={12} md={8}>
               <Typography variant="h6" gutterBottom>
-                Statistics
+                {t('userProfile.statistics')}
               </Typography>
               <Grid container spacing={2}>
                 <Grid item xs={6}>
@@ -252,7 +254,7 @@ const UserProfilePage: React.FC = () => {
                       {user.total_score || 0}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
-                      Total Score
+                      {t('user.totalScore')}
                     </Typography>
                   </Paper>
                 </Grid>
@@ -262,7 +264,7 @@ const UserProfilePage: React.FC = () => {
                       {scoreHistory.length}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
-                      Contributions
+                      {t('userProfile.contributions')}
                     </Typography>
                   </Paper>
                 </Grid>
@@ -286,8 +288,8 @@ const UserProfilePage: React.FC = () => {
               setSearchParams(params, { replace: true });
             }}
           >
-            <Tab label="Score History" />
-            {hasRole(Roles.SUPER_ADMIN) && <Tab label="Recent Changes" />}
+            <Tab label={t('userProfile.scoreHistory')} />
+            {hasRole(Roles.SUPER_ADMIN) && <Tab label={t('userProfile.recentChanges')} />}
           </Tabs>
 
           {/* Score History Tab */}
@@ -295,7 +297,7 @@ const UserProfilePage: React.FC = () => {
             <Box sx={{ p: 2 }}>
               {loadingScoreHistory ? (
                 <Box sx={{ textAlign: 'center', py: 4 }}>
-                  <Typography>Loading score history...</Typography>
+                  <Typography>{t('userProfile.loadingScoreHistory')}</Typography>
                 </Box>
               ) : (
                 <>
@@ -303,25 +305,25 @@ const UserProfilePage: React.FC = () => {
               {chartData.length > 0 && (
                 <Box sx={{ mb: 4 }}>
                   <Typography variant="h6" gutterBottom>
-                    Score Progress Over Time
+                    {t('userProfile.scoreProgressOverTime')}
                   </Typography>
                   <Box sx={{ mb: 2, display: 'flex', gap: 2, alignItems: 'center' }}>
                     <Typography variant="body2" color="text.secondary">
-                      Total Events: {chartData.length}
+                      {t('userProfile.totalEvents')}: {chartData.length}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
-                      Final Cumulative Score: {chartData[chartData.length - 1]?.cumulative || 0}
+                      {t('userProfile.finalCumulativeScore')}: {chartData[chartData.length - 1]?.cumulative || 0}
                     </Typography>
                   </Box>
-                  <ResponsiveContainer width="100%" height={350}>
-                    <LineChart data={chartData}>
+                  <ResponsiveContainer width="100%" height={420}>
+                    <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 70 }}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis
                         dataKey="index"
                         tick={{ fontSize: 12 }}
                         angle={-45}
                         textAnchor="end"
-                        height={80}
+                        height={90}
                         tickFormatter={(index) => {
                           // Show date for every 5th point or if it's the first/last
                           const item = chartData[index];
@@ -330,10 +332,10 @@ const UserProfilePage: React.FC = () => {
                           }
                           return '';
                         }}
-                        label={{ value: 'Timeline', position: 'insideBottom', offset: -5 }}
+                        label={{ value: t('userProfile.timeline'), position: 'insideBottom', offset: -25 }}
                       />
                       <YAxis
-                        label={{ value: 'Points', angle: -90, position: 'insideLeft' }}
+                        label={{ value: t('userProfile.points'), angle: -90, position: 'insideLeft' }}
                         tick={{ fontSize: 12 }}
                       />
                       <Tooltip
@@ -353,10 +355,10 @@ const UserProfilePage: React.FC = () => {
                                   {data.dateTime}
                                 </Typography>
                                 <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                                  Member: {data.memberName}
+                                  {t('userProfile.member')}: {data.memberName}
                                 </Typography>
                                 <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                                  Field: {data.fieldName}
+                                  {t('userProfile.field')}: {data.fieldName}
                                 </Typography>
                                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -369,7 +371,7 @@ const UserProfilePage: React.FC = () => {
                                       }}
                                     />
                                     <Typography variant="body2">
-                                      Points Earned: <strong>+{data.points}</strong>
+                                      {t('userProfile.pointsEarned')}: <strong>+{data.points}</strong>
                                     </Typography>
                                   </Box>
                                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -382,12 +384,12 @@ const UserProfilePage: React.FC = () => {
                                       }}
                                     />
                                     <Typography variant="body2">
-                                      Cumulative Score: <strong>{data.cumulative}</strong>
+                                      {t('userProfile.cumulativeScore')}: <strong>{data.cumulative}</strong>
                                     </Typography>
                                   </Box>
                                 </Box>
                                 <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                                  Event #{data.index + 1} of {chartData.length}
+                                  {t('userProfile.event')} #{data.index + 1} {t('userProfile.of')} {chartData.length}
                                 </Typography>
                               </Paper>
                             );
@@ -401,7 +403,7 @@ const UserProfilePage: React.FC = () => {
                         dataKey="cumulative"
                         stroke="#1976d2"
                         strokeWidth={2}
-                        name="Cumulative Score"
+                        name={t('userProfile.cumulativeScore')}
                         dot={{ r: 4 }}
                         activeDot={{ r: 6 }}
                         connectNulls
@@ -411,7 +413,7 @@ const UserProfilePage: React.FC = () => {
                         dataKey="points"
                         stroke="#82ca9d"
                         strokeWidth={2}
-                        name="Points Earned"
+                        name={t('userProfile.pointsEarned')}
                         dot={{ r: 3 }}
                         activeDot={{ r: 5 }}
                         connectNulls
@@ -423,16 +425,16 @@ const UserProfilePage: React.FC = () => {
 
               {/* Score History Table */}
               <Typography variant="h6" gutterBottom sx={{ mt: 3 }}>
-                Detailed Score History
+                {t('userProfile.detailedScoreHistory')}
               </Typography>
               <TableContainer>
                 <Table>
                   <TableHead>
                     <TableRow>
-                      <TableCell>Member</TableCell>
-                      <TableCell>Field</TableCell>
-                      <TableCell>Points</TableCell>
-                      <TableCell>Date</TableCell>
+                      <TableCell>{t('userProfile.member')}</TableCell>
+                      <TableCell>{t('userProfile.field')}</TableCell>
+                      <TableCell>{t('userProfile.points')}</TableCell>
+                      <TableCell>{t('userProfile.date')}</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -440,7 +442,7 @@ const UserProfilePage: React.FC = () => {
                       <TableRow>
                         <TableCell colSpan={4} align="center" sx={{ py: 4 }}>
                           <Typography variant="body2" color="text.secondary">
-                            No score history available
+                            {t('userProfile.noScoreHistory')}
                           </Typography>
                         </TableCell>
                       </TableRow>
@@ -458,7 +460,7 @@ const UserProfilePage: React.FC = () => {
                             <Box>
                               <Typography variant="body2">{formatDateTime(score.created_at)}</Typography>
                               <Typography variant="caption" color="text.secondary">
-                                {formatRelativeTime(score.created_at)}
+                                {formatRelativeTime(score.created_at, t)}
                               </Typography>
                             </Box>
                           </TableCell>
@@ -474,7 +476,7 @@ const UserProfilePage: React.FC = () => {
                     variant="outlined"
                     onClick={() => setDisplayedScoreCount(prev => prev + 10)}
                   >
-                    Load More ({scoreHistory.length - displayedScoreCount} remaining)
+                    {t('userProfile.loadMore')} ({scoreHistory.length - displayedScoreCount} {t('userProfile.remaining')})
                   </Button>
                 </Box>
               )}
@@ -488,12 +490,12 @@ const UserProfilePage: React.FC = () => {
             <Box sx={{ p: 2 }}>
               {loadingUserChanges ? (
                 <Box sx={{ textAlign: 'center', py: 4 }}>
-                  <Typography>Loading user changes...</Typography>
+                  <Typography>{t('userProfile.loadingUserChanges')}</Typography>
                 </Box>
               ) : userChanges.length === 0 ? (
                 <Box sx={{ textAlign: 'center', py: 4 }}>
                   <Typography variant="body2" color="text.secondary">
-                    No recent changes available
+                    {t('userProfile.noRecentChanges')}
                   </Typography>
                 </Box>
               ) : (
@@ -502,10 +504,10 @@ const UserProfilePage: React.FC = () => {
                     <Table>
                       <TableHead>
                         <TableRow>
-                          <TableCell>Change Type</TableCell>
-                          <TableCell>Member</TableCell>
-                          <TableCell>Date</TableCell>
-                          <TableCell>Version</TableCell>
+                          <TableCell>{t('userProfile.changeType')}</TableCell>
+                          <TableCell>{t('userProfile.member')}</TableCell>
+                          <TableCell>{t('userProfile.date')}</TableCell>
+                          <TableCell>{t('history.version')}</TableCell>
                         </TableRow>
                       </TableHead>
                       <TableBody>
@@ -526,7 +528,7 @@ const UserProfilePage: React.FC = () => {
                             <TableCell>
                               {change.member_name || (
                                 <Typography variant="body2" color="text.secondary">
-                                  ID: {change.member_id} (deleted)
+                                  ID: {change.member_id} ({t('userProfile.deleted')})
                                 </Typography>
                               )}
                             </TableCell>
@@ -534,7 +536,7 @@ const UserProfilePage: React.FC = () => {
                               <Box>
                                 <Typography variant="body2">{formatDateTime(change.changed_at)}</Typography>
                                 <Typography variant="caption" color="text.secondary">
-                                  {formatRelativeTime(change.changed_at)}
+                                  {formatRelativeTime(change.changed_at, t)}
                                 </Typography>
                               </Box>
                             </TableCell>
@@ -550,7 +552,7 @@ const UserProfilePage: React.FC = () => {
                         variant="outlined"
                         onClick={() => setDisplayedChangesCount(prev => prev + 10)}
                       >
-                        Load More ({userChanges.length - displayedChangesCount} remaining)
+                        {t('userProfile.loadMore')} ({userChanges.length - displayedChangesCount} {t('userProfile.remaining')})
                       </Button>
                     </Box>
                   )}

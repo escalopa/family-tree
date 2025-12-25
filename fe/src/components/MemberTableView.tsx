@@ -18,6 +18,7 @@ import {
   Typography,
 } from '@mui/material';
 import { Search } from '@mui/icons-material';
+import { useTranslation } from 'react-i18next';
 import { MemberListItem } from '../types';
 import { getGenderColor, formatDate, getMemberPictureUrl } from '../utils/helpers';
 
@@ -41,6 +42,7 @@ const MemberTableView: React.FC<MemberTableViewProps> = ({
   hasMore = false,
   onLoadMore
 }) => {
+  const { t } = useTranslation();
   const [sortField, setSortField] = useState<SortField>('date_of_birth');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
   const [searchQuery, setSearchQuery] = useState('');
@@ -150,7 +152,7 @@ const MemberTableView: React.FC<MemberTableViewProps> = ({
       <Box sx={{ p: 2 }}>
         <TextField
           fullWidth
-          placeholder="Search by name..."
+          placeholder={t('member.searchByName')}
           value={searchQuery}
           onChange={(e) => {
             setSearchQuery(e.target.value);
@@ -192,14 +194,14 @@ const MemberTableView: React.FC<MemberTableViewProps> = ({
         <Table>
           <TableHead>
             <TableRow>
-              <TableCell>Photo</TableCell>
+              <TableCell>{t('member.photo')}</TableCell>
               <TableCell>
                 <TableSortLabel
                   active={sortField === 'primary_name'}
                   direction={sortField === 'primary_name' ? sortOrder : 'asc'}
                   onClick={() => handleSort('primary_name')}
                 >
-                  Name
+                  {t('member.name')}
                 </TableSortLabel>
               </TableCell>
               <TableCell>
@@ -208,7 +210,7 @@ const MemberTableView: React.FC<MemberTableViewProps> = ({
                   direction={sortField === 'gender' ? sortOrder : 'asc'}
                   onClick={() => handleSort('gender')}
                 >
-                  Gender
+                  {t('member.gender')}
                 </TableSortLabel>
               </TableCell>
               <TableCell>
@@ -217,10 +219,10 @@ const MemberTableView: React.FC<MemberTableViewProps> = ({
                   direction={sortField === 'date_of_birth' ? sortOrder : 'asc'}
                   onClick={() => handleSort('date_of_birth')}
                 >
-                  Birth Date
+                  {t('member.birthDate')}
                 </TableSortLabel>
               </TableCell>
-              <TableCell>Status</TableCell>
+              <TableCell>{t('member.status')}</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -228,8 +230,8 @@ const MemberTableView: React.FC<MemberTableViewProps> = ({
               <TableRow>
                 <TableCell colSpan={5} align="center" sx={{ py: 4, color: 'text.secondary' }}>
                   {searchQuery
-                    ? 'No members found matching your search'
-                    : 'No members found'}
+                    ? t('tree.noMembersMatchingSearch')
+                    : t('member.noMembers')}
                 </TableCell>
               </TableRow>
             )}
@@ -238,7 +240,7 @@ const MemberTableView: React.FC<MemberTableViewProps> = ({
                 <TableCell colSpan={5} align="center" sx={{ py: 8 }}>
                   <CircularProgress />
                   <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-                    Loading members...
+                    {t('tree.loadingMembers')}
                   </Typography>
                 </TableCell>
               </TableRow>
@@ -263,7 +265,7 @@ const MemberTableView: React.FC<MemberTableViewProps> = ({
                 </TableCell>
                 <TableCell>
                   <Chip
-                    label={member.gender === 'M' ? 'Male' : member.gender === 'F' ? 'Female' : 'Other'}
+                    label={member.gender === 'M' ? t('member.male') : member.gender === 'F' ? t('member.female') : 'Other'}
                     size="small"
                     sx={{
                       bgcolor: getGenderColor(member.gender),
@@ -275,10 +277,10 @@ const MemberTableView: React.FC<MemberTableViewProps> = ({
                   {member.date_of_birth ? formatDate(member.date_of_birth) : '-'}
                 </TableCell>
                 <TableCell>
-                  {member.is_married && <Chip label="Married" size="small" color="secondary" />}
+                  {member.is_married && <Chip label={t('member.married')} size="small" color="secondary" />}
                   {member.date_of_death && (
                     <Chip
-                      label={`Deceased (${formatDate(member.date_of_death)})`}
+                      label={`${t('member.deceased')} (${formatDate(member.date_of_death)})`}
                       size="small"
                       sx={{ ml: 0.5 }}
                     />
@@ -311,7 +313,7 @@ const MemberTableView: React.FC<MemberTableViewProps> = ({
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
               <CircularProgress size={24} />
               <Typography variant="body2" color="text.secondary">
-                Loading more members...
+                {t('tree.loadingMoreMembers')}
               </Typography>
             </Box>
           )}

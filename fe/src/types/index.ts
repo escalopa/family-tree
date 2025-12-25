@@ -163,7 +163,7 @@ export interface UpdateActiveRequest {
 export interface MemberSearchQuery {
   name?: string; // Searches both Arabic and English names
   gender?: 'M' | 'F';
-  married?: 0 | 1;
+  married?: boolean;
   cursor?: string;
   limit?: number;
 }

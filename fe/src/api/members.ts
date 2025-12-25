@@ -16,7 +16,7 @@ export const membersApi = {
   searchMembers: async (params: {
     name?: string;
     gender?: 'M' | 'F';
-    married?: 0 | 1;
+    married?: boolean;
     cursor?: string;
     limit?: number;
   }): Promise<{ members: MemberListItem[]; next_cursor?: string }> => {

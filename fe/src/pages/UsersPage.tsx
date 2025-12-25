@@ -28,6 +28,7 @@ import {
 } from '@mui/material';
 import { OpenInNew, Clear } from '@mui/icons-material';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { usersApi } from '../api';
 import { User, Roles } from '../types';
 import { getRoleName } from '../utils/helpers';
@@ -35,6 +36,7 @@ import Layout from '../components/Layout/Layout';
 import { useAuth } from '../contexts/AuthContext';
 
 const UsersPage: React.FC = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { hasRole } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -164,17 +166,17 @@ const UsersPage: React.FC = () => {
     <Layout>
       <Box>
         <Typography variant="h4" gutterBottom>
-          Users Management
+          {t('users.management')}
         </Typography>
         <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-          Manage user roles and access
+          {t('users.manageRolesAndAccess')}
         </Typography>
 
         {/* Filters */}
         <Paper sx={{ p: 2, mb: 3 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
             <Typography variant="h6">
-              Filters {!hasActiveFilters && '(Showing all users)'}
+              {t('common.filter')} {!hasActiveFilters && t('users.showingAllUsers')}
             </Typography>
             {hasActiveFilters && (
               <Button
@@ -183,7 +185,7 @@ const UsersPage: React.FC = () => {
                 onClick={handleClearFilters}
                 color="secondary"
               >
-                Clear Filters
+                {t('tree.clearFilters')}
               </Button>
             )}
           </Box>
@@ -191,39 +193,39 @@ const UsersPage: React.FC = () => {
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
-                label="Search by name or email"
+                label={t('users.searchByNameOrEmail')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Type to search..."
+                placeholder={t('users.typeToSearch')}
               />
             </Grid>
             <Grid item xs={12} sm={6} md={3}>
               <FormControl fullWidth>
-                <InputLabel>Role</InputLabel>
+                <InputLabel>{t('user.role')}</InputLabel>
                 <Select
                   value={roleFilter}
-                  label="Role"
+                  label={t('user.role')}
                   onChange={(e) => setRoleFilter(e.target.value as number | 'all')}
                 >
-                  <MenuItem value="all">All Roles</MenuItem>
-                  <MenuItem value={Roles.NONE}>None</MenuItem>
-                  <MenuItem value={Roles.GUEST}>Guest</MenuItem>
-                  <MenuItem value={Roles.ADMIN}>Admin</MenuItem>
-                  <MenuItem value={Roles.SUPER_ADMIN}>Super Admin</MenuItem>
+                  <MenuItem value="all">{t('users.allRoles')}</MenuItem>
+                  <MenuItem value={Roles.NONE}>{t('roles.none')}</MenuItem>
+                  <MenuItem value={Roles.GUEST}>{t('roles.guest')}</MenuItem>
+                  <MenuItem value={Roles.ADMIN}>{t('roles.admin')}</MenuItem>
+                  <MenuItem value={Roles.SUPER_ADMIN}>{t('roles.superAdmin')}</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
             <Grid item xs={12} sm={6} md={3}>
               <FormControl fullWidth>
-                <InputLabel>Status</InputLabel>
+                <InputLabel>{t('user.status')}</InputLabel>
                 <Select
                   value={activeFilter}
-                  label="Status"
+                  label={t('user.status')}
                   onChange={(e) => setActiveFilter(e.target.value as boolean | 'all')}
                 >
-                  <MenuItem value="all">All Status</MenuItem>
-                  <MenuItem value={true as any}>Active</MenuItem>
-                  <MenuItem value={false as any}>Inactive</MenuItem>
+                  <MenuItem value="all">{t('users.allStatus')}</MenuItem>
+                  <MenuItem value={true as any}>{t('user.active')}</MenuItem>
+                  <MenuItem value={false as any}>{t('user.inactive')}</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
@@ -231,18 +233,18 @@ const UsersPage: React.FC = () => {
         </Paper>
 
         {loading ? (
-          <Typography>Loading...</Typography>
+          <Typography>{t('common.loading')}</Typography>
         ) : (
           <>
             <TableContainer component={Paper}>
               <Table>
                 <TableHead>
                   <TableRow>
-                    <TableCell>Avatar</TableCell>
-                    <TableCell>Name</TableCell>
-                    <TableCell>Email</TableCell>
-                    <TableCell>Role</TableCell>
-                    <TableCell>Status</TableCell>
+                    <TableCell>{t('member.avatar')}</TableCell>
+                    <TableCell>{t('member.name')}</TableCell>
+                    <TableCell>{t('user.email')}</TableCell>
+                    <TableCell>{t('user.role')}</TableCell>
+                    <TableCell>{t('user.status')}</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -260,14 +262,14 @@ const UsersPage: React.FC = () => {
                       <TableCell>{user.email}</TableCell>
                       <TableCell>
                         <Chip
-                          label={getRoleName(user.role_id)}
+                          label={getRoleName(user.role_id, t)}
                           size="small"
                           color={user.role_id >= Roles.ADMIN ? 'primary' : 'default'}
                         />
                       </TableCell>
                       <TableCell>
                         <Chip
-                          label={user.is_active ? 'Active' : 'Inactive'}
+                          label={user.is_active ? t('user.active') : t('user.inactive')}
                           size="small"
                           color={user.is_active ? 'success' : 'default'}
                         />
@@ -278,7 +280,7 @@ const UsersPage: React.FC = () => {
                     <TableRow>
                       <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
                         <Typography variant="body2" color="text.secondary">
-                          No users found matching the filters
+                          {t('users.noUsersMatchingFilters')}
                         </Typography>
                       </TableCell>
                     </TableRow>
@@ -294,7 +296,7 @@ const UsersPage: React.FC = () => {
                   onClick={loadMoreUsers}
                   disabled={loadingMore}
                 >
-                  {loadingMore ? 'Loading...' : 'Load More'}
+                  {loadingMore ? t('common.loading') : t('users.loadMore')}
                 </Button>
               </Box>
             )}
@@ -305,12 +307,12 @@ const UsersPage: React.FC = () => {
         <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
           <DialogTitle>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Typography variant="h6">Edit User</Typography>
+              <Typography variant="h6">{t('users.editUser')}</Typography>
               {selectedUser && (
                 <IconButton
                   onClick={() => handleOpenProfile(selectedUser.user_id)}
                   color="primary"
-                  title="Open Profile"
+                  title={t('users.openProfile')}
                 >
                   <OpenInNew />
                 </IconButton>
@@ -335,16 +337,16 @@ const UsersPage: React.FC = () => {
                 </Box>
 
                 <FormControl fullWidth sx={{ mt: 3 }}>
-                  <InputLabel>Role</InputLabel>
+                  <InputLabel>{t('user.role')}</InputLabel>
                   <Select
                     value={newRole}
-                    label="Role"
+                    label={t('user.role')}
                     onChange={(e) => setNewRole(Number(e.target.value))}
                   >
-                    <MenuItem value={Roles.NONE}>None</MenuItem>
-                    <MenuItem value={Roles.GUEST}>Guest</MenuItem>
-                    <MenuItem value={Roles.ADMIN}>Admin</MenuItem>
-                    <MenuItem value={Roles.SUPER_ADMIN}>Super Admin</MenuItem>
+                    <MenuItem value={Roles.NONE}>{t('roles.none')}</MenuItem>
+                    <MenuItem value={Roles.GUEST}>{t('roles.guest')}</MenuItem>
+                    <MenuItem value={Roles.ADMIN}>{t('roles.admin')}</MenuItem>
+                    <MenuItem value={Roles.SUPER_ADMIN}>{t('roles.superAdmin')}</MenuItem>
                   </Select>
                 </FormControl>
 
@@ -355,16 +357,16 @@ const UsersPage: React.FC = () => {
                       onChange={(e) => setIsActive(e.target.checked)}
                     />
                   }
-                  label="Active"
+                  label={t('user.active')}
                   sx={{ mt: 2 }}
                 />
               </Box>
             )}
           </DialogContent>
           <DialogActions>
-            <Button onClick={handleCloseDialog}>Cancel</Button>
+            <Button onClick={handleCloseDialog}>{t('common.cancel')}</Button>
             <Button onClick={handleUpdateUser} variant="contained">
-              Update
+              {t('users.update')}
             </Button>
           </DialogActions>
         </Dialog>

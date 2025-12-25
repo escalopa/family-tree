@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { enqueueSnackbar } from 'notistack';
 import {
   Card,
   CardContent,
@@ -65,7 +66,7 @@ const SpouseCard: React.FC<SpouseCardProps> = ({
       }
     } catch (error) {
       console.error('update spouse:', error);
-      alert('Failed to update spouse information');
+      enqueueSnackbar('Failed to update spouse information', { variant: 'error' });
     } finally {
       setSaving(false);
     }
@@ -82,7 +83,7 @@ const SpouseCard: React.FC<SpouseCardProps> = ({
     } catch (error: any) {
       console.error('delete spouse:', error);
       const errorMessage = error?.response?.data?.error || 'Failed to delete spouse relationship';
-      alert(errorMessage);
+      enqueueSnackbar(errorMessage, { variant: 'error' });
     } finally {
       setDeleting(false);
     }

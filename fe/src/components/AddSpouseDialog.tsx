@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { enqueueSnackbar } from 'notistack';
 import {
   Dialog,
   DialogTitle,
@@ -64,7 +65,7 @@ const AddSpouseDialog: React.FC<AddSpouseDialogProps> = ({
 
   const handleSave = async () => {
     if (!selectedSpouse) {
-      alert('Please select a spouse');
+      enqueueSnackbar('Please select a spouse', { variant: 'warning' });
       return;
     }
 
@@ -85,7 +86,7 @@ const AddSpouseDialog: React.FC<AddSpouseDialogProps> = ({
     } catch (error: any) {
       console.error('add spouse:', error);
       const errorMessage = error?.response?.data?.error || 'Failed to add spouse relationship. They may already be connected.';
-      alert(errorMessage);
+      enqueueSnackbar(errorMessage, { variant: 'error' });
     } finally {
       setSaving(false);
     }

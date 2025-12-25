@@ -8,6 +8,7 @@ import {
   CircularProgress,
 } from '@mui/material';
 import { Search } from '@mui/icons-material';
+import { useTranslation } from 'react-i18next';
 import { MemberListItem } from '../types';
 import MemberAutocomplete from './MemberAutocomplete';
 
@@ -17,18 +18,19 @@ interface RelationFinderProps {
 }
 
 const RelationFinder: React.FC<RelationFinderProps> = ({ onFindRelation, loading }) => {
+  const { t } = useTranslation();
   const [member1, setMember1] = useState<MemberListItem | null>(null);
   const [member2, setMember2] = useState<MemberListItem | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const handleFindRelation = async () => {
     if (!member1 || !member2) {
-      setError('Please select both members');
+      setError(t('tree.selectBothMembers'));
       return;
     }
 
     if (member1.member_id === member2.member_id) {
-      setError('Please select two different members');
+      setError(t('tree.selectTwoDifferentMembers'));
       return;
     }
 
@@ -36,24 +38,23 @@ const RelationFinder: React.FC<RelationFinderProps> = ({ onFindRelation, loading
     try {
       await onFindRelation(member1.member_id, member2.member_id);
     } catch (err) {
-      setError('Failed to find relation between members');
+      setError(t('tree.failedToFindRelation'));
     }
   };
 
   return (
     <Paper sx={{ p: 3 }}>
       <Typography variant="h6" gutterBottom>
-        Find Relation Between Two Members
+        {t('tree.findRelationBetweenMembers')}
       </Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-        Select two family members to see their relationship and the path connecting them in the
-        family tree. Start typing to search.
+        {t('tree.findRelationDescription')}
       </Typography>
 
       <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
         <Box sx={{ flex: '1 1 300px', minWidth: 250 }}>
           <MemberAutocomplete
-            label="First Member"
+            label={t('tree.firstMember')}
             value={member1}
             onChange={(value) => {
               setMember1(value);
@@ -65,7 +66,7 @@ const RelationFinder: React.FC<RelationFinderProps> = ({ onFindRelation, loading
 
         <Box sx={{ flex: '1 1 300px', minWidth: 250 }}>
           <MemberAutocomplete
-            label="Second Member"
+            label={t('tree.secondMember')}
             value={member2}
             onChange={(value) => {
               setMember2(value);
@@ -82,7 +83,7 @@ const RelationFinder: React.FC<RelationFinderProps> = ({ onFindRelation, loading
           disabled={loading || !member1 || !member2}
           sx={{ minWidth: 150, height: 56 }}
         >
-          Find Relation
+          {t('tree.findRelation')}
         </Button>
       </Box>
 

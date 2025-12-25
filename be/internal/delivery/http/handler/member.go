@@ -308,19 +308,16 @@ func (h *memberHandler) Get(c *gin.Context) {
 // @Failure 500 {object} dto.Response
 // @Router /api/members/search [get]
 func (h *memberHandler) List(c *gin.Context) {
-	var query dto.MemberSearchQuery
+	var query dto.MemberListQuery
 	if err := c.ShouldBindQuery(&query); err != nil {
 		delivery.Error(c, err)
 		return
 	}
 
 	filter := domain.MemberFilter{
-		Name:   query.Name,
-		Gender: query.Gender,
-	}
-	if query.Married != nil {
-		married := *query.Married == 1
-		filter.IsMarried = &married
+		Name:      query.Name,
+		Gender:    query.Gender,
+		IsMarried: query.Married,
 	}
 
 	members, nextCursor, err := h.memberUseCase.List(c.Request.Context(), filter, query.Cursor, query.Limit)

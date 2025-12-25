@@ -1,11 +1,11 @@
 package dto
 
 type UpdateRoleRequest struct {
-	RoleID int `json:"role_id" binding:"required,min=100,max=400"`
+	RoleID int `json:"role_id" binding:"required,oneof=100 200 300 400"`
 }
 
 type UpdateActiveRequest struct {
-	IsActive bool `json:"is_active"`
+	IsActive bool `json:"is_active" binding:"required"`
 }
 
 type UserResponse struct {
@@ -19,10 +19,10 @@ type UserResponse struct {
 }
 
 type UserFilterQuery struct {
-	Search   *string `form:"search"`
-	RoleID   *int    `form:"role_id"`
-	IsActive *bool   `form:"is_active"`
-	Cursor   *string `form:"cursor"`
+	Search   *string `form:"search" binding:"omitempty,max=100"`
+	RoleID   *int    `form:"role_id" binding:"omitempty,oneof=100 200 300 400"`
+	IsActive *bool   `form:"is_active" binding:"omitempty"`
+	Cursor   *string `form:"cursor" binding:"omitempty"`
 	Limit    int     `form:"limit,default=20" binding:"omitempty,min=1,max=100"`
 }
 

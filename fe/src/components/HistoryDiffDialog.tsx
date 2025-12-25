@@ -16,6 +16,7 @@ import {
   Paper,
   Chip,
 } from '@mui/material';
+import { useTranslation } from 'react-i18next';
 import { HistoryRecord } from '../types';
 import { formatDateTime, formatRelativeTime } from '../utils/helpers';
 
@@ -26,27 +27,29 @@ interface HistoryDiffDialogProps {
 }
 
 const HistoryDiffDialog: React.FC<HistoryDiffDialogProps> = ({ open, onClose, history }) => {
+  const { t } = useTranslation();
+
   if (!history) return null;
 
   const getFieldLabel = (field: string): string => {
     const labels: Record<string, string> = {
-      gender: 'Gender',
-      picture: 'Picture',
-      date_of_birth: 'Date of Birth',
-      date_of_death: 'Date of Death',
-      father_id: 'Father ID',
-      mother_id: 'Mother ID',
-      nicknames: 'Nicknames',
-      profession: 'Profession',
-      spouse_id: 'Spouse ID',
-      marriage_date: 'Marriage Date',
-      divorce_date: 'Divorce Date',
+      gender: t('member.gender'),
+      picture: t('member.picture'),
+      date_of_birth: t('member.dateOfBirth'),
+      date_of_death: t('member.dateOfDeath'),
+      father_id: t('member.fatherId'),
+      mother_id: t('member.motherId'),
+      nicknames: t('member.nicknames'),
+      profession: t('member.profession'),
+      spouse_id: t('spouse.spouseId'),
+      marriage_date: t('spouse.marriageDate'),
+      divorce_date: t('spouse.divorceDate'),
     };
 
     // Handle dynamic name fields (e.g., name_ar, name_en, name_ru)
     if (field.startsWith('name_')) {
       const langCode = field.substring(5).toUpperCase();
-      return `Name (${langCode})`;
+      return `${t('member.name')} (${langCode})`;
     }
 
     return labels[field] || field;
@@ -54,7 +57,7 @@ const HistoryDiffDialog: React.FC<HistoryDiffDialogProps> = ({ open, onClose, hi
 
   const formatValue = (value: any): string => {
     if (value === null || value === undefined) return '-';
-    if (typeof value === 'boolean') return value ? 'Yes' : 'No';
+    if (typeof value === 'boolean') return value ? t('common.yes') : t('common.no');
     if (Array.isArray(value)) {
       if (value.length === 0) return '-';
       return value.join(', ');
@@ -133,29 +136,29 @@ const HistoryDiffDialog: React.FC<HistoryDiffDialogProps> = ({ open, onClose, hi
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle>
         <Box>
-          <Typography variant="h6">Change Details</Typography>
+          <Typography variant="h6">{t('history.changeDetails')}</Typography>
           <Box sx={{ mt: 1, display: 'flex', gap: 1, alignItems: 'center' }}>
             <Chip label={history.change_type} size="small" color="primary" />
             <Typography variant="body2" color="text.secondary">
-              by {history.user_full_name} ({history.user_email})
+              {t('history.by')} {history.user_full_name} ({history.user_email})
             </Typography>
           </Box>
           <Typography variant="caption" color="text.secondary">
-            {formatDateTime(history.changed_at)} • {formatRelativeTime(history.changed_at)} • Version {history.member_version}
+            {formatDateTime(history.changed_at)} • {formatRelativeTime(history.changed_at, t)} • {t('history.version')} {history.member_version}
           </Typography>
         </Box>
       </DialogTitle>
       <DialogContent>
         {changes.length === 0 ? (
-          <Typography color="text.secondary">No field changes to display</Typography>
+          <Typography color="text.secondary">{t('history.noChanges')}</Typography>
         ) : (
           <TableContainer component={Paper} variant="outlined">
             <Table size="small">
               <TableHead>
                 <TableRow>
-                  <TableCell sx={{ fontWeight: 'bold' }}>Field</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold' }}>Old Value</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold' }}>New Value</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' }}>{t('history.field')}</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' }}>{t('history.oldValue')}</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' }}>{t('history.newValue')}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -196,7 +199,7 @@ const HistoryDiffDialog: React.FC<HistoryDiffDialogProps> = ({ open, onClose, hi
         )}
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose}>Close</Button>
+        <Button onClick={onClose}>{t('common.close')}</Button>
       </DialogActions>
     </Dialog>
   );

@@ -2,12 +2,12 @@ package dto
 
 type TreeQuery struct {
 	RootID *int   `form:"root"`
-	Style  string `form:"style"` // "tree" or "list"
+	Style  string `form:"style" binding:"required,oneof=tree list"`
 }
 
 type RelationQuery struct {
-	Member1ID int `form:"member1" binding:"required"`
-	Member2ID int `form:"member2" binding:"required"`
+	Member1ID int `form:"member1" binding:"required,min=1"`
+	Member2ID int `form:"member2" binding:"required,min=1"`
 }
 
 type TreeNodeResponse struct {

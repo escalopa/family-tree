@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { enqueueSnackbar } from 'notistack';
+import { useTranslation } from 'react-i18next';
 import {
   Box,
   Button,
@@ -34,7 +36,7 @@ import {
 import { Add, Delete, FilterAlt, Clear, Close } from '@mui/icons-material';
 import { membersApi } from '../api';
 import { Member, MemberListItem, MemberSearchQuery, CreateMemberRequest, UpdateMemberRequest, HistoryRecord, Roles } from '../types';
-import { formatDateOfBirth, getMemberPictureUrl, formatDateTime, formatRelativeTime, getChangeTypeColor } from '../utils/helpers';
+import { formatDateOfBirth, getMemberPictureUrl, formatDateTime, formatRelativeTime, getChangeTypeColor, getLocalizedLanguageName } from '../utils/helpers';
 import Layout from '../components/Layout/Layout';
 import MemberPhotoUpload from '../components/MemberPhotoUpload';
 import ParentAutocomplete from '../components/ParentAutocomplete';
@@ -47,6 +49,7 @@ import { useLanguage } from '../contexts/LanguageContext';
 const PAGE_SIZE = 10;
 
 const MembersPage: React.FC = () => {
+  const { t } = useTranslation();
   const { hasRole } = useAuth();
   const { languages } = useLanguage();
   const isSuperAdmin = hasRole(Roles.SUPER_ADMIN);
@@ -81,7 +84,7 @@ const MembersPage: React.FC = () => {
 
     if (name) params.name = name;
     if (gender && (gender === 'M' || gender === 'F')) params.gender = gender as 'M' | 'F';
-    if (married && (married === '0' || married === '1')) params.married = Number(married) as 0 | 1;
+    if (married && (married === 'true' || married === 'false')) params.married = married === 'true';
 
     return params;
   });
@@ -228,7 +231,7 @@ const MembersPage: React.FC = () => {
         }
       } catch (error) {
         console.error('load member details:', error);
-        alert('Failed to load member details');
+        enqueueSnackbar('Failed to load member details', { variant: 'error' });
         return;
       }
     } else {
@@ -306,7 +309,7 @@ const MembersPage: React.FC = () => {
 
     if (missingLanguages.length > 0) {
       const missingNames = missingLanguages.map(lang => lang.language_name).join(', ');
-      alert(`Please provide names for all active languages: ${missingNames}`);
+      enqueueSnackbar(`Please provide names for all active languages: ${missingNames}`, { variant: 'warning' });
       return;
     }
 
@@ -328,7 +331,7 @@ const MembersPage: React.FC = () => {
       performSearch(searchQuery); // Refresh list
     } catch (error: any) {
       const errorMsg = error?.response?.data?.error || 'Failed to save member';
-      alert(errorMsg);
+      enqueueSnackbar(errorMsg, { variant: 'error' });
       console.error('save member:', error);
     }
   };
@@ -352,7 +355,7 @@ const MembersPage: React.FC = () => {
       } catch (error: any) {
         console.error('delete member:', error);
         const errorMessage = error?.response?.data?.error || 'Failed to delete member. This member may have children or other dependencies.';
-        alert(errorMessage);
+        enqueueSnackbar(errorMessage, { variant: 'error' });
       }
     }
   };
@@ -382,14 +385,22 @@ const MembersPage: React.FC = () => {
     <Layout>
       <Box>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
-          <Typography variant="h4">Members Management</Typography>
-          <Button
-            variant="contained"
-            startIcon={<Add />}
-            onClick={() => handleOpenDialog()}
-          >
-            Add Member
-          </Button>
+          <Typography variant="h4">{t('members.management')}</Typography>
+          <Tooltip title={t('member.addMember')}>
+            <IconButton
+              color="primary"
+              onClick={() => handleOpenDialog()}
+              sx={{
+                bgcolor: 'primary.main',
+                color: 'white',
+                '&:hover': {
+                  bgcolor: 'primary.dark',
+                },
+              }}
+            >
+              <Add />
+            </IconButton>
+          </Tooltip>
         </Box>
 
         {/* Search Filters */}
@@ -397,7 +408,7 @@ const MembersPage: React.FC = () => {
           <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
             <FilterAlt sx={{ mr: 1, color: 'text.secondary' }} />
             <Typography variant="h6" sx={{ flexGrow: 1 }}>
-              Search Filters {!searchQuery.name && !searchQuery.gender && searchQuery.married === undefined && '(Showing all members)'}
+              {t('tree.searchFilters')} {!searchQuery.name && !searchQuery.gender && searchQuery.married === undefined && t('tree.showingAllMembers')}
             </Typography>
             {(searchQuery.name || searchQuery.gender || searchQuery.married !== undefined) && (
               <Button
@@ -406,7 +417,7 @@ const MembersPage: React.FC = () => {
                 onClick={handleClearFilters}
                 color="secondary"
               >
-                Clear Filters
+                {t('tree.clearFilters')}
               </Button>
             )}
           </Box>
@@ -414,8 +425,8 @@ const MembersPage: React.FC = () => {
             <Grid item xs={12} sm={6} md={4}>
               <TextField
                 fullWidth
-                label="Name"
-                placeholder="Search by name (Arabic or English)"
+                label={t('member.name')}
+                placeholder={t('member.searchPlaceholder')}
                 value={searchQuery.name || ''}
                 onChange={(e) =>
                   setSearchQuery({ ...searchQuery, name: e.target.value || undefined })
@@ -437,10 +448,10 @@ const MembersPage: React.FC = () => {
             </Grid>
             <Grid item xs={12} sm={6} md={4}>
               <FormControl fullWidth>
-                <InputLabel>Gender</InputLabel>
+                <InputLabel>{t('member.gender')}</InputLabel>
                 <Select
                   value={searchQuery.gender || ''}
-                  label="Gender"
+                  label={t('member.gender')}
                   onChange={(e) =>
                     setSearchQuery({ ...searchQuery, gender: (e.target.value as 'M' | 'F') || undefined })
                   }
@@ -458,22 +469,22 @@ const MembersPage: React.FC = () => {
                     )
                   }
                 >
-                  <MenuItem value="">All</MenuItem>
-                  <MenuItem value="M">Male</MenuItem>
-                  <MenuItem value="F">Female</MenuItem>
+                  <MenuItem value="">{t('common.all')}</MenuItem>
+                  <MenuItem value="M">{t('member.male')}</MenuItem>
+                  <MenuItem value="F">{t('member.female')}</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
             <Grid item xs={12} sm={6} md={4}>
               <FormControl fullWidth>
-                <InputLabel>Married</InputLabel>
+                <InputLabel>{t('member.married')}</InputLabel>
                 <Select
-                  value={searchQuery.married ?? ''}
-                  label="Married"
+                  value={searchQuery.married === undefined ? '' : String(searchQuery.married)}
+                  label={t('member.married')}
                   onChange={(e) =>
                     setSearchQuery({
                       ...searchQuery,
-                      married: e.target.value === '' ? undefined : Number(e.target.value) as 0 | 1,
+                      married: e.target.value === '' ? undefined : e.target.value === 'true',
                     })
                   }
                   endAdornment={
@@ -490,9 +501,9 @@ const MembersPage: React.FC = () => {
                     )
                   }
                 >
-                  <MenuItem value="">All</MenuItem>
-                  <MenuItem value={1}>Yes</MenuItem>
-                  <MenuItem value={0}>No</MenuItem>
+                  <MenuItem value="">{t('common.all')}</MenuItem>
+                  <MenuItem value="true">{t('common.yes')}</MenuItem>
+                  <MenuItem value="false">{t('common.no')}</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
@@ -536,12 +547,12 @@ const MembersPage: React.FC = () => {
           <Table>
             <TableHead>
               <TableRow>
-                <TableCell>ID</TableCell>
-                <TableCell>Avatar</TableCell>
-                <TableCell>Name</TableCell>
-                <TableCell>Gender</TableCell>
-                <TableCell>Date of Birth</TableCell>
-                <TableCell>Married</TableCell>
+                <TableCell sx={{ textAlign: 'start' }}>{t('member.id')}</TableCell>
+                <TableCell sx={{ textAlign: 'start' }}>{t('member.avatar')}</TableCell>
+                <TableCell sx={{ textAlign: 'start' }}>{t('member.name')}</TableCell>
+                <TableCell sx={{ textAlign: 'start' }}>{t('member.gender')}</TableCell>
+                <TableCell sx={{ textAlign: 'start' }}>{t('member.dateOfBirth')}</TableCell>
+                <TableCell sx={{ textAlign: 'start' }}>{t('member.married')}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -549,8 +560,8 @@ const MembersPage: React.FC = () => {
                 <TableRow>
                   <TableCell colSpan={6} align="center" sx={{ py: 4, color: 'text.secondary' }}>
                     {searchQuery.name || searchQuery.gender || searchQuery.married !== undefined
-                      ? 'No members found matching your filters'
-                      : 'No members found'}
+                      ? t('member.noMembersMatchingFilters')
+                      : t('member.noMembers')}
                   </TableCell>
                 </TableRow>
               )}
@@ -559,7 +570,7 @@ const MembersPage: React.FC = () => {
                   <TableCell colSpan={6} align="center" sx={{ py: 8 }}>
                     <CircularProgress />
                     <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-                      Loading members...
+                      {t('tree.loadingMembers')}
                     </Typography>
                   </TableCell>
                 </TableRow>
@@ -590,14 +601,14 @@ const MembersPage: React.FC = () => {
                   </TableCell>
                   <TableCell>{member.name}</TableCell>
                   <TableCell>
-                    {member.gender === 'M' ? 'Male' : 'Female'}
+                    {member.gender === 'M' ? t('member.male') : t('member.female')}
                   </TableCell>
                   <TableCell>{formatDateOfBirth(member.date_of_birth, isSuperAdmin)}</TableCell>
                   <TableCell>
                     {member.is_married ? (
-                      <Chip label="Yes" color="primary" size="small" />
+                      <Chip label={t('common.yes')} color="primary" size="small" />
                     ) : (
-                      <Chip label="No" size="small" />
+                      <Chip label={t('common.no')} size="small" />
                     )}
                   </TableCell>
                 </TableRow>
@@ -621,7 +632,7 @@ const MembersPage: React.FC = () => {
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                 <CircularProgress size={24} />
                 <Typography variant="body2" color="text.secondary">
-                  Loading more members...
+                  {t('tree.loadingMoreMembers')}
                 </Typography>
               </Box>
             ) : (
@@ -630,7 +641,7 @@ const MembersPage: React.FC = () => {
                 onClick={handleLoadMore}
                 size="large"
               >
-                Load More Members
+                {t('tree.loadMoreMembers')}
               </Button>
             )}
           </Box>
@@ -641,7 +652,7 @@ const MembersPage: React.FC = () => {
           <DialogTitle>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <Typography variant="h6">
-                {editingMember ? 'Edit Member' : 'Add New Member'}
+                {editingMember ? t('member.editMember') : t('member.addNewMember')}
               </Typography>
               <IconButton onClick={handleCloseDialog} size="small">
                 <Close />
@@ -651,8 +662,8 @@ const MembersPage: React.FC = () => {
           {editingMember && hasRole(Roles.SUPER_ADMIN) && (
             <Box sx={{ borderBottom: 1, borderColor: 'divider', px: 3 }}>
               <Tabs value={dialogTab} onChange={(_, v) => setDialogTab(v)}>
-                <Tab label="Details" />
-                <Tab label={`Change History (${memberHistory.length})`} />
+                <Tab label={t('member.details')} />
+                <Tab label={`${t('member.changeHistory')} (${memberHistory.length})`} />
               </Tabs>
             </Box>
           )}
@@ -676,7 +687,7 @@ const MembersPage: React.FC = () => {
                     {editingMember.full_name && (
                       <Box sx={{ mt: 2, textAlign: 'center' }}>
                         <Typography variant="caption" color="text.secondary" gutterBottom>
-                          Full Name
+                          {t('member.fullName')}
                         </Typography>
                         <Typography variant="body2" fontWeight="medium">
                           {editingMember.full_name}
@@ -686,7 +697,7 @@ const MembersPage: React.FC = () => {
                     {editingMember.age !== undefined && editingMember.age !== null && (
                       <Box sx={{ mt: 1, textAlign: 'center' }}>
                         <Typography variant="caption" color="text.secondary">
-                          Age: <strong>{editingMember.age} years</strong>
+                          {t('member.age')}: <strong>{editingMember.age} {t('member.years')}</strong>
                         </Typography>
                       </Box>
                     )}
@@ -698,7 +709,7 @@ const MembersPage: React.FC = () => {
                 <Grid item xs={12} sm={6} key={lang.language_code}>
                   <TextField
                     fullWidth
-                    label={`${lang.language_name} Name`}
+                    label={`${t('member.name')} (${getLocalizedLanguageName(lang.language_code, t)})`}
                     value={formData.names?.[lang.language_code] || ''}
                     onChange={(e) =>
                       setFormData({
@@ -709,29 +720,29 @@ const MembersPage: React.FC = () => {
                         },
                       })
                     }
-                    helperText={`Enter member's name in ${lang.language_name}`}
+                    helperText={`${t('common.add')} ${t('member.name')} (${getLocalizedLanguageName(lang.language_code, t)})`}
                   />
                 </Grid>
               ))}
               <Grid item xs={12} sm={6}>
                 <FormControl fullWidth required>
-                  <InputLabel>Gender</InputLabel>
+                  <InputLabel>{t('member.gender')}</InputLabel>
                   <Select
                     value={formData.gender}
-                    label="Gender"
+                    label={t('member.gender')}
                     onChange={(e) =>
                       setFormData({ ...formData, gender: e.target.value as 'M' | 'F' })
                     }
                   >
-                    <MenuItem value="M">Male</MenuItem>
-                    <MenuItem value="F">Female</MenuItem>
+                    <MenuItem value="M">{t('member.male')}</MenuItem>
+                    <MenuItem value="F">{t('member.female')}</MenuItem>
                   </Select>
                 </FormControl>
               </Grid>
               <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
-                  label="Date of Birth"
+                  label={t('member.dateOfBirth')}
                   type="date"
                   InputLabelProps={{ shrink: true }}
                   value={formData.date_of_birth || ''}
@@ -743,7 +754,7 @@ const MembersPage: React.FC = () => {
               <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
-                  label="Date of Death"
+                  label={t('member.dateOfDeath')}
                   type="date"
                   InputLabelProps={{ shrink: true }}
                   value={formData.date_of_death || ''}
@@ -755,7 +766,7 @@ const MembersPage: React.FC = () => {
               <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
-                  label="Profession"
+                  label={t('member.profession')}
                   value={formData.profession || ''}
                   onChange={(e) =>
                     setFormData({ ...formData, profession: e.target.value })
@@ -783,16 +794,15 @@ const MembersPage: React.FC = () => {
                   renderInput={(params) => (
                     <TextField
                       {...params}
-                      label="Nicknames"
-                      placeholder="Type a nickname and press Enter"
-                      helperText="Press Enter to add a nickname, click X to remove"
+                      label={t('member.nicknames')}
+                      placeholder={t('member.nicknames')}
                     />
                   )}
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
                 <ParentAutocomplete
-                  label="Father"
+                  label={t('member.father')}
                   gender="M"
                   value={formData.father_id || null}
                   onChange={(value) =>
@@ -806,7 +816,7 @@ const MembersPage: React.FC = () => {
               </Grid>
               <Grid item xs={12} sm={6}>
                 <ParentAutocomplete
-                  label="Mother"
+                  label={t('member.mother')}
                   gender="F"
                   value={formData.mother_id || null}
                   onChange={(value) =>
@@ -824,7 +834,7 @@ const MembersPage: React.FC = () => {
               {editingMember && (editingMember.father || editingMember.mother) && (
                 <Grid item xs={12}>
                   <Typography variant="h6" sx={{ mb: 1 }}>
-                    Parents
+                    {t('member.parents')}
                   </Typography>
                   <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
                     {editingMember.father && (
@@ -890,7 +900,7 @@ const MembersPage: React.FC = () => {
                 <Grid item xs={12}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
                     <Typography variant="h6">
-                      Spouses {editingMember.spouses && editingMember.spouses.length > 0 && `(${editingMember.spouses.length})`}
+                      {t('member.spouses')} {editingMember.spouses && editingMember.spouses.length > 0 && `(${editingMember.spouses.length})`}
                     </Typography>
                     <Button
                       variant="outlined"
@@ -898,7 +908,7 @@ const MembersPage: React.FC = () => {
                       startIcon={<Add />}
                       onClick={() => setOpenAddSpouseDialog(true)}
                     >
-                      Add Spouse
+                      {t('spouse.addSpouse')}
                     </Button>
                   </Box>
                   <Grid container spacing={2}>
@@ -927,7 +937,7 @@ const MembersPage: React.FC = () => {
                       <Grid item xs={12}>
                         <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'action.hover' }}>
                           <Typography variant="body2" color="text.secondary">
-                            No spouses added yet. Click "Add Spouse" to create a relationship.
+                            {t('member.noSpousesAdded')}
                           </Typography>
                         </Paper>
                       </Grid>
@@ -940,7 +950,7 @@ const MembersPage: React.FC = () => {
               {editingMember && editingMember.children && editingMember.children.length > 0 && (
                 <Grid item xs={12}>
                   <Typography variant="h6" sx={{ mb: 1 }}>
-                    Children ({editingMember.children.length})
+                    {t('member.children')} ({editingMember.children.length})
                   </Typography>
                   <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
                     {editingMember.children.map((child) => (
@@ -979,7 +989,7 @@ const MembersPage: React.FC = () => {
               {editingMember && editingMember.siblings && editingMember.siblings.length > 0 && (
                 <Grid item xs={12}>
                   <Typography variant="h6" sx={{ mb: 1 }}>
-                    Siblings ({editingMember.siblings.length})
+                    {t('member.siblings')} ({editingMember.siblings.length})
                   </Typography>
                   <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
                     {editingMember.siblings.map((sibling) => (
@@ -1026,7 +1036,7 @@ const MembersPage: React.FC = () => {
                 {memberHistory.length === 0 ? (
                   <Box sx={{ textAlign: 'center', py: 4 }}>
                     <Typography variant="body2" color="text.secondary">
-                      No change history available for this member
+                      {t('userProfile.noRecentChanges')}
                     </Typography>
                   </Box>
                 ) : (
@@ -1035,10 +1045,10 @@ const MembersPage: React.FC = () => {
                       <Table>
                         <TableHead>
                           <TableRow>
-                            <TableCell>Change Type</TableCell>
-                            <TableCell>User</TableCell>
-                            <TableCell>Date</TableCell>
-                            <TableCell>Version</TableCell>
+                            <TableCell>{t('userProfile.changeType')}</TableCell>
+                            <TableCell>{t('leaderboard.user')}</TableCell>
+                            <TableCell>{t('userProfile.date')}</TableCell>
+                            <TableCell>{t('history.version')}</TableCell>
                           </TableRow>
                         </TableHead>
                         <TableBody>
@@ -1068,7 +1078,7 @@ const MembersPage: React.FC = () => {
                                 <Box>
                                   <Typography variant="body2">{formatDateTime(change.changed_at)}</Typography>
                                   <Typography variant="caption" color="text.secondary">
-                                    {formatRelativeTime(change.changed_at)}
+                                    {formatRelativeTime(change.changed_at, t)}
                                   </Typography>
                                 </Box>
                               </TableCell>
@@ -1084,7 +1094,7 @@ const MembersPage: React.FC = () => {
                           variant="outlined"
                           onClick={() => setDisplayedHistoryCount(prev => prev + 10)}
                         >
-                          Load More ({memberHistory.length - displayedHistoryCount} remaining)
+                          {t('userProfile.loadMore')} ({memberHistory.length - displayedHistoryCount} {t('userProfile.remaining')})
                         </Button>
                       </Box>
                     )}
@@ -1109,10 +1119,10 @@ const MembersPage: React.FC = () => {
                 )}
               </Box>
               <Box sx={{ display: 'flex', gap: 1 }}>
-                <Button onClick={handleCloseDialog}>Cancel</Button>
+                <Button onClick={handleCloseDialog}>{t('member.cancel')}</Button>
                 {(!editingMember || dialogTab === 0) && (
                   <Button onClick={handleSubmit} variant="contained">
-                    {editingMember ? 'Update' : 'Create'}
+                    {editingMember ? t('member.update') : t('member.create')}
                   </Button>
                 )}
               </Box>

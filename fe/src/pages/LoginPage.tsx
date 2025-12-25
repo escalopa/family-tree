@@ -9,6 +9,8 @@ import {
   Language,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import { authApi } from '../api';
 
@@ -44,6 +46,7 @@ const providerConfig: Record<string, { icon: React.ReactElement; name: string; c
 };
 
 const LoginPage: React.FC = () => {
+  const { t } = useTranslation();
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const [providers, setProviders] = useState<string[]>([]);
@@ -98,54 +101,75 @@ const LoginPage: React.FC = () => {
           justifyContent: 'center',
         }}
       >
-        <Card sx={{ width: '100%' }}>
-          <CardContent sx={{ textAlign: 'center', p: 4 }}>
-            <Typography variant="h4" component="h1" gutterBottom>
-              Family Tree
-            </Typography>
-            <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
-              Sign in to access your family tree
-            </Typography>
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5, ease: [0.4, 0.0, 0.2, 1] }}
+          style={{ width: '100%' }}
+        >
+          <Card sx={{ width: '100%' }}>
+            <CardContent sx={{ textAlign: 'center', p: 4 }}>
+              <motion.div
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.2 }}
+              >
+                <Typography variant="h4" component="h1" gutterBottom fontWeight="bold">
+                  {t('navigation.familyTree')}
+                </Typography>
+                <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
+                  {t('auth.signInToAccess')}
+                </Typography>
+              </motion.div>
 
-            {loadingProviders ? (
-              <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
-                <CircularProgress />
-              </Box>
-            ) : (
-              <Stack spacing={2}>
-                {providers.map((provider) => {
-                  const config = providerConfig[provider] || {
-                    icon: <Language />,
-                    name: provider.charAt(0).toUpperCase() + provider.slice(1),
-                  };
+              {loadingProviders ? (
+                <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+                  <CircularProgress />
+                </Box>
+              ) : (
+                <Stack spacing={2}>
+                  {providers.map((provider, index) => {
+                    const config = providerConfig[provider] || {
+                      icon: <Language />,
+                      name: provider.charAt(0).toUpperCase() + provider.slice(1),
+                    };
 
-                  return (
-                    <Button
-                      key={provider}
-                      variant="contained"
-                      size="large"
-                      startIcon={config.icon}
-                      onClick={() => handleProviderLogin(provider)}
-                      fullWidth
-                      sx={{
-                        py: 1.5,
-                        ...(config.color && {
-                          backgroundColor: config.color,
-                          '&:hover': {
-                            backgroundColor: config.color,
-                            filter: 'brightness(0.9)',
-                          },
-                        }),
-                      }}
-                    >
-                      Sign in with {config.name}
-                    </Button>
-                  );
-                })}
-              </Stack>
-            )}
-          </CardContent>
-        </Card>
+                    return (
+                      <motion.div
+                        key={provider}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.4, delay: 0.3 + index * 0.1 }}
+                      >
+                        <Button
+                          variant="contained"
+                          size="large"
+                          startIcon={config.icon}
+                          onClick={() => handleProviderLogin(provider)}
+                          fullWidth
+                          sx={{
+                            py: 1.5,
+                            ...(config.color && {
+                              backgroundColor: config.color,
+                              '&:hover': {
+                                backgroundColor: config.color,
+                                filter: 'brightness(0.9)',
+                                transform: 'translateY(-2px)',
+                              },
+                            }),
+                            transition: 'all 0.2s ease-in-out',
+                          }}
+                        >
+                          {t('auth.loginWith', { provider: config.name })}
+                        </Button>
+                      </motion.div>
+                    );
+                  })}
+                </Stack>
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
       </Box>
     </Container>
   );

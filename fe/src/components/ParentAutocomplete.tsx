@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Autocomplete, TextField, Avatar, Box, Typography, CircularProgress } from '@mui/material';
+import { useTranslation } from 'react-i18next';
 import { membersApi } from '../api';
 import { getMemberPictureUrl } from '../utils/helpers';
 import { MemberListItem, MemberInfo } from '../types';
@@ -21,6 +22,7 @@ const ParentAutocomplete: React.FC<ParentAutocompleteProps> = ({
   disabled = false,
   initialParent = null,
 }) => {
+  const { t } = useTranslation();
   const [options, setOptions] = useState<MemberListItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [inputValue, setInputValue] = useState('');
@@ -119,8 +121,8 @@ const ParentAutocomplete: React.FC<ParentAutocompleteProps> = ({
         <TextField
           {...params}
           label={label}
-          placeholder={selectedOption ? '' : 'Type to search...'}
-          helperText={selectedOption ? `Selected: ${selectedOption.name}` : undefined}
+          placeholder={selectedOption ? '' : t('member.searchByName')}
+          helperText={selectedOption ? `${t('language.selected')}: ${selectedOption.name}` : undefined}
           InputProps={{
             ...params.InputProps,
             startAdornment: selectedOption && (
@@ -164,10 +166,10 @@ const ParentAutocomplete: React.FC<ParentAutocompleteProps> = ({
       )}
       noOptionsText={
         loading
-          ? 'Searching...'
+          ? t('common.loading')
           : inputValue.length < 2
-          ? 'Type at least 2 characters to search'
-          : `No ${gender === 'M' ? 'male' : 'female'} members found matching "${inputValue}"`
+          ? t('member.searchByName')
+          : `${t('member.noMembers')} (${gender === 'M' ? t('member.male') : t('member.female')})`
       }
     />
   );

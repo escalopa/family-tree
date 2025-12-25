@@ -43,4 +43,17 @@ i18n
     },
   });
 
+// Update HTML dir attribute when language changes
+i18n.on('languageChanged', (lng) => {
+  const dir = lng === 'ar' ? 'rtl' : 'ltr';
+  document.documentElement.dir = dir;
+  document.documentElement.lang = lng;
+});
+
+// Set initial direction
+const initialLang = i18n.language;
+const initialDir = initialLang === 'ar' ? 'rtl' : 'ltr';
+document.documentElement.dir = initialDir;
+document.documentElement.lang = initialLang;
+
 export default i18n;

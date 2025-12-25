@@ -38,6 +38,7 @@ import {
   FilterAlt,
   Clear,
 } from '@mui/icons-material';
+import { useTranslation } from 'react-i18next';
 import { treeApi, membersApi } from '../api';
 import { MemberListItem, MemberSearchQuery } from '../types';
 import { TreeNode, Member } from '../types';
@@ -54,6 +55,7 @@ type ViewMode = 'tree' | 'list' | 'relation';
 type TreeLayout = 'hierarchical' | 'force';
 
 const TreePage: React.FC = () => {
+  const { t } = useTranslation();
   const { hasRole } = useAuth();
   const { getPreferredName, getAllNamesFormatted } = useLanguage();
   const isSuperAdmin = hasRole(Roles.SUPER_ADMIN);
@@ -282,15 +284,15 @@ const TreePage: React.FC = () => {
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
           <Box>
         <Typography variant="h4" gutterBottom>
-          Family Tree
+          {t('tree.title')}
         </Typography>
             <Typography variant="body2" color="text.secondary">
-              Explore your family connections through interactive visualizations
+              {t('tree.exploreConnections')}
             </Typography>
           </Box>
           {rootId && (
             <Button startIcon={<Refresh />} onClick={handleResetRoot} variant="outlined">
-              Reset to Default Root
+              {t('tree.resetToDefaultRoot')}
             </Button>
           )}
         </Box>
@@ -300,7 +302,7 @@ const TreePage: React.FC = () => {
         {/* Section 1: View Mode Selection */}
         <Paper sx={{ p: 2, mb: 3 }}>
           <Typography variant="h6" gutterBottom>
-            View Mode
+            {t('tree.viewMode')}
           </Typography>
           <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
             <ToggleButtonGroup
@@ -311,15 +313,15 @@ const TreePage: React.FC = () => {
             >
               <ToggleButton value="tree" aria-label="tree view">
                 <AccountTree sx={{ mr: 1 }} />
-                Tree Diagram
+                {t('tree.treeDiagram')}
               </ToggleButton>
               <ToggleButton value="list" aria-label="list view">
                 <TableChart sx={{ mr: 1 }} />
-                Table View
+                {t('tree.tableView')}
               </ToggleButton>
               <ToggleButton value="relation" aria-label="relation view">
                 <AccountTree sx={{ mr: 1 }} />
-                Find Relation
+                {t('tree.findRelation')}
               </ToggleButton>
             </ToggleButtonGroup>
 
@@ -328,7 +330,7 @@ const TreePage: React.FC = () => {
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <Divider orientation="vertical" flexItem />
                 <Typography variant="body2" color="text.secondary">
-                  Layout:
+                  {t('tree.layout')}:
                 </Typography>
                 <ToggleButtonGroup
                   value={treeLayout}
@@ -339,11 +341,11 @@ const TreePage: React.FC = () => {
                 >
                   <ToggleButton value="hierarchical" aria-label="hierarchical layout">
                     <AccountTreeOutlined sx={{ mr: 0.5 }} fontSize="small" />
-                    Hierarchical
+                    {t('tree.hierarchical')}
                   </ToggleButton>
                   <ToggleButton value="force" aria-label="force directed layout">
                     <BubbleChart sx={{ mr: 0.5 }} fontSize="small" />
-                    Force Directed
+                    {t('tree.forceDirected')}
                   </ToggleButton>
                 </ToggleButtonGroup>
             </Box>
@@ -379,7 +381,7 @@ const TreePage: React.FC = () => {
             {viewMode === 'tree' && treeData && (
               <Box>
                 <Typography variant="h6" gutterBottom>
-                  {treeLayout === 'force' ? 'Interactive Family Graph' : 'Hierarchical Tree View'}
+                  {treeLayout === 'force' ? t('tree.interactiveFamilyGraph') : t('tree.hierarchicalTreeView')}
                 </Typography>
                 {treeLayout === 'force' ? (
                   <ForceDirectedTree
@@ -407,7 +409,7 @@ const TreePage: React.FC = () => {
                   <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                     <FilterAlt sx={{ mr: 1, color: 'text.secondary' }} />
                     <Typography variant="h6" sx={{ flexGrow: 1 }}>
-                      Search Filters {!searchQuery.name && !searchQuery.gender && searchQuery.married === undefined && '(Showing all members)'}
+                      {t('tree.searchFilters')} {!searchQuery.name && !searchQuery.gender && searchQuery.married === undefined && t('tree.showingAllMembers')}
                     </Typography>
                     {(searchQuery.name || searchQuery.gender || searchQuery.married !== undefined) && (
                       <Button
@@ -416,7 +418,7 @@ const TreePage: React.FC = () => {
                         onClick={handleClearFilters}
                         color="secondary"
                       >
-                        Clear Filters
+                        {t('tree.clearFilters')}
                       </Button>
                     )}
                   </Box>
@@ -424,8 +426,8 @@ const TreePage: React.FC = () => {
                     <Grid item xs={12} sm={6} md={4}>
                       <TextField
                         fullWidth
-                        label="Name"
-                        placeholder="Search by name (Arabic or English)"
+                        label={t('member.name')}
+                        placeholder={t('member.searchPlaceholder')}
                         value={searchQuery.name || ''}
                         onChange={(e) =>
                           setSearchQuery({ ...searchQuery, name: e.target.value || undefined })
@@ -447,10 +449,10 @@ const TreePage: React.FC = () => {
                     </Grid>
                     <Grid item xs={12} sm={6} md={4}>
                       <FormControl fullWidth>
-                        <InputLabel>Gender</InputLabel>
+                        <InputLabel>{t('member.gender')}</InputLabel>
                         <Select
                           value={searchQuery.gender || ''}
-                          label="Gender"
+                          label={t('member.gender')}
                           onChange={(e) =>
                             setSearchQuery({ ...searchQuery, gender: e.target.value || undefined })
                           }
@@ -468,18 +470,18 @@ const TreePage: React.FC = () => {
                             )
                           }
                         >
-                          <MenuItem value="">All</MenuItem>
-                          <MenuItem value="M">Male</MenuItem>
-                          <MenuItem value="F">Female</MenuItem>
+                          <MenuItem value="">{t('common.all')}</MenuItem>
+                          <MenuItem value="M">{t('member.male')}</MenuItem>
+                          <MenuItem value="F">{t('member.female')}</MenuItem>
                         </Select>
                       </FormControl>
                     </Grid>
                     <Grid item xs={12} sm={6} md={4}>
                       <FormControl fullWidth>
-                        <InputLabel>Married</InputLabel>
+                        <InputLabel>{t('member.married')}</InputLabel>
                         <Select
                           value={searchQuery.married ?? ''}
-                          label="Married"
+                          label={t('member.married')}
                           onChange={(e) =>
                             setSearchQuery({
                               ...searchQuery,
@@ -500,9 +502,9 @@ const TreePage: React.FC = () => {
                             )
                           }
                         >
-                          <MenuItem value="">All</MenuItem>
-                          <MenuItem value={1}>Yes</MenuItem>
-                          <MenuItem value={0}>No</MenuItem>
+                          <MenuItem value="">{t('common.all')}</MenuItem>
+                          <MenuItem value={1}>{t('common.yes')}</MenuItem>
+                          <MenuItem value={0}>{t('common.no')}</MenuItem>
                         </Select>
                       </FormControl>
                     </Grid>
@@ -546,11 +548,11 @@ const TreePage: React.FC = () => {
                     <TableHead>
                       <TableRow>
                         <TableCell>ID</TableCell>
-                        <TableCell>Avatar</TableCell>
-                        <TableCell>Name</TableCell>
-                        <TableCell>Gender</TableCell>
-                        <TableCell>Date of Birth</TableCell>
-                        <TableCell>Married</TableCell>
+                        <TableCell>{t('member.avatar')}</TableCell>
+                        <TableCell>{t('member.name')}</TableCell>
+                        <TableCell>{t('member.gender')}</TableCell>
+                        <TableCell>{t('member.dateOfBirth')}</TableCell>
+                        <TableCell>{t('member.married')}</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
@@ -558,8 +560,8 @@ const TreePage: React.FC = () => {
                         <TableRow>
                           <TableCell colSpan={6} align="center" sx={{ py: 4, color: 'text.secondary' }}>
                             {searchQuery.name || searchQuery.gender || searchQuery.married !== undefined
-                              ? 'No members found matching your filters'
-                              : 'No members found'}
+                              ? t('tree.noMembersMatchingFilters')
+                              : t('member.noMembers')}
                           </TableCell>
                         </TableRow>
                       )}
@@ -568,7 +570,7 @@ const TreePage: React.FC = () => {
                           <TableCell colSpan={6} align="center" sx={{ py: 8 }}>
                             <CircularProgress />
                             <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-                              Loading members...
+                              {t('tree.loadingMembers')}
                             </Typography>
                           </TableCell>
                         </TableRow>
@@ -599,14 +601,14 @@ const TreePage: React.FC = () => {
                           </TableCell>
                           <TableCell>{member.name}</TableCell>
                           <TableCell>
-                            {member.gender === 'M' ? 'Male' : 'Female'}
+                            {member.gender === 'M' ? t('member.male') : t('member.female')}
                           </TableCell>
                           <TableCell>{formatDateOfBirth(member.date_of_birth, isSuperAdmin)}</TableCell>
                           <TableCell>
                             {member.is_married ? (
-                              <Chip label="Yes" color="primary" size="small" />
+                              <Chip label={t('common.yes')} color="primary" size="small" />
                             ) : (
-                              <Chip label="No" size="small" />
+                              <Chip label={t('common.no')} size="small" />
                             )}
                           </TableCell>
                         </TableRow>
@@ -630,7 +632,7 @@ const TreePage: React.FC = () => {
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                         <CircularProgress size={24} />
                         <Typography variant="body2" color="text.secondary">
-                          Loading more members...
+                          {t('tree.loadingMoreMembers')}
                         </Typography>
                       </Box>
                     ) : (
@@ -639,7 +641,7 @@ const TreePage: React.FC = () => {
                         onClick={handleLoadMore}
                         size="large"
                       >
-                        Load More Members
+                        {t('tree.loadMoreMembers')}
                       </Button>
                     )}
                   </Box>
@@ -651,7 +653,7 @@ const TreePage: React.FC = () => {
             {viewMode === 'relation' && relationTree && (
               <Box>
                 <Typography variant="h6" gutterBottom>
-                  Relation Path (Orange highlights show the connection)
+                  {t('tree.relationPath')} {t('tree.relationPathDescription')}
                 </Typography>
                 {treeLayout === 'force' ? (
                   <ForceDirectedTree
@@ -675,10 +677,10 @@ const TreePage: React.FC = () => {
             {viewMode === 'relation' && !relationTree && !relationLoading && (
               <Paper sx={{ p: 5, textAlign: 'center' }}>
                 <Typography variant="h6" color="text.secondary" gutterBottom>
-                  Select Two Members to Find Their Relation
+                  {t('tree.selectTwoMembers')}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  Use the relation finder above to explore family connections
+                  {t('tree.relationFinderDescription')}
                 </Typography>
               </Paper>
             )}
@@ -690,9 +692,9 @@ const TreePage: React.FC = () => {
       <Drawer anchor="right" open={drawerOpen} onClose={() => setDrawerOpen(false)}>
         <Box sx={{ width: 450, p: 3 }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-            <Typography variant="h6">Member Details</Typography>
+            <Typography variant="h6">{t('member.memberDetails')}</Typography>
             <Button onClick={() => setDrawerOpen(false)} startIcon={<Close />}>
-              Close
+              {t('common.close')}
             </Button>
           </Box>
 
@@ -724,7 +726,7 @@ const TreePage: React.FC = () => {
               {selectedMember.full_names && Object.keys(selectedMember.full_names).length > 0 && (
                 <Box sx={{ mt: 2, p: 2, bgcolor: 'background.default', borderRadius: 1 }}>
                   <Typography variant="caption" color="text.secondary" gutterBottom display="block">
-                    Full Name
+                    {t('member.fullName')}
                   </Typography>
                   <Typography variant="body2" fontWeight="medium">
                     {getAllNamesFormatted({ names: selectedMember.full_names })}
@@ -738,14 +740,14 @@ const TreePage: React.FC = () => {
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                 <Box>
                 <Typography variant="subtitle2" color="text.secondary">
-                  Gender
+                  {t('member.gender')}
                 </Typography>
                   <Chip
                     label={
                       selectedMember.gender === 'M'
-                        ? 'Male'
+                        ? t('member.male')
                         : selectedMember.gender === 'F'
-                        ? 'Female'
+                        ? t('member.female')
                         : 'Other'
                     }
                     size="small"
@@ -756,7 +758,7 @@ const TreePage: React.FC = () => {
                 {selectedMember.date_of_birth && (
                   <Box>
                     <Typography variant="subtitle2" color="text.secondary">
-                      Date of Birth
+                      {t('member.dateOfBirth')}
                     </Typography>
                     <Typography variant="body1">
                       {formatDateOfBirth(selectedMember.date_of_birth, isSuperAdmin)}
@@ -767,7 +769,7 @@ const TreePage: React.FC = () => {
                 {selectedMember.date_of_death && (
                   <Box>
                     <Typography variant="subtitle2" color="text.secondary">
-                      Date of Death
+                      {t('member.dateOfDeath')}
                     </Typography>
                     <Typography variant="body1">{formatDate(selectedMember.date_of_death)}</Typography>
                   </Box>
@@ -776,16 +778,16 @@ const TreePage: React.FC = () => {
                 {selectedMember.age && (
                   <Box>
                     <Typography variant="subtitle2" color="text.secondary">
-                      Age
+                      {t('member.age')}
                     </Typography>
-                    <Typography variant="body1">{selectedMember.age} years</Typography>
+                    <Typography variant="body1">{selectedMember.age} {t('member.years')}</Typography>
                   </Box>
                 )}
 
                 {selectedMember.generation_level !== undefined && (
                   <Box>
                     <Typography variant="subtitle2" color="text.secondary">
-                      Generation Level
+                      {t('member.generationLevel')}
                     </Typography>
                     <Typography variant="body1">{selectedMember.generation_level}</Typography>
                   </Box>
@@ -794,7 +796,7 @@ const TreePage: React.FC = () => {
                 {selectedMember.profession && (
                   <Box>
                     <Typography variant="subtitle2" color="text.secondary">
-                      Profession
+                      {t('member.profession')}
                     </Typography>
                     <Typography variant="body1">{selectedMember.profession}</Typography>
                   </Box>
@@ -803,7 +805,7 @@ const TreePage: React.FC = () => {
                 {selectedMember.nicknames && selectedMember.nicknames.length > 0 && (
                   <Box>
                     <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                      Nicknames
+                      {t('member.nicknames')}
                     </Typography>
                     <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
                       {selectedMember.nicknames.map((nickname, idx) => (
@@ -816,7 +818,7 @@ const TreePage: React.FC = () => {
                 {selectedMember.spouses && selectedMember.spouses.length > 0 && (
                   <Box>
                     <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                      Spouses
+                      {t('member.spouses')}
                     </Typography>
                     {selectedMember.spouses.map((spouse) => (
                       <Box
@@ -833,12 +835,12 @@ const TreePage: React.FC = () => {
                         </Typography>
                         {spouse.marriage_date && (
                           <Typography variant="caption" color="text.secondary">
-                            Married: {formatDate(spouse.marriage_date)}
+                            {t('spouse.married')}: {formatDate(spouse.marriage_date)}
                           </Typography>
                         )}
                         {spouse.divorce_date && (
                           <Typography variant="caption" color="text.secondary" display="block">
-                            Divorced: {formatDate(spouse.divorce_date)}
+                            {t('spouse.divorced')}: {formatDate(spouse.divorce_date)}
                           </Typography>
                         )}
                       </Box>
@@ -861,7 +863,7 @@ const TreePage: React.FC = () => {
                       setDrawerOpen(false);
                     }}
                   >
-                    Set as Tree Root
+                    {t('tree.setAsTreeRoot')}
                   </Button>
                 )}
               </Box>

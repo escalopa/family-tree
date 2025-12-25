@@ -19,20 +19,20 @@ func CalculateMarriedYears(marriageDate, divorceDate *time.Time) *int {
 }
 
 type CreateSpouseRequest struct {
-	FatherID     int   `json:"father_id" binding:"required"`
-	MotherID     int   `json:"mother_id" binding:"required"`
+	FatherID     int   `json:"father_id" binding:"required,min=1"`
+	MotherID     int   `json:"mother_id" binding:"required,min=1"`
 	MarriageDate *Date `json:"marriage_date"`
 	DivorceDate  *Date `json:"divorce_date"`
 }
 
 type UpdateSpouseRequest struct {
-	SpouseID     int   `json:"spouse_id" binding:"required"`
+	SpouseID     int   `json:"spouse_id" binding:"required,min=1"`
 	MarriageDate *Date `json:"marriage_date"`
 	DivorceDate  *Date `json:"divorce_date"`
 }
 
 type DeleteSpouseRequest struct {
-	SpouseID int `json:"spouse_id" binding:"required"`
+	SpouseID int `json:"spouse_id" binding:"required,min=1"`
 }
 
 type SpouseInfo struct {

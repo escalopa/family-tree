@@ -12,6 +12,7 @@ import {
   Alert,
   CircularProgress,
   Grid,
+  useTheme,
 } from '@mui/material';
 import { Save } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
@@ -23,6 +24,8 @@ interface LanguageSettingsProps {
 
 const LanguageSettings: React.FC<LanguageSettingsProps> = ({ onSave }) => {
   const { t } = useTranslation();
+  const theme = useTheme();
+  const isRTL = theme.direction === 'rtl';
   const { languages, preferences, loading, error, updatePreferences } = useLanguage();
   const [preferredLanguage, setPreferredLanguage] = useState('');
   const [saving, setSaving] = useState(false);
@@ -79,7 +82,7 @@ const LanguageSettings: React.FC<LanguageSettingsProps> = ({ onSave }) => {
           {t('language.namesLanguage')}
         </Typography>
         <Typography variant="body2" color="text.secondary" paragraph>
-          Choose your preferred language for member names in tree view, avatar initials and member list.
+          {t('language.namesLanguageDescription')}
         </Typography>
 
         {error && (
@@ -131,7 +134,10 @@ const LanguageSettings: React.FC<LanguageSettingsProps> = ({ onSave }) => {
           <Grid item xs={12}>
             <Button
               variant="contained"
-              startIcon={saving ? <CircularProgress size={20} /> : <Save />}
+              {...(isRTL
+                ? { endIcon: saving ? <CircularProgress size={20} /> : <Save /> }
+                : { startIcon: saving ? <CircularProgress size={20} /> : <Save /> }
+              )}
               onClick={handleSave}
               disabled={saving || !preferredLanguage}
               fullWidth
@@ -140,13 +146,6 @@ const LanguageSettings: React.FC<LanguageSettingsProps> = ({ onSave }) => {
             </Button>
           </Grid>
         </Grid>
-
-        <Box sx={{ mt: 2, p: 2, bgcolor: 'background.default', borderRadius: 1 }}>
-          <Typography variant="caption" color="text.secondary">
-            <strong>Note:</strong> Your preferred language will be used for tree view and avatar initials.
-            In list views (members list, tree list), all available names will be displayed regardless of this setting.
-          </Typography>
-        </Box>
       </CardContent>
     </Card>
   );

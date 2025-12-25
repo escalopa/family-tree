@@ -23,11 +23,11 @@ type UpdateMemberRequest struct {
 	Version     int               `json:"version" binding:"required,min=1"`
 }
 
-type MemberSearchQuery struct {
-	Name    *string `form:"name"`
-	Gender  *string `form:"gender"`
-	Married *int    `form:"married"` // 0 = no, 1 = yes
-	Cursor  *string `form:"cursor"`
+type MemberListQuery struct {
+	Name    *string `form:"name" binding:"omitempty,max=100"`
+	Gender  *string `form:"gender" binding:"omitempty,oneof=M F"`
+	Married *bool   `form:"married" binding:"omitempty"`
+	Cursor  *string `form:"cursor" binding:"omitempty"`
 	Limit   int     `form:"limit,default=20" binding:"omitempty,min=1,max=100"`
 }
 
