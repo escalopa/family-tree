@@ -114,3 +114,53 @@ build-backend: ## Build backend binary
 
 build-frontend: ## Build frontend for production
 	cd fe && npm run build
+
+# Production deployment commands
+prod-setup: ## Setup VPS for production (run on VPS)
+	@echo "Setting up VPS for production..."
+	chmod +x scripts/setup-vps.sh
+	sudo ./scripts/setup-vps.sh
+
+prod-init: ## Initialize production environment and SSL certificates
+	@echo "Initializing production environment..."
+	chmod +x scripts/init-ssl.sh
+	./scripts/init-ssl.sh
+
+prod-deploy: ## Deploy application to production
+	@echo "Deploying to production..."
+	chmod +x scripts/deploy.sh
+	./scripts/deploy.sh
+
+prod-up: ## Start production services
+	docker-compose -f docker-compose.prod.yml up -d
+
+prod-down: ## Stop production services
+	docker-compose -f docker-compose.prod.yml down
+
+prod-logs: ## View production logs
+	docker-compose -f docker-compose.prod.yml logs -f
+
+prod-status: ## Check production services status
+	docker-compose -f docker-compose.prod.yml ps
+
+prod-restart: ## Restart production services
+	docker-compose -f docker-compose.prod.yml restart
+
+prod-backup: ## Backup production data
+	@echo "Creating backup..."
+	chmod +x scripts/backup.sh
+	./scripts/backup.sh
+
+prod-maintenance: ## Run maintenance menu
+	@echo "Starting maintenance menu..."
+	chmod +x scripts/maintenance.sh
+	./scripts/maintenance.sh
+
+prod-shell-db: ## Access production database shell
+	docker-compose -f docker-compose.prod.yml exec postgres psql -U familytree -d familytree
+
+prod-shell-redis: ## Access production Redis shell
+	docker-compose -f docker-compose.prod.yml exec redis redis-cli
+
+prod-clean: ## Clean up production Docker resources
+	docker system prune -f

@@ -1,0 +1,46 @@
+# Environment files
+.env
+.env.local
+.env.production
+*.local
+
+# Backend config with secrets
+be/config.yaml
+
+# SSL certificates and certbot files
+certbot/
+
+# Backup files
+backups/
+
+# Docker volumes and data
+postgres_data/
+redis_data/
+minio_data/
+
+# Logs
+*.log
+logs/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Node modules
+node_modules/
+
+# Build outputs
+dist/
+build/
