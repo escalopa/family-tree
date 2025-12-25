@@ -28,6 +28,7 @@ import {
   ResponsiveContainer,
   Legend,
 } from 'recharts';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { usersApi } from '../api';
 import { User, ScoreHistory, HistoryRecord } from '../types';
@@ -38,7 +39,7 @@ import { Roles } from '../types';
 import HistoryDiffDialog from '../components/HistoryDiffDialog';
 
 const UserProfilePage: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { userId } = useParams<{ userId: string }>();
   const { hasRole } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -71,6 +72,9 @@ const UserProfilePage: React.FC = () => {
   const chartData = useMemo(() => {
     if (!scoreHistory || scoreHistory.length === 0) return [];
 
+    // Get current locale from i18n
+    const currentLocale = i18n.language || 'en';
+
     // Sort by date (oldest first)
     const sorted = [...scoreHistory].sort(
       (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
@@ -84,15 +88,15 @@ const UserProfilePage: React.FC = () => {
       return {
         // Use index as unique key for X-axis to prevent grouping
         index: index,
-        date: date.toLocaleDateString('en-US', {
+        date: date.toLocaleDateString(currentLocale, {
           month: 'short',
           day: 'numeric',
         }),
-        time: date.toLocaleTimeString('en-US', {
+        time: date.toLocaleTimeString(currentLocale, {
           hour: '2-digit',
           minute: '2-digit',
         }),
-        dateTime: date.toLocaleString('en-US', {
+        dateTime: date.toLocaleString(currentLocale, {
           month: 'short',
           day: 'numeric',
           year: 'numeric',
@@ -106,7 +110,7 @@ const UserProfilePage: React.FC = () => {
         fieldName: score.field_name,
       };
     });
-  }, [scoreHistory]);
+  }, [scoreHistory, i18n.language]);
 
   useEffect(() => {
     if (userId) {
@@ -215,8 +219,13 @@ const UserProfilePage: React.FC = () => {
 
   return (
     <Layout>
-      <Box>
+      <Box sx={{ width: '100%' }}>
         {/* User Info Card */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+        >
         <Paper sx={{ p: 3, mb: 3 }}>
           <Grid container spacing={3}>
             <Grid item xs={12} md={4} sx={{ textAlign: 'center' }}>
@@ -272,8 +281,14 @@ const UserProfilePage: React.FC = () => {
             </Grid>
           </Grid>
         </Paper>
+        </motion.div>
 
         {/* Tabs */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.1 }}
+        >
         <Paper>
           <Tabs
             value={activeTab}
@@ -292,8 +307,16 @@ const UserProfilePage: React.FC = () => {
             {hasRole(Roles.SUPER_ADMIN) && <Tab label={t('userProfile.recentChanges')} />}
           </Tabs>
 
+          <AnimatePresence mode="wait">
           {/* Score History Tab */}
           {activeTab === 0 && (
+            <motion.div
+              key="score-history"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 20 }}
+              transition={{ duration: 0.3 }}
+            >
             <Box sx={{ p: 2 }}>
               {loadingScoreHistory ? (
                 <Box sx={{ textAlign: 'center', py: 4 }}>
@@ -316,7 +339,7 @@ const UserProfilePage: React.FC = () => {
                     </Typography>
                   </Box>
                   <ResponsiveContainer width="100%" height={420}>
-                    <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 70 }}>
+                    <LineChart data={chartData} margin={{ top: 30, right: 30, left: 20, bottom: 70 }}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis
                         dataKey="index"
@@ -397,7 +420,7 @@ const UserProfilePage: React.FC = () => {
                           return null;
                         }}
                       />
-                      <Legend />
+                      <Legend verticalAlign="top" height={36} />
                       <Line
                         type="monotone"
                         dataKey="cumulative"
@@ -431,10 +454,10 @@ const UserProfilePage: React.FC = () => {
                 <Table>
                   <TableHead>
                     <TableRow>
-                      <TableCell>{t('userProfile.member')}</TableCell>
-                      <TableCell>{t('userProfile.field')}</TableCell>
-                      <TableCell>{t('userProfile.points')}</TableCell>
-                      <TableCell>{t('userProfile.date')}</TableCell>
+                      <TableCell className="table-header-cell">{t('userProfile.member')}</TableCell>
+                      <TableCell className="table-header-cell">{t('userProfile.field')}</TableCell>
+                      <TableCell className="table-header-cell numeric-cell">{t('userProfile.points')}</TableCell>
+                      <TableCell className="table-header-cell numeric-cell">{t('userProfile.date')}</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -449,14 +472,14 @@ const UserProfilePage: React.FC = () => {
                     ) : (
                       scoreHistory.slice(0, displayedScoreCount).map((score, idx) => (
                         <TableRow key={idx}>
-                          <TableCell>
+                          <TableCell className="mixed-content-cell">
                             {score.member_name}
                           </TableCell>
                           <TableCell>{score.field_name}</TableCell>
-                          <TableCell>
+                          <TableCell className="numeric-cell">
                             <Chip label={`+${score.points}`} color="primary" size="small" />
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="numeric-cell">
                             <Box>
                               <Typography variant="body2">{formatDateTime(score.created_at)}</Typography>
                               <Typography variant="caption" color="text.secondary">
@@ -483,10 +506,18 @@ const UserProfilePage: React.FC = () => {
                 </>
               )}
             </Box>
+            </motion.div>
           )}
 
           {/* Recent Changes Tab (Super Admin only) */}
           {activeTab === 1 && hasRole(Roles.SUPER_ADMIN) && (
+            <motion.div
+              key="recent-changes"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 20 }}
+              transition={{ duration: 0.3 }}
+            >
             <Box sx={{ p: 2 }}>
               {loadingUserChanges ? (
                 <Box sx={{ textAlign: 'center', py: 4 }}>
@@ -504,10 +535,10 @@ const UserProfilePage: React.FC = () => {
                     <Table>
                       <TableHead>
                         <TableRow>
-                          <TableCell>{t('userProfile.changeType')}</TableCell>
-                          <TableCell>{t('userProfile.member')}</TableCell>
-                          <TableCell>{t('userProfile.date')}</TableCell>
-                          <TableCell>{t('history.version')}</TableCell>
+                          <TableCell className="table-header-cell">{t('userProfile.changeType')}</TableCell>
+                          <TableCell className="table-header-cell">{t('userProfile.member')}</TableCell>
+                          <TableCell className="table-header-cell numeric-cell">{t('userProfile.date')}</TableCell>
+                          <TableCell className="table-header-cell numeric-cell">{t('history.version')}</TableCell>
                         </TableRow>
                       </TableHead>
                       <TableBody>
@@ -525,14 +556,14 @@ const UserProfilePage: React.FC = () => {
                                 color={getChangeTypeColor(change.change_type)}
                               />
                             </TableCell>
-                            <TableCell>
+                            <TableCell className="mixed-content-cell">
                               {change.member_name || (
-                                <Typography variant="body2" color="text.secondary">
+                                <Typography variant="body2" color="text.secondary" className="numeric-cell">
                                   ID: {change.member_id} ({t('userProfile.deleted')})
                                 </Typography>
                               )}
                             </TableCell>
-                            <TableCell>
+                            <TableCell className="numeric-cell">
                               <Box>
                                 <Typography variant="body2">{formatDateTime(change.changed_at)}</Typography>
                                 <Typography variant="caption" color="text.secondary">
@@ -540,7 +571,7 @@ const UserProfilePage: React.FC = () => {
                                 </Typography>
                               </Box>
                             </TableCell>
-                            <TableCell>{change.member_version}</TableCell>
+                            <TableCell className="numeric-cell">{change.member_version}</TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
@@ -559,8 +590,11 @@ const UserProfilePage: React.FC = () => {
                 </>
               )}
             </Box>
+            </motion.div>
           )}
+          </AnimatePresence>
         </Paper>
+        </motion.div>
 
         {/* History Diff Dialog */}
         <HistoryDiffDialog

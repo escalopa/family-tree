@@ -9,14 +9,18 @@ import (
 )
 
 type Router struct {
-	authHandler     AuthHandler
-	userHandler     UserHandler
-	memberHandler   MemberHandler
-	spouseHandler   SpouseHandler
-	treeHandler     TreeHandler
-	languageHandler LanguageHandler
-	authMiddleware  AuthMiddleware
-	allowedOrigins  []string
+	authHandler               AuthHandler
+	userHandler               UserHandler
+	memberHandler             MemberHandler
+	spouseHandler             SpouseHandler
+	treeHandler               TreeHandler
+	languageHandler           LanguageHandler
+	authMiddleware            AuthMiddleware
+	allowedOrigins            []string
+	enableHSTS                bool
+	authRateLimitMiddleware   RateLimitMiddleware
+	apiRateLimitMiddleware    RateLimitMiddleware
+	uploadRateLimitMiddleware RateLimitMiddleware
 }
 
 func NewRouter(
@@ -28,20 +32,29 @@ func NewRouter(
 	languageHandler LanguageHandler,
 	authMiddleware AuthMiddleware,
 	allowedOrigins []string,
+	enableHSTS bool,
+	authRateLimitMiddleware RateLimitMiddleware,
+	apiRateLimitMiddleware RateLimitMiddleware,
+	uploadRateLimitMiddleware RateLimitMiddleware,
 ) *Router {
 	return &Router{
-		authHandler:     authHandler,
-		userHandler:     userHandler,
-		memberHandler:   memberHandler,
-		spouseHandler:   spouseHandler,
-		treeHandler:     treeHandler,
-		languageHandler: languageHandler,
-		authMiddleware:  authMiddleware,
-		allowedOrigins:  allowedOrigins,
+		authHandler:               authHandler,
+		userHandler:               userHandler,
+		memberHandler:             memberHandler,
+		spouseHandler:             spouseHandler,
+		treeHandler:               treeHandler,
+		languageHandler:           languageHandler,
+		authMiddleware:            authMiddleware,
+		allowedOrigins:            allowedOrigins,
+		enableHSTS:                enableHSTS,
+		authRateLimitMiddleware:   authRateLimitMiddleware,
+		apiRateLimitMiddleware:    apiRateLimitMiddleware,
+		uploadRateLimitMiddleware: uploadRateLimitMiddleware,
 	}
 }
 
 func (r *Router) Setup(engine *gin.Engine) {
+	engine.Use(middleware.SecurityHeaders(r.enableHSTS))
 	engine.Use(middleware.CORS(r.allowedOrigins))
 	engine.Use(middleware.LanguageMiddleware())
 
@@ -52,6 +65,7 @@ func (r *Router) Setup(engine *gin.Engine) {
 	})
 
 	auth := engine.Group("/auth")
+	auth.Use(r.authRateLimitMiddleware.RateLimit())
 	{
 		auth.GET("/providers", r.authHandler.GetProviders)
 		auth.GET("/:provider", r.authHandler.GetAuthURL)
@@ -60,6 +74,7 @@ func (r *Router) Setup(engine *gin.Engine) {
 
 	api := engine.Group("/api")
 	api.Use(r.authMiddleware.Authenticate())
+	api.Use(r.apiRateLimitMiddleware.RateLimit())
 	{
 		authGroup := api.Group("/auth")
 		{
@@ -99,7 +114,8 @@ func (r *Router) Setup(engine *gin.Engine) {
 			memberGroup.POST("", middleware.RequireRole(domain.RoleAdmin), r.memberHandler.Create)
 			memberGroup.PUT("/:member_id", middleware.RequireRole(domain.RoleAdmin), r.memberHandler.Update)
 			memberGroup.DELETE("/:member_id", middleware.RequireRole(domain.RoleSuperAdmin), r.memberHandler.Delete)
-			memberGroup.POST("/:member_id/picture", middleware.RequireRole(domain.RoleAdmin), r.memberHandler.UploadPicture)
+
+			memberGroup.POST("/:member_id/picture", r.uploadRateLimitMiddleware.RateLimit(), middleware.RequireRole(domain.RoleAdmin), r.memberHandler.UploadPicture)
 			memberGroup.DELETE("/:member_id/picture", middleware.RequireRole(domain.RoleAdmin), r.memberHandler.DeletePicture)
 		}
 

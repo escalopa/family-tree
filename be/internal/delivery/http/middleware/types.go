@@ -27,3 +27,7 @@ type AuthUseCase interface {
 type UserRepository interface {
 	Get(ctx context.Context, userID int) (*domain.User, error)
 }
+
+type RateLimiter interface {
+	Allow(ctx context.Context, key string) (bool, error)
+}

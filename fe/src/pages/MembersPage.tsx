@@ -34,9 +34,11 @@ import {
   Tooltip,
 } from '@mui/material';
 import { Add, Delete, FilterAlt, Clear, Close } from '@mui/icons-material';
+import { motion } from 'framer-motion';
 import { membersApi } from '../api';
 import { Member, MemberListItem, MemberSearchQuery, CreateMemberRequest, UpdateMemberRequest, HistoryRecord, Roles } from '../types';
 import { formatDateOfBirth, getMemberPictureUrl, formatDateTime, formatRelativeTime, getChangeTypeColor, getLocalizedLanguageName } from '../utils/helpers';
+import DirectionalButton from '../components/DirectionalButton';
 import Layout from '../components/Layout/Layout';
 import MemberPhotoUpload from '../components/MemberPhotoUpload';
 import ParentAutocomplete from '../components/ParentAutocomplete';
@@ -61,6 +63,9 @@ const MembersPage: React.FC = () => {
   const [hasMore, setHasMore] = useState(false);
   const [openDialog, setOpenDialog] = useState(false);
   const [openAddSpouseDialog, setOpenAddSpouseDialog] = useState(false);
+  const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
+  const [memberToDelete, setMemberToDelete] = useState<number | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const [editingMember, setEditingMember] = useState<Member | null>(null);
   const [originalFormData, setOriginalFormData] = useState<CreateMemberRequest | null>(null);
   const [formData, setFormData] = useState<CreateMemberRequest>({
@@ -336,28 +341,33 @@ const MembersPage: React.FC = () => {
     }
   };
 
-  const handleDelete = async (memberId: number) => {
-    const confirmMessage =
-      '⚠️ WARNING: This will DELETE this member and clean up all associated data.\n\n' +
-      'The following will be removed:\n' +
-      '• All member names in all languages\n' +
-      '• All spouse relationships\n' +
-      '• Member profile picture from storage\n' +
-      '• Member will be marked as deleted (soft delete)\n\n' +
-      'A history record will be kept for audit purposes.\n\n' +
-      'Are you absolutely sure you want to proceed?';
+  const handleDeleteClick = (memberId: number) => {
+    setMemberToDelete(memberId);
+    setOpenDeleteDialog(true);
+  };
 
-    if (confirm(confirmMessage)) {
-      try {
-        await membersApi.deleteMember(memberId);
-        handleCloseDialog(); // Close dialog after delete
-        performSearch(searchQuery); // Refresh list
-      } catch (error: any) {
-        console.error('delete member:', error);
-        const errorMessage = error?.response?.data?.error || 'Failed to delete member. This member may have children or other dependencies.';
-        enqueueSnackbar(errorMessage, { variant: 'error' });
-      }
+  const handleDeleteConfirm = async () => {
+    if (!memberToDelete) return;
+
+    setDeleting(true);
+    try {
+      await membersApi.deleteMember(memberToDelete);
+      setOpenDeleteDialog(false);
+      setMemberToDelete(null);
+      handleCloseDialog(); // Close dialog after delete
+      performSearch(searchQuery); // Refresh list
+    } catch (error: any) {
+      console.error('delete member:', error);
+      const errorMessage = error?.response?.data?.error || t('member.failedToDeleteMember');
+      enqueueSnackbar(errorMessage, { variant: 'error' });
+    } finally {
+      setDeleting(false);
     }
+  };
+
+  const handleDeleteCancel = () => {
+    setOpenDeleteDialog(false);
+    setMemberToDelete(null);
   };
 
   const handlePhotoChange = async (memberId: number, pictureUrl: string | null) => {
@@ -383,8 +393,13 @@ const MembersPage: React.FC = () => {
 
   return (
     <Layout>
-      <Box>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
+      <Box sx={{ width: '100%' }}>
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+        >
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, width: '100%' }}>
           <Typography variant="h4">{t('members.management')}</Typography>
           <Tooltip title={t('member.addMember')}>
             <IconButton
@@ -393,6 +408,9 @@ const MembersPage: React.FC = () => {
               sx={{
                 bgcolor: 'primary.main',
                 color: 'white',
+                width: 40,
+                height: 40,
+                flexShrink: 0,
                 '&:hover': {
                   bgcolor: 'primary.dark',
                 },
@@ -402,11 +420,17 @@ const MembersPage: React.FC = () => {
             </IconButton>
           </Tooltip>
         </Box>
+        </motion.div>
 
         {/* Search Filters */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.1 }}
+        >
         <Paper sx={{ p: 2, mb: 3 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-            <FilterAlt sx={{ mr: 1, color: 'text.secondary' }} />
+            <FilterAlt sx={{ marginInlineEnd: 1, color: 'text.secondary' }} />
             <Typography variant="h6" sx={{ flexGrow: 1 }}>
               {t('tree.searchFilters')} {!searchQuery.name && !searchQuery.gender && searchQuery.married === undefined && t('tree.showingAllMembers')}
             </Typography>
@@ -457,7 +481,7 @@ const MembersPage: React.FC = () => {
                   }
                   endAdornment={
                     searchQuery.gender && (
-                      <InputAdornment position="end" sx={{ mr: 3 }}>
+                      <InputAdornment position="end" sx={{ marginInlineEnd: 3 }}>
                         <IconButton
                           size="small"
                           onClick={() => handleClearFilter('gender')}
@@ -489,7 +513,7 @@ const MembersPage: React.FC = () => {
                   }
                   endAdornment={
                     searchQuery.married !== undefined && (
-                      <InputAdornment position="end" sx={{ mr: 3 }}>
+                      <InputAdornment position="end" sx={{ marginInlineEnd: 3 }}>
                         <IconButton
                           size="small"
                           onClick={() => handleClearFilter('married')}
@@ -514,8 +538,14 @@ const MembersPage: React.FC = () => {
             </Box>
           )}
         </Paper>
+        </motion.div>
 
         {/* Members Table */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.2 }}
+        >
         <TableContainer
           component={Paper}
           ref={tableRef}
@@ -547,12 +577,12 @@ const MembersPage: React.FC = () => {
           <Table>
             <TableHead>
               <TableRow>
-                <TableCell sx={{ textAlign: 'start' }}>{t('member.id')}</TableCell>
-                <TableCell sx={{ textAlign: 'start' }}>{t('member.avatar')}</TableCell>
-                <TableCell sx={{ textAlign: 'start' }}>{t('member.name')}</TableCell>
-                <TableCell sx={{ textAlign: 'start' }}>{t('member.gender')}</TableCell>
-                <TableCell sx={{ textAlign: 'start' }}>{t('member.dateOfBirth')}</TableCell>
-                <TableCell sx={{ textAlign: 'start' }}>{t('member.married')}</TableCell>
+                <TableCell className="table-header-cell numeric-cell">{t('member.id')}</TableCell>
+                <TableCell className="table-header-cell">{t('member.avatar')}</TableCell>
+                <TableCell className="table-header-cell">{t('member.name')}</TableCell>
+                <TableCell className="table-header-cell">{t('member.gender')}</TableCell>
+                <TableCell className="table-header-cell numeric-cell">{t('member.dateOfBirth')}</TableCell>
+                <TableCell className="table-header-cell">{t('member.married')}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -582,7 +612,7 @@ const MembersPage: React.FC = () => {
                   sx={{ cursor: 'pointer' }}
                   onClick={() => handleOpenDialog(member)}
                 >
-                  <TableCell>
+                  <TableCell className="numeric-cell">
                     <Typography variant="body2" color="text.secondary">
                       #{member.member_id}
                     </Typography>
@@ -599,11 +629,11 @@ const MembersPage: React.FC = () => {
                       {member.name?.[0] || '?'}
                     </Avatar>
                   </TableCell>
-                  <TableCell>{member.name}</TableCell>
+                  <TableCell className="mixed-content-cell">{member.name}</TableCell>
                   <TableCell>
                     {member.gender === 'M' ? t('member.male') : t('member.female')}
                   </TableCell>
-                  <TableCell>{formatDateOfBirth(member.date_of_birth, isSuperAdmin)}</TableCell>
+                  <TableCell className="numeric-cell">{formatDateOfBirth(member.date_of_birth, isSuperAdmin)}</TableCell>
                   <TableCell>
                     {member.is_married ? (
                       <Chip label={t('common.yes')} color="primary" size="small" />
@@ -636,16 +666,17 @@ const MembersPage: React.FC = () => {
                 </Typography>
               </Box>
             ) : (
-              <Button
+              <DirectionalButton
                 variant="outlined"
                 onClick={handleLoadMore}
                 size="large"
               >
                 {t('tree.loadMoreMembers')}
-              </Button>
+              </DirectionalButton>
             )}
           </Box>
         )}
+        </motion.div>
 
         {/* Create/Edit Dialog */}
         <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="lg" fullWidth>
@@ -673,7 +704,16 @@ const MembersPage: React.FC = () => {
               <Grid container spacing={2} sx={{ mt: 1 }}>
               {editingMember && (
                 <Grid item xs={12}>
-                  <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 2 }}>
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      py: 3,
+                      gap: 2,
+                    }}
+                  >
+                    {/* Avatar */}
                     <MemberPhotoUpload
                       memberId={editingMember.member_id}
                       currentPhoto={editingMember.picture}
@@ -682,11 +722,18 @@ const MembersPage: React.FC = () => {
                       version={editingMember.version}
                       onPhotoChange={handlePhotoChange}
                       size={120}
-                      showName
+                      showName={false}
                     />
+
+                    {/* Member Name */}
+                    <Typography variant="h6" sx={{ textAlign: 'center' }}>
+                      {editingMember.name}
+                    </Typography>
+
+                    {/* Full Name - only if exists */}
                     {editingMember.full_name && (
-                      <Box sx={{ mt: 2, textAlign: 'center' }}>
-                        <Typography variant="caption" color="text.secondary" gutterBottom>
+                      <Box sx={{ textAlign: 'center' }}>
+                        <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
                           {t('member.fullName')}
                         </Typography>
                         <Typography variant="body2" fontWeight="medium">
@@ -694,9 +741,11 @@ const MembersPage: React.FC = () => {
                         </Typography>
                       </Box>
                     )}
+
+                    {/* Age - only if exists */}
                     {editingMember.age !== undefined && editingMember.age !== null && (
-                      <Box sx={{ mt: 1, textAlign: 'center' }}>
-                        <Typography variant="caption" color="text.secondary">
+                      <Box sx={{ textAlign: 'center' }}>
+                        <Typography variant="body2" color="text.secondary">
                           {t('member.age')}: <strong>{editingMember.age} {t('member.years')}</strong>
                         </Typography>
                       </Box>
@@ -902,14 +951,14 @@ const MembersPage: React.FC = () => {
                     <Typography variant="h6">
                       {t('member.spouses')} {editingMember.spouses && editingMember.spouses.length > 0 && `(${editingMember.spouses.length})`}
                     </Typography>
-                    <Button
-                      variant="outlined"
-                      size="small"
-                      startIcon={<Add />}
-                      onClick={() => setOpenAddSpouseDialog(true)}
-                    >
-                      {t('spouse.addSpouse')}
-                    </Button>
+                <DirectionalButton
+                  variant="outlined"
+                  size="small"
+                  icon={<Add />}
+                  onClick={() => setOpenAddSpouseDialog(true)}
+                >
+                  {t('spouse.addSpouse')}
+                </DirectionalButton>
                   </Box>
                   <Grid container spacing={2}>
                     {editingMember.spouses && editingMember.spouses.length > 0 ? (
@@ -1107,9 +1156,9 @@ const MembersPage: React.FC = () => {
             <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
               <Box>
                 {editingMember && isSuperAdmin && (
-                  <Tooltip title="Delete this member permanently (Super Admin only)">
+                  <Tooltip title={t('member.deleteMemberTooltip')}>
                     <IconButton
-                      onClick={() => handleDelete(editingMember.member_id)}
+                      onClick={() => handleDeleteClick(editingMember.member_id)}
                       color="error"
                       size="small"
                     >
@@ -1160,6 +1209,66 @@ const MembersPage: React.FC = () => {
           onClose={handleCloseDiff}
           history={selectedHistory}
         />
+
+        {/* Delete Confirmation Dialog */}
+        <Dialog
+          open={openDeleteDialog}
+          onClose={handleDeleteCancel}
+          maxWidth="sm"
+          fullWidth
+        >
+          <DialogTitle sx={{ color: 'error.main' }}>
+            {t('member.deleteWarningTitle')}
+          </DialogTitle>
+          <DialogContent>
+            <Typography variant="body1" gutterBottom>
+              {t('member.deleteWarningMessage')}
+            </Typography>
+
+            <Typography variant="subtitle2" sx={{ mt: 2, mb: 1, fontWeight: 'bold' }}>
+              {t('member.deleteWillRemove')}
+            </Typography>
+
+            <Box component="ul" sx={{ pl: 2, my: 1 }}>
+              <Typography component="li" variant="body2" sx={{ mb: 0.5 }}>
+                {t('member.deleteItemNames')}
+              </Typography>
+              <Typography component="li" variant="body2" sx={{ mb: 0.5 }}>
+                {t('member.deleteItemSpouses')}
+              </Typography>
+              <Typography component="li" variant="body2" sx={{ mb: 0.5 }}>
+                {t('member.deleteItemPicture')}
+              </Typography>
+              <Typography component="li" variant="body2" sx={{ mb: 0.5 }}>
+                {t('member.deleteItemSoftDelete')}
+              </Typography>
+            </Box>
+
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 2, mb: 2 }}>
+              {t('member.deleteHistoryNote')}
+            </Typography>
+
+            <Typography variant="body1" sx={{ mt: 2, fontWeight: 'bold', color: 'error.main' }}>
+              {t('member.deleteConfirmation')}
+            </Typography>
+          </DialogContent>
+          <DialogActions>
+            <Button
+              onClick={handleDeleteCancel}
+              disabled={deleting}
+            >
+              {t('common.cancel')}
+            </Button>
+            <Button
+              onClick={handleDeleteConfirm}
+              variant="contained"
+              color="error"
+              disabled={deleting}
+            >
+              {deleting ? t('member.deleting') : t('member.deleteMember')}
+            </Button>
+          </DialogActions>
+        </Dialog>
       </Box>
     </Layout>
   );

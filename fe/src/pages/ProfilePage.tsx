@@ -24,11 +24,10 @@ import SettingsContent from '../components/SettingsContent';
 import { useAuth } from '../contexts/AuthContext';
 import { authApi } from '../api';
 import { getRoleName } from '../utils/helpers';
+import DirectionalButton from '../components/DirectionalButton';
 
 const ProfilePage: React.FC = () => {
   const { t } = useTranslation();
-  const theme = useTheme();
-  const isRTL = theme.direction === 'rtl';
   const navigate = useNavigate();
   const { user, setUser } = useAuth();
 
@@ -118,14 +117,14 @@ const ProfilePage: React.FC = () => {
                   </Box>
 
               <Box sx={{ mt: 3 }}>
-                <Button
+                <DirectionalButton
                   variant="contained"
-                  {...(isRTL ? { endIcon: <Leaderboard /> } : { startIcon: <Leaderboard /> })}
+                  icon={<Leaderboard />}
                   onClick={() => navigate(`/users/${user.user_id}`)}
                   fullWidth
                 >
                   {t('profile.viewProgressAndScores')}
-                </Button>
+                </DirectionalButton>
               </Box>
                 </motion.div>
               </Grid>
@@ -160,26 +159,26 @@ const ProfilePage: React.FC = () => {
             <Divider sx={{ my: 2 }} />
             <Grid container spacing={2}>
               <Grid item xs={12} sm={6}>
-                <Button
+                <DirectionalButton
                   variant="outlined"
                   color="primary"
-                  {...(isRTL ? { endIcon: <ExitToApp /> } : { startIcon: <ExitToApp /> })}
+                  icon={<ExitToApp />}
                   onClick={handleLogout}
                   fullWidth
                 >
                   {t('common.logout')}
-                </Button>
+                </DirectionalButton>
               </Grid>
               <Grid item xs={12} sm={6}>
-                <Button
+                <DirectionalButton
                   variant="outlined"
                   color="error"
-                  {...(isRTL ? { endIcon: <PowerSettingsNew /> } : { startIcon: <PowerSettingsNew /> })}
+                  icon={<PowerSettingsNew />}
                   onClick={handleLogoutAll}
                   fullWidth
                 >
                   {t('auth.logoutFromAllDevices')}
-                </Button>
+                </DirectionalButton>
               </Grid>
             </Grid>
           </Paper>

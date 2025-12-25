@@ -17,6 +17,7 @@ import {
   Grid,
 } from '@mui/material';
 import { Edit, HeartBroken, Delete } from '@mui/icons-material';
+import { useTranslation } from 'react-i18next';
 import { SpouseInfo } from '../types';
 import { formatDate, getMemberPictureUrl } from '../utils/helpers';
 import { spousesApi } from '../api';
@@ -35,6 +36,7 @@ const SpouseCard: React.FC<SpouseCardProps> = ({
   editable = true,
   onMemberClick,
 }) => {
+  const { t } = useTranslation();
   const [openDialog, setOpenDialog] = useState(false);
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [marriageDate, setMarriageDate] = useState(spouse.marriage_date || '');
@@ -66,7 +68,7 @@ const SpouseCard: React.FC<SpouseCardProps> = ({
       }
     } catch (error) {
       console.error('update spouse:', error);
-      enqueueSnackbar('Failed to update spouse information', { variant: 'error' });
+      enqueueSnackbar(t('spouse.failedToUpdateSpouse'), { variant: 'error' });
     } finally {
       setSaving(false);
     }
@@ -82,7 +84,7 @@ const SpouseCard: React.FC<SpouseCardProps> = ({
       }
     } catch (error: any) {
       console.error('delete spouse:', error);
-      const errorMessage = error?.response?.data?.error || 'Failed to delete spouse relationship';
+      const errorMessage = error?.response?.data?.error || t('spouse.failedToDeleteSpouse');
       enqueueSnackbar(errorMessage, { variant: 'error' });
     } finally {
       setDeleting(false);
@@ -120,7 +122,7 @@ const SpouseCard: React.FC<SpouseCardProps> = ({
           sx={{
             width: 60,
             height: 60,
-            mr: 2,
+            marginInlineEnd: 2,
             bgcolor: spouse.gender === 'M' ? '#00BCD4' : '#E91E63',
           }}
         >
@@ -132,7 +134,7 @@ const SpouseCard: React.FC<SpouseCardProps> = ({
             {isDivorced && (
               <Chip
                 icon={<HeartBroken />}
-                label="Divorced"
+                label={t('spouse.divorced')}
                 size="small"
                 color="error"
               />
@@ -140,15 +142,15 @@ const SpouseCard: React.FC<SpouseCardProps> = ({
           </Box>
           {spouse.marriage_date && (
             <Typography variant="caption" color="text.secondary">
-              Married: {formatDate(spouse.marriage_date)}
+              {t('spouse.marriedLabel')} {formatDate(spouse.marriage_date)}
               {spouse.married_years !== null && spouse.married_years !== undefined && (
-                <> ({spouse.married_years} {spouse.married_years === 1 ? 'year' : 'years'})</>
+                <> ({spouse.married_years} {spouse.married_years === 1 ? t('spouse.year') : t('spouse.years')})</>
               )}
             </Typography>
           )}
           {spouse.divorce_date && (
             <Typography variant="caption" color="text.secondary" display="block">
-              Divorced: {formatDate(spouse.divorce_date)}
+              {t('spouse.divorced')}: {formatDate(spouse.divorce_date)}
             </Typography>
           )}
         </CardContent>
@@ -166,18 +168,18 @@ const SpouseCard: React.FC<SpouseCardProps> = ({
 
       {/* Edit Dialog */}
       <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
-        <DialogTitle>Edit Spouse Information</DialogTitle>
+        <DialogTitle>{t('spouse.editSpouse')}</DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
             <Grid item xs={12}>
               <Typography variant="body2" color="text.secondary" gutterBottom>
-                Editing marriage information for {spouse.name || 'Unknown'}
+                {t('spouse.editingMarriageInfo', { name: spouse.name || 'Unknown' })}
               </Typography>
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
-                label="Marriage Date"
+                label={t('spouse.marriageDate')}
                 type="date"
                 InputLabelProps={{ shrink: true }}
                 value={marriageDate}
@@ -187,7 +189,7 @@ const SpouseCard: React.FC<SpouseCardProps> = ({
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
-                label="Divorce Date"
+                label={t('spouse.divorceDate')}
                 type="date"
                 InputLabelProps={{ shrink: true }}
                 value={divorceDate}
@@ -198,31 +200,31 @@ const SpouseCard: React.FC<SpouseCardProps> = ({
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseDialog} disabled={saving}>
-            Cancel
+            {t('common.cancel')}
           </Button>
           <Button onClick={handleSave} variant="contained" disabled={saving}>
-            {saving ? 'Saving...' : 'Save'}
+            {saving ? t('common.saving') : t('common.save')}
           </Button>
         </DialogActions>
       </Dialog>
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={openDeleteDialog} onClose={() => setOpenDeleteDialog(false)}>
-        <DialogTitle>Delete Spouse Relationship</DialogTitle>
+        <DialogTitle>{t('spouse.deleteSpouse')}</DialogTitle>
         <DialogContent>
           <Typography>
-            Are you sure you want to delete the spouse relationship with {spouse.name || 'Unknown'}?
+            {t('spouse.deleteConfirmation', { name: spouse.name || 'Unknown' })}
           </Typography>
           <Typography variant="body2" color="error" sx={{ mt: 2 }}>
-            Note: You cannot delete a spouse relationship if there are children with both parents.
+            {t('spouse.deleteWarning')}
           </Typography>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenDeleteDialog(false)} disabled={deleting}>
-            Cancel
+            {t('common.cancel')}
           </Button>
           <Button onClick={handleDelete} variant="contained" color="error" disabled={deleting}>
-            {deleting ? 'Deleting...' : 'Delete'}
+            {deleting ? t('spouse.deleting') : t('common.delete')}
           </Button>
         </DialogActions>
       </Dialog>

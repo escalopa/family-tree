@@ -1,6 +1,7 @@
 import React from 'react';
 import { Box, Card, CardContent, Typography, Container, Button } from '@mui/material';
 import { Block } from '@mui/icons-material';
+import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 
 const UnauthorizedPage: React.FC = () => {
@@ -16,6 +17,11 @@ const UnauthorizedPage: React.FC = () => {
           justifyContent: 'center',
         }}
       >
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.4 }}
+        >
         <Card>
           <CardContent sx={{ textAlign: 'center', p: 4 }}>
             <Block color="error" sx={{ fontSize: 60, mb: 2 }} />
@@ -30,6 +36,7 @@ const UnauthorizedPage: React.FC = () => {
             </Button>
           </CardContent>
         </Card>
+        </motion.div>
       </Box>
     </Container>
   );

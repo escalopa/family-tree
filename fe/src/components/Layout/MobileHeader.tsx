@@ -22,7 +22,7 @@ const MobileHeader: React.FC<MobileHeaderProps> = ({ onMenuClick }) => {
           aria-label="open drawer"
           edge="start"
           onClick={onMenuClick}
-          sx={{ mr: 2 }}
+          sx={{ marginInlineEnd: 2 }}
         >
           <MenuIcon />
         </IconButton>
@@ -44,4 +44,3 @@ const MobileHeader: React.FC<MobileHeaderProps> = ({ onMenuClick }) => {
 };
 
 export default MobileHeader;
-

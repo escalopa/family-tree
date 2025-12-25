@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"log/slog"
+	"slices"
 
 	"github.com/escalopa/family-tree/internal/config"
 	"github.com/escalopa/family-tree/internal/db"
@@ -12,19 +13,23 @@ import (
 	"github.com/escalopa/family-tree/internal/delivery/http/middleware"
 	"github.com/escalopa/family-tree/internal/pkg/i18n"
 	"github.com/escalopa/family-tree/internal/pkg/oauth"
+	"github.com/escalopa/family-tree/internal/pkg/ratelimit"
+	"github.com/escalopa/family-tree/internal/pkg/redis"
 	"github.com/escalopa/family-tree/internal/pkg/s3"
 	"github.com/escalopa/family-tree/internal/pkg/token"
 	"github.com/escalopa/family-tree/internal/repository"
 	"github.com/escalopa/family-tree/internal/usecase"
+	"github.com/escalopa/family-tree/internal/worker"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type App struct {
-	cfg    *config.Config
-	pool   *pgxpool.Pool
-	engine *gin.Engine
+	cfg          *config.Config
+	pool         *pgxpool.Pool
+	engine       *gin.Engine
+	cleanupFuncs []func()
 }
 
 func NewApp(cfg *config.Config) (*App, error) {
@@ -32,7 +37,7 @@ func NewApp(cfg *config.Config) (*App, error) {
 
 	// Initialize i18n translations (embedded)
 	if err := i18n.Init(); err != nil {
-		slog.Error("App.NewApp: failed to initialize i18n", "error", err)
+		slog.Error("App.NewApp: initialize i18n", "error", err)
 		return nil, err
 	}
 
@@ -46,6 +51,13 @@ func NewApp(cfg *config.Config) (*App, error) {
 
 	slog.Info("App.NewApp: database connected")
 
+	redisClient, err := redis.NewClient(ctx, cfg.Redis.URI)
+	if err != nil {
+		return nil, err
+	}
+
+	slog.Info("App.NewApp: redis connected")
+
 	s3Client, err := s3.NewS3Client(
 		ctx,
 		cfg.S3.Endpoint,
@@ -53,9 +65,10 @@ func NewApp(cfg *config.Config) (*App, error) {
 		cfg.S3.AccessKey,
 		cfg.S3.SecretKey,
 		cfg.S3.Bucket,
+		cfg.Upload.MaxImageSize,
+		cfg.Upload.AllowedImageExts,
 	)
 	if err != nil {
-		pool.Close()
 		return nil, err
 	}
 
@@ -97,6 +110,19 @@ func NewApp(cfg *config.Config) (*App, error) {
 
 	authMiddleware := middleware.NewAuthMiddleware(tokenMgr, authUseCase, userRepo, cookieManager)
 
+	authLimiterMiddleware := middleware.NewRateLimiter(
+		ratelimit.New(redisClient, cfg.RateLimit.Auth),
+		cfg.RateLimit.Auth.Enabled,
+	)
+	apiLimiterMiddleware := middleware.NewRateLimiter(
+		ratelimit.New(redisClient, cfg.RateLimit.API),
+		cfg.RateLimit.API.Enabled,
+	)
+	uploadLimiterMiddleware := middleware.NewRateLimiter(
+		ratelimit.New(redisClient, cfg.RateLimit.Upload),
+		cfg.RateLimit.Upload.Enabled,
+	)
+
 	router := http.NewRouter(
 		authHandler,
 		userHandler,
@@ -106,21 +132,56 @@ func NewApp(cfg *config.Config) (*App, error) {
 		languageHandler,
 		authMiddleware,
 		cfg.Server.AllowedOrigins,
+		cfg.Server.EnableHSTS,
+		authLimiterMiddleware,
+		apiLimiterMiddleware,
+		uploadLimiterMiddleware,
 	)
 
 	engine := gin.New()
 	engine.Use(gin.Recovery())
 	router.Setup(engine)
 
-	return &App{
-		cfg:    cfg,
-		pool:   pool,
-		engine: engine,
-	}, nil
+	app := &App{
+		cfg:          cfg,
+		pool:         pool,
+		engine:       engine,
+		cleanupFuncs: make([]func(), 0),
+	}
+
+	app.registerCleanup(func() {
+		slog.Info("Closing Redis connection")
+		if err := redisClient.Close(); err != nil {
+			slog.Error("Close Redis connection", "error", err)
+		}
+	})
+
+	app.registerCleanup(func() {
+		slog.Info("Closing database connection pool")
+		pool.Close()
+	})
+
+	maintenanceWorker := worker.NewMaintenanceWorker(
+		sessionRepo,
+		oauthStateRepo,
+		cfg.Maintenance.CleanupInterval,
+	)
+	maintenanceWorker.Start()
+	app.registerCleanup(maintenanceWorker.Stop)
+
+	return app, nil
+}
+
+func (a *App) registerCleanup(cleanup func()) {
+	a.cleanupFuncs = append(a.cleanupFuncs, cleanup)
 }
 
 func (a *App) Close() {
-	if a.pool != nil {
-		a.pool.Close()
+	slog.Info("Application shutdown initiated", "cleanup_functions", len(a.cleanupFuncs))
+
+	for _, fn := range slices.Backward(a.cleanupFuncs) {
+		fn()
 	}
+
+	slog.Info("Application shutdown completed")
 }

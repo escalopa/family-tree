@@ -194,8 +194,8 @@ const MemberTableView: React.FC<MemberTableViewProps> = ({
         <Table>
           <TableHead>
             <TableRow>
-              <TableCell>{t('member.photo')}</TableCell>
-              <TableCell>
+              <TableCell className="table-header-cell">{t('member.photo')}</TableCell>
+              <TableCell className="table-header-cell">
                 <TableSortLabel
                   active={sortField === 'primary_name'}
                   direction={sortField === 'primary_name' ? sortOrder : 'asc'}
@@ -204,7 +204,7 @@ const MemberTableView: React.FC<MemberTableViewProps> = ({
                   {t('member.name')}
                 </TableSortLabel>
               </TableCell>
-              <TableCell>
+              <TableCell className="table-header-cell">
                 <TableSortLabel
                   active={sortField === 'gender'}
                   direction={sortField === 'gender' ? sortOrder : 'asc'}
@@ -213,7 +213,7 @@ const MemberTableView: React.FC<MemberTableViewProps> = ({
                   {t('member.gender')}
                 </TableSortLabel>
               </TableCell>
-              <TableCell>
+              <TableCell className="table-header-cell numeric-cell">
                 <TableSortLabel
                   active={sortField === 'date_of_birth'}
                   direction={sortField === 'date_of_birth' ? sortOrder : 'asc'}
@@ -222,7 +222,7 @@ const MemberTableView: React.FC<MemberTableViewProps> = ({
                   {t('member.birthDate')}
                 </TableSortLabel>
               </TableCell>
-              <TableCell>{t('member.status')}</TableCell>
+              <TableCell className="table-header-cell">{t('member.status')}</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -260,7 +260,7 @@ const MemberTableView: React.FC<MemberTableViewProps> = ({
                     {member.name.charAt(0) || '?'}
                   </Avatar>
                 </TableCell>
-                <TableCell>
+                <TableCell className="mixed-content-cell">
                   <Box sx={{ fontWeight: 500 }}>{member.name}</Box>
                 </TableCell>
                 <TableCell>
@@ -273,7 +273,7 @@ const MemberTableView: React.FC<MemberTableViewProps> = ({
                     }}
                   />
                 </TableCell>
-                <TableCell>
+                <TableCell className="numeric-cell">
                   {member.date_of_birth ? formatDate(member.date_of_birth) : '-'}
                 </TableCell>
                 <TableCell>
@@ -282,7 +282,7 @@ const MemberTableView: React.FC<MemberTableViewProps> = ({
                     <Chip
                       label={`${t('member.deceased')} (${formatDate(member.date_of_death)})`}
                       size="small"
-                      sx={{ ml: 0.5 }}
+                      sx={{ marginInlineStart: 0.5 }}
                     />
                   )}
                 </TableCell>

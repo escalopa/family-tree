@@ -28,4 +28,3 @@ const AnimatedCard: React.FC<AnimatedCardProps> = ({ children, delay = 0, ...pro
 };
 
 export default AnimatedCard;
-

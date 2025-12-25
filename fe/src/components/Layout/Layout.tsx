@@ -1,6 +1,5 @@
-import React, { ReactNode, useState, useEffect, useRef } from 'react';
+import React, { ReactNode, useState, useEffect } from 'react';
 import { Box, Container, useMediaQuery, useTheme } from '@mui/material';
-import { motion } from 'framer-motion';
 import Sidebar from './Sidebar';
 import MobileHeader from './MobileHeader';
 
@@ -11,7 +10,6 @@ interface LayoutProps {
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const isInitialMount = useRef(true);
 
   // Initialize sidebar state from localStorage or default based on screen size
   const [sidebarOpen, setSidebarOpen] = useState(() => {
@@ -26,13 +24,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   useEffect(() => {
     localStorage.setItem('sidebarOpen', String(sidebarOpen));
   }, [sidebarOpen]);
-
-  // Mark that initial mount is complete after first render
-  useEffect(() => {
-    if (isInitialMount.current) {
-      isInitialMount.current = false;
-    }
-  }, []);
 
   const handleSidebarToggle = () => {
     setSidebarOpen(!sidebarOpen);
@@ -68,23 +59,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             flexDirection: 'column',
           }}
         >
-          {isInitialMount.current ? (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{
-                duration: 0.3,
-                ease: 'easeInOut',
-              }}
-              style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
-            >
-              {children}
-            </motion.div>
-          ) : (
-            <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-              {children}
-            </Box>
-          )}
+          <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', width: '100%' }}>
+            {children}
+          </Box>
         </Container>
       </Box>
     </Box>

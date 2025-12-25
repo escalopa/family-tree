@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Card, CardContent, Typography, Container, Button, CircularProgress, Alert } from '@mui/material';
 import { Info, Refresh } from '@mui/icons-material';
+import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -48,6 +49,11 @@ const InactivePage: React.FC = () => {
           justifyContent: 'center',
         }}
       >
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.4 }}
+        >
         <Card>
           <CardContent sx={{ textAlign: 'center', p: 4 }}>
             <Info color="warning" sx={{ fontSize: 60, mb: 2 }} />
@@ -82,6 +88,7 @@ const InactivePage: React.FC = () => {
             </Box>
           </CardContent>
         </Card>
+        </motion.div>
       </Box>
     </Container>
   );

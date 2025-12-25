@@ -56,3 +56,7 @@ type LanguageHandler interface {
 type AuthMiddleware interface {
 	Authenticate() gin.HandlerFunc
 }
+
+type RateLimitMiddleware interface {
+	RateLimit() gin.HandlerFunc
+}

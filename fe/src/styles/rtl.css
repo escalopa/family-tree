@@ -1,0 +1,285 @@
+/* RTL/LTR Support Utilities */
+
+/* Force LTR direction for specific content (emails, IDs, codes) */
+.force-ltr {
+  direction: ltr !important;
+  text-align: start !important;
+  unicode-bidi: embed;
+}
+
+/* Force RTL direction for specific content */
+.force-rtl {
+  direction: rtl !important;
+  text-align: start !important;
+  unicode-bidi: embed;
+}
+
+/* Auto direction - browser decides based on first strong character */
+.dir-auto {
+  direction: auto;
+  unicode-bidi: plaintext;
+}
+
+/* Table cell with mixed content (names that can be in any language) */
+.mixed-content-cell {
+  direction: auto;
+  unicode-bidi: plaintext;
+  text-align: start !important;
+}
+
+[dir="rtl"] .mixed-content-cell {
+  text-align: right !important;
+}
+
+[dir="ltr"] .mixed-content-cell {
+  text-align: left !important;
+}
+
+/* Prevent column flip in RTL tables */
+.stable-table-structure {
+  direction: ltr;
+}
+
+.stable-table-structure [dir="rtl"] {
+  direction: rtl;
+}
+
+/* Number/ID/Date cells - always LTR for consistent formatting */
+.numeric-cell {
+  direction: ltr !important;
+  unicode-bidi: embed;
+  font-variant-numeric: tabular-nums;
+}
+
+[dir="rtl"] .numeric-cell {
+  text-align: right !important;
+}
+
+[dir="ltr"] .numeric-cell {
+  text-align: left !important;
+}
+
+/* Flex containers inside numeric cells should reverse in RTL */
+[dir="rtl"] .numeric-cell > * {
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] .numeric-cell .MuiBox-root {
+  flex-direction: row-reverse !important;
+}
+
+/* Email/URL cells - always LTR */
+.email-cell {
+  direction: ltr !important;
+  unicode-bidi: embed;
+}
+
+[dir="rtl"] .email-cell {
+  text-align: right !important;
+}
+
+[dir="ltr"] .email-cell {
+  text-align: left !important;
+}
+
+/* Button icon spacing - direction-aware */
+.button-icon-start {
+  margin-inline-end: 8px;
+  margin-inline-start: 0;
+}
+
+.button-icon-end {
+  margin-inline-start: 8px;
+  margin-inline-end: 0;
+}
+
+/* Flex containers - direction-aware */
+.flex-row-dir {
+  display: flex;
+  flex-direction: row;
+}
+
+[dir="rtl"] .flex-row-dir {
+  flex-direction: row-reverse;
+}
+
+/* Table header alignment - respects text direction */
+.table-header-cell {
+  text-align: start;
+  font-weight: 600;
+}
+
+[dir="rtl"] .table-header-cell {
+  text-align: right;
+}
+
+[dir="ltr"] .table-header-cell {
+  text-align: left;
+}
+
+/* Table cell alignment - respects text direction */
+.MuiTableCell-root {
+  text-align: start;
+}
+
+[dir="rtl"] .MuiTableCell-root {
+  text-align: right;
+}
+
+[dir="ltr"] .MuiTableCell-root {
+  text-align: left;
+}
+
+/* Logical properties helpers */
+.margin-inline-start-1 {
+  margin-inline-start: 8px;
+}
+
+.margin-inline-end-1 {
+  margin-inline-end: 8px;
+}
+
+.padding-inline-1 {
+  padding-inline-start: 8px;
+  padding-inline-end: 8px;
+}
+
+/* MUI Button overrides for better RTL support */
+.MuiButton-startIcon {
+  margin-inline-end: 8px !important;
+  margin-inline-start: 0 !important;
+  margin-left: 0 !important;
+  margin-right: 8px !important;
+}
+
+[dir="rtl"] .MuiButton-startIcon {
+  margin-left: 8px !important;
+  margin-right: 0 !important;
+}
+
+.MuiButton-endIcon {
+  margin-inline-start: 8px !important;
+  margin-inline-end: 0 !important;
+  margin-left: 8px !important;
+  margin-right: 0 !important;
+}
+
+[dir="rtl"] .MuiButton-endIcon {
+  margin-left: 0 !important;
+  margin-right: 8px !important;
+}
+
+/* Ensure buttons have proper padding to prevent overlap */
+.MuiButton-root {
+  padding-left: 20px !important;
+  padding-right: 20px !important;
+  gap: 8px;
+}
+
+.MuiButton-root.MuiButton-sizeSmall {
+  padding-left: 16px !important;
+  padding-right: 16px !important;
+  gap: 6px;
+}
+
+.MuiButton-root.MuiButton-sizeLarge {
+  padding-left: 24px !important;
+  padding-right: 24px !important;
+  gap: 10px;
+}
+
+/* IconButton specific styles */
+.MuiIconButton-root {
+  padding: 8px;
+}
+
+.MuiIconButton-root.MuiIconButton-sizeSmall {
+  padding: 6px;
+}
+
+.MuiIconButton-root.MuiIconButton-sizeLarge {
+  padding: 12px;
+}
+
+/* MUI Chip spacing */
+.MuiChip-root {
+  margin-inline-start: 4px;
+  margin-inline-end: 4px;
+}
+
+/* TablePagination RTL support */
+.MuiTablePagination-root {
+  direction: inherit;
+}
+
+.MuiTablePagination-toolbar {
+  flex-direction: row;
+}
+
+[dir="rtl"] .MuiTablePagination-toolbar {
+  flex-direction: row-reverse;
+}
+
+/* Table alignment for RTL */
+[dir="rtl"] .MuiTable-root {
+  direction: rtl;
+}
+
+[dir="ltr"] .MuiTable-root {
+  direction: ltr;
+}
+
+/* TableRow alignment */
+[dir="rtl"] .MuiTableRow-root {
+  text-align: right;
+}
+
+[dir="ltr"] .MuiTableRow-root {
+  text-align: left;
+}
+
+/* Ensure TableHead cells align properly */
+[dir="rtl"] .MuiTableHead-root .MuiTableCell-root {
+  text-align: right;
+}
+
+[dir="ltr"] .MuiTableHead-root .MuiTableCell-root {
+  text-align: left;
+}
+
+/* Ensure TableBody cells align properly */
+[dir="rtl"] .MuiTableBody-root .MuiTableCell-root {
+  text-align: right;
+}
+
+[dir="ltr"] .MuiTableBody-root .MuiTableCell-root {
+  text-align: left;
+}
+
+/* TableSortLabel icon positioning */
+[dir="rtl"] .MuiTableSortLabel-root .MuiTableSortLabel-icon {
+  transform: scaleX(-1);
+}
+
+/* Avatar in table cells */
+.MuiTableCell-root .MuiAvatar-root {
+  margin-inline-end: 8px;
+}
+
+/* Box with flex and gap support */
+/* Removed global .MuiBox-root rules that were interfering with layout */
+
+/* Ensure icons in buttons don't cause layout issues */
+.MuiButton-root {
+  display: inline-flex;
+  align-items: center;
+}
+
+/* Input adornments */
+.MuiInputAdornment-positionStart {
+  margin-inline-end: 8px;
+}
+
+.MuiInputAdornment-positionEnd {
+  margin-inline-start: 8px;
+}

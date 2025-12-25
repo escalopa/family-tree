@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { enqueueSnackbar } from 'notistack';
+import { useTranslation } from 'react-i18next';
 import {
   Dialog,
   DialogTitle,
@@ -32,6 +33,7 @@ const AddSpouseDialog: React.FC<AddSpouseDialogProps> = ({
   memberGender,
   onSuccess,
 }) => {
+  const { t } = useTranslation();
   const [selectedSpouse, setSelectedSpouse] = useState<MemberListItem | null>(null);
   const [spouseOptions, setSpouseOptions] = useState<MemberListItem[]>([]);
   const [loadingSpouses, setLoadingSpouses] = useState(false);
@@ -65,7 +67,7 @@ const AddSpouseDialog: React.FC<AddSpouseDialogProps> = ({
 
   const handleSave = async () => {
     if (!selectedSpouse) {
-      enqueueSnackbar('Please select a spouse', { variant: 'warning' });
+      enqueueSnackbar(t('spouse.pleaseSelectSpouse'), { variant: 'warning' });
       return;
     }
 
@@ -85,7 +87,7 @@ const AddSpouseDialog: React.FC<AddSpouseDialogProps> = ({
       handleClose();
     } catch (error: any) {
       console.error('add spouse:', error);
-      const errorMessage = error?.response?.data?.error || 'Failed to add spouse relationship. They may already be connected.';
+      const errorMessage = error?.response?.data?.error || t('spouse.failedToAddSpouse');
       enqueueSnackbar(errorMessage, { variant: 'error' });
     } finally {
       setSaving(false);
@@ -102,12 +104,12 @@ const AddSpouseDialog: React.FC<AddSpouseDialogProps> = ({
 
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
-      <DialogTitle>Add Spouse for {memberName}</DialogTitle>
+      <DialogTitle>{t('spouse.addSpouseFor', { name: memberName })}</DialogTitle>
       <DialogContent>
         <Grid container spacing={2} sx={{ mt: 1 }}>
           <Grid item xs={12}>
             <Typography variant="body2" color="text.secondary" gutterBottom>
-              Search for a {oppositeGender === 'M' ? 'male' : 'female'} member to add as spouse
+              {oppositeGender === 'M' ? t('spouse.searchMaleSpouse') : t('spouse.searchFemaleSpouse')}
             </Typography>
           </Grid>
           <Grid item xs={12}>
@@ -123,8 +125,8 @@ const AddSpouseDialog: React.FC<AddSpouseDialogProps> = ({
               renderInput={(params) => (
                 <TextField
                   {...params}
-                  label="Select Spouse"
-                  placeholder="Type to search..."
+                  label={t('spouse.selectSpouse')}
+                  placeholder={t('spouse.typeToSearch')}
                   required
                   InputProps={{
                     ...params.InputProps,
@@ -144,13 +146,13 @@ const AddSpouseDialog: React.FC<AddSpouseDialogProps> = ({
                   </div>
                 </li>
               )}
-              noOptionsText="Type to search for members"
+              noOptionsText={t('spouse.typeToSearchMembers')}
             />
           </Grid>
           <Grid item xs={12} sm={6}>
             <TextField
               fullWidth
-              label="Marriage Date"
+              label={t('spouse.marriageDate')}
               type="date"
               InputLabelProps={{ shrink: true }}
               value={marriageDate}
@@ -160,7 +162,7 @@ const AddSpouseDialog: React.FC<AddSpouseDialogProps> = ({
           <Grid item xs={12} sm={6}>
             <TextField
               fullWidth
-              label="Divorce Date"
+              label={t('spouse.divorceDate')}
               type="date"
               InputLabelProps={{ shrink: true }}
               value={divorceDate}
@@ -171,10 +173,10 @@ const AddSpouseDialog: React.FC<AddSpouseDialogProps> = ({
       </DialogContent>
       <DialogActions>
         <Button onClick={handleClose} disabled={saving}>
-          Cancel
+          {t('common.cancel')}
         </Button>
         <Button onClick={handleSave} variant="contained" disabled={saving || !selectedSpouse}>
-          {saving ? 'Adding...' : 'Add Spouse'}
+          {saving ? t('spouse.adding') : t('spouse.addSpouse')}
         </Button>
       </DialogActions>
     </Dialog>

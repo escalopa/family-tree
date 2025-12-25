@@ -17,6 +17,7 @@ import {
 import { Save } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
 import { useLanguage } from '../contexts/LanguageContext';
+import DirectionalButton from './DirectionalButton';
 
 interface LanguageSettingsProps {
   onSave?: () => void;
@@ -24,8 +25,6 @@ interface LanguageSettingsProps {
 
 const LanguageSettings: React.FC<LanguageSettingsProps> = ({ onSave }) => {
   const { t } = useTranslation();
-  const theme = useTheme();
-  const isRTL = theme.direction === 'rtl';
   const { languages, preferences, loading, error, updatePreferences } = useLanguage();
   const [preferredLanguage, setPreferredLanguage] = useState('');
   const [saving, setSaving] = useState(false);
@@ -132,18 +131,15 @@ const LanguageSettings: React.FC<LanguageSettingsProps> = ({ onSave }) => {
           </Grid>
 
           <Grid item xs={12}>
-            <Button
+            <DirectionalButton
               variant="contained"
-              {...(isRTL
-                ? { endIcon: saving ? <CircularProgress size={20} /> : <Save /> }
-                : { startIcon: saving ? <CircularProgress size={20} /> : <Save /> }
-              )}
+              icon={saving ? <CircularProgress size={20} /> : <Save />}
               onClick={handleSave}
               disabled={saving || !preferredLanguage}
               fullWidth
             >
               {saving ? t('common.loading') : t('common.save')}
-            </Button>
+            </DirectionalButton>
           </Grid>
         </Grid>
       </CardContent>

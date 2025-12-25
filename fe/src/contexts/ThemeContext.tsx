@@ -220,8 +220,9 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
             styleOverrides: {
               root: {
                 borderRadius: 8,
-                padding: '8px 16px',
+                padding: '8px 20px',
                 boxShadow: 'none',
+                gap: '8px',
                 '&:hover': {
                   boxShadow: 'none',
                 },
@@ -231,6 +232,22 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
                   transform: 'translateY(-1px)',
                   transition: 'transform 0.2s ease-in-out',
                 },
+              },
+              startIcon: {
+                marginInlineEnd: '8px',
+                marginInlineStart: '-4px',
+              },
+              endIcon: {
+                marginInlineStart: '8px',
+                marginInlineEnd: '-4px',
+              },
+              sizeSmall: {
+                padding: '6px 16px',
+                fontSize: '0.8125rem',
+              },
+              sizeLarge: {
+                padding: '10px 24px',
+                fontSize: '0.9375rem',
               },
             },
           },

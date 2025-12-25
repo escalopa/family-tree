@@ -269,7 +269,7 @@ const Sidebar: React.FC<SidebarProps> = ({ open, onToggle }) => {
                         <Typography
                           variant="body2"
                           fontWeight={500}
-                          sx={{ ml: 2, color: 'inherit' }}
+                          sx={{ marginInlineStart: 2, color: 'inherit' }}
                         >
                           {item.text}
                         </Typography>
@@ -326,7 +326,7 @@ const Sidebar: React.FC<SidebarProps> = ({ open, onToggle }) => {
                 <Typography
                   variant="body2"
                   fontWeight={500}
-                  sx={{ ml: 2 }}
+                  sx={{ marginInlineStart: 2 }}
                 >
                   {mode === 'dark' ? t('theme.lightMode') : t('theme.darkMode')}
                 </Typography>

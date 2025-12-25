@@ -22,10 +22,12 @@ import {
   Typography,
 } from '@mui/material';
 import { Add } from '@mui/icons-material';
+import { useTranslation } from 'react-i18next';
 import { languageApi } from '../api';
 import { Language } from '../types';
 
 const LanguageManagement: React.FC = () => {
+  const { t } = useTranslation();
   const [languages, setLanguages] = useState<Language[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -159,14 +161,14 @@ const LanguageManagement: React.FC = () => {
   return (
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-        <Typography variant="h6">Language Management</Typography>
+        <Typography variant="h6">{t('language.languageManagement')}</Typography>
         <Button
           variant="contained"
           startIcon={<Add />}
           onClick={() => handleOpenDialog()}
           disabled={loading}
         >
-          Add Language
+          {t('language.addLanguage')}
         </Button>
       </Box>
 
@@ -191,17 +193,17 @@ const LanguageManagement: React.FC = () => {
           <Table>
             <TableHead>
               <TableRow>
-                <TableCell>Code</TableCell>
-                <TableCell>Name</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell>Display Order</TableCell>
+                <TableCell>{t('language.code')}</TableCell>
+                <TableCell>{t('language.name')}</TableCell>
+                <TableCell>{t('language.status')}</TableCell>
+                <TableCell>{t('language.displayOrder')}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {!Array.isArray(languages) || languages.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={4} align="center">
-                    <Typography color="text.secondary">No languages found</Typography>
+                    <Typography color="text.secondary">{t('language.noLanguagesFound')}</Typography>
                   </TableCell>
                 </TableRow>
               ) : (
@@ -230,10 +232,10 @@ const LanguageManagement: React.FC = () => {
                           disabled={loading}
                         />
                         <Chip
-                          label={language.is_active ? 'Active' : 'Inactive'}
+                          label={language.is_active ? t('language.active') : t('language.inactive')}
                           color={language.is_active ? 'success' : 'default'}
                           size="small"
-                          sx={{ ml: 1 }}
+                          sx={{ marginInlineStart: 1 }}
                         />
                       </Box>
                     </TableCell>
@@ -248,32 +250,32 @@ const LanguageManagement: React.FC = () => {
 
       {/* Create/Edit Dialog */}
       <Dialog open={dialogOpen} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
-        <DialogTitle>{editingLanguage ? 'Edit Language' : 'Add Language'}</DialogTitle>
+        <DialogTitle>{editingLanguage ? t('language.editLanguage') : t('language.addLanguage')}</DialogTitle>
         <DialogContent>
           <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
             <TextField
-              label="Language Code"
+              label={t('language.code')}
               value={formData.language_code}
               onChange={(e) => setFormData({ ...formData, language_code: e.target.value.toLowerCase() })}
               disabled={!!editingLanguage}
               required
-              helperText="2-10 characters (e.g., 'en', 'ar', 'ru')"
+              helperText={t('language.codeHelperText')}
               inputProps={{ maxLength: 10 }}
             />
             <TextField
-              label="Language Name"
+              label={t('language.name')}
               value={formData.language_name}
               onChange={(e) => setFormData({ ...formData, language_name: e.target.value })}
               required
-              helperText="Full name of the language (e.g., 'English', 'Arabic')"
+              helperText={t('language.nameHelperText')}
             />
             <TextField
-              label="Display Order"
+              label={t('language.displayOrder')}
               type="number"
               value={formData.display_order}
               onChange={(e) => setFormData({ ...formData, display_order: parseInt(e.target.value) || 0 })}
               required
-              helperText="Order in which this language appears (0 = first)"
+              helperText={t('language.displayOrderHelperText')}
             />
             {editingLanguage && (
               <FormControlLabel
@@ -283,21 +285,21 @@ const LanguageManagement: React.FC = () => {
                     onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
                   />
                 }
-                label="Active"
+                label={t('language.active')}
               />
             )}
           </Box>
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseDialog} disabled={loading}>
-            Cancel
+            {t('common.cancel')}
           </Button>
           <Button
             onClick={handleSave}
             variant="contained"
             disabled={loading || !formData.language_code || !formData.language_name}
           >
-            {loading ? 'Saving...' : 'Save'}
+            {loading ? t('common.saving') : t('common.save')}
           </Button>
         </DialogActions>
       </Dialog>

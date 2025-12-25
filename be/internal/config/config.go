@@ -15,11 +15,15 @@ import (
 )
 
 type Config struct {
-	Server   ServerConfig   `mapstructure:"server" json:"server"`
-	Database DatabaseConfig `mapstructure:"database" json:"database"`
-	OAuth    OAuthConfig    `mapstructure:"oauth" json:"oauth"`
-	JWT      JWTConfig      `mapstructure:"jwt" json:"jwt"`
-	S3       S3Config       `mapstructure:"s3" json:"s3"`
+	Server      ServerConfig      `mapstructure:"server" json:"server"`
+	Database    DatabaseConfig    `mapstructure:"database" json:"database"`
+	Redis       RedisConfig       `mapstructure:"redis" json:"redis"`
+	OAuth       OAuthConfig       `mapstructure:"oauth" json:"oauth"`
+	JWT         JWTConfig         `mapstructure:"jwt" json:"jwt"`
+	S3          S3Config          `mapstructure:"s3" json:"s3"`
+	RateLimit   RateLimitConfig   `mapstructure:"rate_limit" json:"rate_limit"`
+	Upload      UploadConfig      `mapstructure:"upload" json:"upload"`
+	Maintenance MaintenanceConfig `mapstructure:"maintenance" json:"maintenance"`
 }
 
 type ServerConfig struct {
@@ -27,6 +31,7 @@ type ServerConfig struct {
 	Mode           string       `mapstructure:"mode" env:"GIN_MODE"`
 	LogLevel       string       `mapstructure:"log_level" env:"LOG_LEVEL" json:"log_level"`
 	AllowedOrigins []string     `mapstructure:"allowed_origins" env:"ALLOWED_ORIGINS" json:"allowed_origins"`
+	EnableHSTS     bool         `mapstructure:"enable_hsts" env:"ENABLE_HSTS" json:"enable_hsts"`
 	Cookie         CookieConfig `mapstructure:"cookie" json:"cookie"`
 }
 
@@ -42,6 +47,10 @@ type CookieConfig struct {
 
 type DatabaseConfig struct {
 	DSN string `mapstructure:"dsn" env:"DATABASE_DSN" json:"dsn"`
+}
+
+type RedisConfig struct {
+	URI string `mapstructure:"uri" env:"REDIS_URI" json:"uri"`
 }
 
 type OAuthConfig struct {
@@ -70,6 +79,28 @@ type S3Config struct {
 	Bucket    string `mapstructure:"bucket" env:"S3_BUCKET" json:"bucket"`
 	AccessKey string `mapstructure:"access_key" env:"S3_ACCESS_KEY" json:"access_key"`
 	SecretKey string `mapstructure:"secret_key" env:"S3_SECRET_KEY" json:"secret_key"`
+}
+
+type RateLimitRule struct {
+	Enabled  bool          `mapstructure:"enabled" json:"enabled"`
+	Requests int           `mapstructure:"requests" json:"requests"`
+	Window   time.Duration `mapstructure:"window" json:"window"`
+	Prefix   string        `mapstructure:"prefix" json:"prefix"`
+}
+
+type RateLimitConfig struct {
+	Auth   RateLimitRule `mapstructure:"auth" json:"auth"`
+	API    RateLimitRule `mapstructure:"api" json:"api"`
+	Upload RateLimitRule `mapstructure:"upload" json:"upload"`
+}
+
+type UploadConfig struct {
+	MaxImageSize     int64    `mapstructure:"max_image_size" env:"UPLOAD_MAX_IMAGE_SIZE" json:"max_image_size"` // bytes
+	AllowedImageExts []string `mapstructure:"allowed_image_extensions" env:"UPLOAD_ALLOWED_IMAGE_EXTENSIONS" json:"allowed_image_extensions"`
+}
+
+type MaintenanceConfig struct {
+	CleanupInterval time.Duration `mapstructure:"cleanup_interval" env:"MAINTENANCE_CLEANUP_INTERVAL" json:"cleanup_interval"`
 }
 
 func maskSecret(secret string) string {

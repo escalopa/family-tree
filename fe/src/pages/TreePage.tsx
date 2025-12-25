@@ -38,6 +38,7 @@ import {
   FilterAlt,
   Clear,
 } from '@mui/icons-material';
+import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { treeApi, membersApi } from '../api';
 import { MemberListItem, MemberSearchQuery } from '../types';
@@ -279,27 +280,33 @@ const TreePage: React.FC = () => {
 
   return (
     <Layout>
-      <Box sx={{ mb: 3 }}>
+      <Box sx={{ width: '100%' }}>
         {/* Page Header */}
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-          <Box>
-        <Typography variant="h4" gutterBottom>
-          {t('tree.title')}
-        </Typography>
-            <Typography variant="body2" color="text.secondary">
-              {t('tree.exploreConnections')}
-            </Typography>
-          </Box>
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+        >
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, width: '100%' }}>
+          <Typography variant="h4" gutterBottom>
+            {t('tree.title')}
+          </Typography>
           {rootId && (
-            <Button startIcon={<Refresh />} onClick={handleResetRoot} variant="outlined">
+            <Button startIcon={<Refresh />} onClick={handleResetRoot} variant="outlined" sx={{ flexShrink: 0 }}>
               {t('tree.resetToDefaultRoot')}
             </Button>
           )}
         </Box>
 
         <Divider sx={{ mb: 3 }} />
+        </motion.div>
 
         {/* Section 1: View Mode Selection */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.1 }}
+        >
         <Paper sx={{ p: 2, mb: 3 }}>
           <Typography variant="h6" gutterBottom>
             {t('tree.viewMode')}
@@ -310,17 +317,40 @@ const TreePage: React.FC = () => {
               exclusive
               onChange={handleViewModeChange}
               aria-label="view mode"
+              sx={{
+                '& .MuiToggleButton-root': {
+                  border: '1px solid rgba(0, 0, 0, 0.12)',
+                  '&:first-of-type': {
+                    borderStartStartRadius: 4,
+                    borderEndStartRadius: 4,
+                    borderStartEndRadius: 0,
+                    borderEndEndRadius: 0,
+                  },
+                  '&:last-of-type': {
+                    borderStartStartRadius: 0,
+                    borderEndStartRadius: 0,
+                    borderStartEndRadius: 4,
+                    borderEndEndRadius: 4,
+                  },
+                  '&:not(:first-of-type):not(:last-of-type)': {
+                    borderRadius: 0,
+                  },
+                  '&:not(:first-of-type)': {
+                    marginInlineStart: '-1px',
+                  }
+                }
+              }}
             >
               <ToggleButton value="tree" aria-label="tree view">
-                <AccountTree sx={{ mr: 1 }} />
+                <AccountTree sx={{ marginInlineEnd: 1 }} />
                 {t('tree.treeDiagram')}
               </ToggleButton>
               <ToggleButton value="list" aria-label="list view">
-                <TableChart sx={{ mr: 1 }} />
+                <TableChart sx={{ marginInlineEnd: 1 }} />
                 {t('tree.tableView')}
               </ToggleButton>
               <ToggleButton value="relation" aria-label="relation view">
-                <AccountTree sx={{ mr: 1 }} />
+                <AccountTree sx={{ marginInlineEnd: 1 }} />
                 {t('tree.findRelation')}
               </ToggleButton>
             </ToggleButtonGroup>
@@ -338,13 +368,33 @@ const TreePage: React.FC = () => {
                   onChange={(_, value) => value && setTreeLayout(value)}
                   size="small"
                   aria-label="tree layout"
+                  sx={{
+                    '& .MuiToggleButton-root': {
+                      border: '1px solid rgba(0, 0, 0, 0.12)',
+                      '&:first-of-type': {
+                        borderStartStartRadius: 4,
+                        borderEndStartRadius: 4,
+                        borderStartEndRadius: 0,
+                        borderEndEndRadius: 0,
+                      },
+                      '&:last-of-type': {
+                        borderStartStartRadius: 0,
+                        borderEndStartRadius: 0,
+                        borderStartEndRadius: 4,
+                        borderEndEndRadius: 4,
+                      },
+                      '&:not(:first-of-type)': {
+                        marginInlineStart: '-1px',
+                      }
+                    }
+                  }}
                 >
                   <ToggleButton value="hierarchical" aria-label="hierarchical layout">
-                    <AccountTreeOutlined sx={{ mr: 0.5 }} fontSize="small" />
+                    <AccountTreeOutlined sx={{ marginInlineEnd: 0.5 }} fontSize="small" />
                     {t('tree.hierarchical')}
                   </ToggleButton>
                   <ToggleButton value="force" aria-label="force directed layout">
-                    <BubbleChart sx={{ mr: 0.5 }} fontSize="small" />
+                    <BubbleChart sx={{ marginInlineEnd: 0.5 }} fontSize="small" />
                     {t('tree.forceDirected')}
                   </ToggleButton>
                 </ToggleButtonGroup>
@@ -352,6 +402,7 @@ const TreePage: React.FC = () => {
           )}
           </Box>
         </Paper>
+        </motion.div>
 
         {/* Section 2: Relation Finder (visible when in relation mode) */}
         {viewMode === 'relation' && (
@@ -376,7 +427,11 @@ const TreePage: React.FC = () => {
             <CircularProgress />
           </Box>
         ) : (
-          <>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.2 }}
+          >
             {/* Tree View */}
             {viewMode === 'tree' && treeData && (
               <Box>
@@ -407,7 +462,7 @@ const TreePage: React.FC = () => {
                 {/* Search Filters */}
                 <Paper sx={{ p: 2, mb: 3 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                    <FilterAlt sx={{ mr: 1, color: 'text.secondary' }} />
+                    <FilterAlt sx={{ marginInlineEnd: 1, color: 'text.secondary' }} />
                     <Typography variant="h6" sx={{ flexGrow: 1 }}>
                       {t('tree.searchFilters')} {!searchQuery.name && !searchQuery.gender && searchQuery.married === undefined && t('tree.showingAllMembers')}
                     </Typography>
@@ -458,7 +513,7 @@ const TreePage: React.FC = () => {
                           }
                           endAdornment={
                             searchQuery.gender && (
-                              <InputAdornment position="end" sx={{ mr: 3 }}>
+                              <InputAdornment position="end" sx={{ marginInlineEnd: 3 }}>
                                 <IconButton
                                   size="small"
                                   onClick={() => handleClearFilter('gender')}
@@ -490,7 +545,7 @@ const TreePage: React.FC = () => {
                           }
                           endAdornment={
                             searchQuery.married !== undefined && (
-                              <InputAdornment position="end" sx={{ mr: 3 }}>
+                              <InputAdornment position="end" sx={{ marginInlineEnd: 3 }}>
                                 <IconButton
                                   size="small"
                                   onClick={() => handleClearFilter('married')}
@@ -684,7 +739,7 @@ const TreePage: React.FC = () => {
                 </Typography>
               </Paper>
             )}
-          </>
+          </motion.div>
         )}
       </Box>
 
@@ -700,27 +755,37 @@ const TreePage: React.FC = () => {
 
           {selectedMember && (
             <Box>
-              <Avatar
-                src={
-                  getMemberPictureUrl(selectedMember.member_id, selectedMember.picture) || undefined
-                }
+              <Box
                 sx={{
-                  width: 120,
-                  height: 120,
-                  mx: 'auto',
-                  mb: 2,
-                  bgcolor: getGenderColor(selectedMember.gender),
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  textAlign: 'center',
+                  mb: 2
                 }}
               >
-                {getPreferredName(selectedMember)[0] || '?'}
-              </Avatar>
+                <Avatar
+                  src={
+                    getMemberPictureUrl(selectedMember.member_id, selectedMember.picture) || undefined
+                  }
+                  sx={{
+                    width: 120,
+                    height: 120,
+                    mb: 2,
+                    bgcolor: getGenderColor(selectedMember.gender),
+                  }}
+                >
+                  {getPreferredName(selectedMember)[0] || '?'}
+                </Avatar>
 
-              <Typography variant="h6" align="center" gutterBottom>
-                {getPreferredName(selectedMember)}
-              </Typography>
-              <Typography variant="body2" align="center" color="text.secondary" gutterBottom>
-                {getAllNamesFormatted(selectedMember)}
-              </Typography>
+                <Typography variant="h6" gutterBottom>
+                  {getPreferredName(selectedMember)}
+                </Typography>
+                <Typography variant="body2" color="text.secondary" gutterBottom>
+                  {getAllNamesFormatted(selectedMember)}
+                </Typography>
+              </Box>
 
               {/* Full Name */}
               {selectedMember.full_names && Object.keys(selectedMember.full_names).length > 0 && (
@@ -824,10 +889,10 @@ const TreePage: React.FC = () => {
                       <Box
                         key={spouse.spouse_id}
                         sx={{
-                          p: 1.5,
+                          padding: 1.5,
                           bgcolor: 'background.default',
                           borderRadius: 1,
-                          mb: 1,
+                          marginBlockEnd: 1,
                         }}
                       >
                         <Typography variant="body2" fontWeight="medium">

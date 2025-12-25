@@ -98,7 +98,15 @@ const SettingsContent: React.FC = () => {
         value={tabValue}
         onChange={handleTabChange}
         aria-label="settings tabs"
-        sx={{ borderBottom: 1, borderColor: 'divider' }}
+        sx={{
+          borderBottom: 1,
+          borderColor: 'divider',
+          '& .MuiTab-root': {
+            '& .MuiSvgIcon-root': {
+              marginInlineEnd: 1,
+            }
+          }
+        }}
       >
         <Tab
           icon={<Palette />}
@@ -145,14 +153,30 @@ const SettingsContent: React.FC = () => {
                 onChange={handleThemeChange}
                 aria-label="theme mode"
                 fullWidth
-                sx={{ mt: 2 }}
+                sx={{
+                  mt: 2,
+                  '& .MuiToggleButton-root': {
+                    '&:first-of-type': {
+                      borderStartStartRadius: 4,
+                      borderEndStartRadius: 4,
+                      borderStartEndRadius: 0,
+                      borderEndEndRadius: 0,
+                    },
+                    '&:last-of-type': {
+                      borderStartStartRadius: 0,
+                      borderEndStartRadius: 0,
+                      borderStartEndRadius: 4,
+                      borderEndEndRadius: 4,
+                    }
+                  }
+                }}
               >
                 <ToggleButton value="light" aria-label="light mode">
-                  <LightMode sx={{ mr: 1 }} />
+                  <LightMode sx={{ marginInlineEnd: 1 }} />
                   {t('settings.lightMode')}
                 </ToggleButton>
                 <ToggleButton value="dark" aria-label="dark mode">
-                  <DarkMode sx={{ mr: 1 }} />
+                  <DarkMode sx={{ marginInlineEnd: 1 }} />
                   {t('settings.darkMode')}
                 </ToggleButton>
               </ToggleButtonGroup>

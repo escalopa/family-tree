@@ -25,6 +25,8 @@ const (
 	ErrCodeVersionConflict ErrorCode = "VERSION_CONFLICT"
 	ErrCodeInvalidDate     ErrorCode = "INVALID_DATE"
 
+	ErrCodeTooManyRequests ErrorCode = "TOO_MANY_REQUESTS"
+
 	ErrCodeInternal        ErrorCode = "INTERNAL_ERROR"
 	ErrCodeDatabaseError   ErrorCode = "DATABASE_ERROR"
 	ErrCodeExternalService ErrorCode = "EXTERNAL_SERVICE_ERROR"
@@ -70,6 +72,8 @@ func (e *DomainError) HTTPStatusCode() int {
 		return http.StatusConflict
 	case ErrCodeInvalidInput, ErrCodeInvalidDate:
 		return http.StatusBadRequest
+	case ErrCodeTooManyRequests:
+		return http.StatusTooManyRequests
 	case ErrCodeDatabaseError, ErrCodeInternal:
 		return http.StatusInternalServerError
 	case ErrCodeExternalService:
@@ -175,5 +179,12 @@ func NewInvalidOAuthStateError() *DomainError {
 	return &DomainError{
 		Code:           ErrCodeInvalidOAuthState,
 		TranslationKey: "error.invalid_oauth_state",
+	}
+}
+
+func NewRateLimitError() *DomainError {
+	return &DomainError{
+		Code:           ErrCodeTooManyRequests,
+		TranslationKey: "error.rate_limit_exceeded",
 	}
 }

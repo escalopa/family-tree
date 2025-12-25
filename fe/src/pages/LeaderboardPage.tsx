@@ -59,18 +59,15 @@ const LeaderboardPage: React.FC = () => {
 
   return (
     <Layout>
-      <Box>
+      <Box sx={{ width: '100%' }}>
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
         >
-          <Typography variant="h4" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Typography variant="h4" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
             <EmojiEvents sx={{ color: 'primary.main' }} />
             {t('leaderboard.title')}
-          </Typography>
-          <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-            {t('leaderboard.topContributors')}
           </Typography>
         </motion.div>
 
@@ -88,9 +85,9 @@ const LeaderboardPage: React.FC = () => {
               <Table>
                 <TableHead>
                   <TableRow>
-                    <TableCell>{t('leaderboard.rank')}</TableCell>
-                    <TableCell>{t('leaderboard.user')}</TableCell>
-                    <TableCell align="right">{t('leaderboard.totalScore')}</TableCell>
+                    <TableCell className="table-header-cell numeric-cell">{t('leaderboard.rank')}</TableCell>
+                    <TableCell className="table-header-cell">{t('leaderboard.user')}</TableCell>
+                    <TableCell className="table-header-cell numeric-cell">{t('leaderboard.totalScore')}</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -112,8 +109,18 @@ const LeaderboardPage: React.FC = () => {
                       }}
                       onClick={() => hasRole(Roles.ADMIN) && navigate(`/users/${user.user_id}`)}
                     >
-                      <TableCell>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <TableCell className="numeric-cell">
+                        <Box
+                          sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 1,
+                            flexDirection: { xs: 'row', md: 'row' },
+                            '[dir="rtl"] &': {
+                              flexDirection: 'row-reverse'
+                            }
+                          }}
+                        >
                           {user.rank <= 3 ? (
                             <motion.div
                               initial={{ scale: 0 }}
@@ -127,7 +134,7 @@ const LeaderboardPage: React.FC = () => {
                           )}
                         </Box>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="mixed-content-cell">
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                           <Avatar src={user.avatar || undefined}>
                             {user.full_name[0]}
@@ -137,7 +144,7 @@ const LeaderboardPage: React.FC = () => {
                           </Box>
                         </Box>
                       </TableCell>
-                      <TableCell align="right">
+                      <TableCell className="numeric-cell">
                         <Chip
                           label={user.total_score}
                           color="primary"

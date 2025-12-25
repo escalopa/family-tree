@@ -8,6 +8,7 @@
     "conflict": "{{message}}",
     "invalid_input": "{{message}}",
     "version_conflict": "Resource was modified by another user. Please refresh and try again",
+    "rate_limit_exceeded": "Too many requests. Please try again later",
     "internal": "Internal server error. Please try again later",
     "database": "A system error occurred. Please try again later",
     "external_service": "External service is currently unavailable. Please try again later",

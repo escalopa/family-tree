@@ -17,15 +17,15 @@ const (
 	keyPreferredLanguage = "preferred_language"
 )
 
-type authMiddleware struct {
+type AuthMiddleware struct {
 	tokenMgr      TokenManager
 	authUseCase   AuthUseCase
 	userRepo      UserRepository
 	cookieManager CookieManager
 }
 
-func NewAuthMiddleware(tokenMgr TokenManager, authUseCase AuthUseCase, userRepo UserRepository, cookieManager CookieManager) *authMiddleware {
-	return &authMiddleware{
+func NewAuthMiddleware(tokenMgr TokenManager, authUseCase AuthUseCase, userRepo UserRepository, cookieManager CookieManager) *AuthMiddleware {
+	return &AuthMiddleware{
 		tokenMgr:      tokenMgr,
 		authUseCase:   authUseCase,
 		userRepo:      userRepo,
@@ -33,7 +33,7 @@ func NewAuthMiddleware(tokenMgr TokenManager, authUseCase AuthUseCase, userRepo 
 	}
 }
 
-func (m *authMiddleware) Authenticate() gin.HandlerFunc {
+func (m *AuthMiddleware) Authenticate() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		accessToken, err := m.cookieManager.GetAccessToken(c)
 		if err != nil && !errors.Is(err, http.ErrNoCookie) {

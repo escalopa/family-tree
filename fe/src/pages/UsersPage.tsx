@@ -28,6 +28,7 @@ import {
 } from '@mui/material';
 import { OpenInNew, Clear } from '@mui/icons-material';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { usersApi } from '../api';
 import { User, Roles } from '../types';
@@ -164,15 +165,23 @@ const UsersPage: React.FC = () => {
 
   return (
     <Layout>
-      <Box>
-        <Typography variant="h4" gutterBottom>
+      <Box sx={{ width: '100%' }}>
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+        >
+        <Typography variant="h4" gutterBottom sx={{ mb: 3 }}>
           {t('users.management')}
         </Typography>
-        <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-          {t('users.manageRolesAndAccess')}
-        </Typography>
+        </motion.div>
 
         {/* Filters */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.1 }}
+        >
         <Paper sx={{ p: 2, mb: 3 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
             <Typography variant="h6">
@@ -231,20 +240,25 @@ const UsersPage: React.FC = () => {
             </Grid>
           </Grid>
         </Paper>
+        </motion.div>
 
         {loading ? (
           <Typography>{t('common.loading')}</Typography>
         ) : (
-          <>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.2 }}
+          >
             <TableContainer component={Paper}>
               <Table>
                 <TableHead>
                   <TableRow>
-                    <TableCell>{t('member.avatar')}</TableCell>
-                    <TableCell>{t('member.name')}</TableCell>
-                    <TableCell>{t('user.email')}</TableCell>
-                    <TableCell>{t('user.role')}</TableCell>
-                    <TableCell>{t('user.status')}</TableCell>
+                    <TableCell className="table-header-cell">{t('member.avatar')}</TableCell>
+                    <TableCell className="table-header-cell">{t('member.name')}</TableCell>
+                    <TableCell className="table-header-cell email-cell">{t('user.email')}</TableCell>
+                    <TableCell className="table-header-cell">{t('user.role')}</TableCell>
+                    <TableCell className="table-header-cell">{t('user.status')}</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -258,8 +272,8 @@ const UsersPage: React.FC = () => {
                       <TableCell>
                         <Avatar src={user.avatar || undefined}>{user.full_name[0]}</Avatar>
                       </TableCell>
-                      <TableCell>{user.full_name}</TableCell>
-                      <TableCell>{user.email}</TableCell>
+                      <TableCell className="mixed-content-cell">{user.full_name}</TableCell>
+                      <TableCell className="email-cell">{user.email}</TableCell>
                       <TableCell>
                         <Chip
                           label={getRoleName(user.role_id, t)}
@@ -300,7 +314,7 @@ const UsersPage: React.FC = () => {
                 </Button>
               </Box>
             )}
-          </>
+          </motion.div>
         )}
 
         {/* Edit User Dialog */}
