@@ -1,31 +1,34 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { languageApi } from '../api';
+import { Language } from '../types';
 
-interface UILanguageContextType {
-  uiLanguage: string;
+interface InterfaceLanguageContextType {
+  interfaceLanguage: string;
   supportedLanguages: string[];
-  changeUILanguage: (lang: string) => void;
+  supportedLanguagesWithNames: Language[];
+  changeInterfaceLanguage: (lang: string) => void;
   loading: boolean;
 }
 
-const UILanguageContext = createContext<UILanguageContextType | undefined>(undefined);
+const InterfaceLanguageContext = createContext<InterfaceLanguageContextType | undefined>(undefined);
 
-export const useUILanguage = (): UILanguageContextType => {
-  const context = useContext(UILanguageContext);
+export const useInterfaceLanguage = (): InterfaceLanguageContextType => {
+  const context = useContext(InterfaceLanguageContext);
   if (!context) {
-    throw new Error('useUILanguage must be used within a UILanguageProvider');
+    throw new Error('useInterfaceLanguage must be used within a InterfaceLanguageProvider');
   }
   return context;
 };
 
-interface UILanguageProviderProps {
+interface InterfaceLanguageProviderProps {
   children: ReactNode;
 }
 
-export const UILanguageProvider: React.FC<UILanguageProviderProps> = ({ children }) => {
+export const InterfaceLanguageProvider: React.FC<InterfaceLanguageProviderProps> = ({ children }) => {
   const { i18n } = useTranslation();
   const [supportedLanguages, setSupportedLanguages] = useState<string[]>(['en', 'ar', 'ru']);
+  const [supportedLanguagesWithNames, setSupportedLanguagesWithNames] = useState<Language[]>([]);
   const [loading, setLoading] = useState(false);
 
   // Load supported languages from backend
@@ -33,10 +36,11 @@ export const UILanguageProvider: React.FC<UILanguageProviderProps> = ({ children
     const loadSupportedLanguages = async () => {
       try {
         setLoading(true);
-        const languages = await languageApi.getLanguages(true);
+        const languages = await languageApi.getLanguages(true); // Only active languages
         if (Array.isArray(languages)) {
           const codes = languages.map(lang => lang.language_code);
           setSupportedLanguages(codes.length > 0 ? codes : ['en', 'ar', 'ru']);
+          setSupportedLanguagesWithNames(languages);
         }
       } catch (err) {
         console.error('Failed to load supported languages:', err);
@@ -49,26 +53,26 @@ export const UILanguageProvider: React.FC<UILanguageProviderProps> = ({ children
     loadSupportedLanguages();
   }, []);
 
-  // Initialize UI language from localStorage or default
+  // Initialize interface language from localStorage or default
   useEffect(() => {
-    const savedLang = localStorage.getItem('ui_language');
+    const savedLang = localStorage.getItem('interface_language');
     if (savedLang && supportedLanguages.includes(savedLang)) {
       i18n.changeLanguage(savedLang);
     } else if (!savedLang) {
       // No saved language, use default 'en'
       const defaultLang = 'en';
-      localStorage.setItem('ui_language', defaultLang);
+      localStorage.setItem('interface_language', defaultLang);
       i18n.changeLanguage(defaultLang);
     }
   }, [i18n, supportedLanguages]);
 
-  const changeUILanguage = (lang: string) => {
+  const changeInterfaceLanguage = (lang: string) => {
     if (!supportedLanguages.includes(lang)) {
       console.warn(`Language ${lang} is not supported. Falling back to English.`);
       lang = 'en';
     }
 
-    localStorage.setItem('ui_language', lang);
+    localStorage.setItem('interface_language', lang);
     i18n.changeLanguage(lang);
 
     // Update document direction for RTL languages
@@ -76,12 +80,13 @@ export const UILanguageProvider: React.FC<UILanguageProviderProps> = ({ children
     document.documentElement.lang = lang;
   };
 
-  const value: UILanguageContextType = {
-    uiLanguage: i18n.language,
+  const value: InterfaceLanguageContextType = {
+    interfaceLanguage: i18n.language,
     supportedLanguages,
-    changeUILanguage,
+    supportedLanguagesWithNames,
+    changeInterfaceLanguage,
     loading,
   };
 
-  return <UILanguageContext.Provider value={value}>{children}</UILanguageContext.Provider>;
+  return <InterfaceLanguageContext.Provider value={value}>{children}</InterfaceLanguageContext.Provider>;
 };

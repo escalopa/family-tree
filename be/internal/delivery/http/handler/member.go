@@ -34,10 +34,7 @@ func (h *memberHandler) validateNames(c *gin.Context, names map[string]string) e
 	for _, lang := range activeLanguages {
 		name, exists := names[lang.LanguageCode]
 		if !exists || name == "" {
-			validationErr := domain.NewValidationError("error.validation.names_required", map[string]string{
-				"language": lang.LanguageName,
-				"code":     lang.LanguageCode,
-			})
+			validationErr := domain.NewValidationError("error.validation.names_required", map[string]string{"code": lang.LanguageCode})
 			delivery.Error(c, validationErr)
 			return validationErr
 		}

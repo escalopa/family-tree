@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Box,
   Drawer,
@@ -11,11 +11,15 @@ import {
   useTheme,
   useMediaQuery,
   Tooltip,
+  Menu,
+  MenuItem,
+  ListItemText,
+  ListItemIcon,
 } from '@mui/material';
 import {
   AccountTree,
-  People,
-  SupervisorAccount,
+  Groups,
+  AdminPanelSettings,
   Leaderboard,
   AccountCircle,
   Menu as MenuIcon,
@@ -23,11 +27,18 @@ import {
   ChevronRight,
   LightMode,
   DarkMode,
+  Language as LanguageIcon,
+  Check,
+  Logout,
+  ExitToApp,
+  PowerSettingsNew,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme as useCustomTheme } from '../../contexts/ThemeContext';
+import { useInterfaceLanguage } from '../../contexts/InterfaceLanguageContext';
+import { authApi } from '../../api';
 import { Roles } from '../../types';
 
 const DRAWER_WIDTH = 260;
@@ -45,8 +56,11 @@ const Sidebar: React.FC<SidebarProps> = ({ open, onToggle }) => {
   const { t, i18n } = useTranslation();
   const isRTL = i18n.dir() === 'rtl';
   const { mode, toggleTheme } = useCustomTheme();
+  const { interfaceLanguage, supportedLanguagesWithNames, changeInterfaceLanguage } = useInterfaceLanguage();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const { user, hasRole, isActive } = useAuth();
+  const { user, hasRole, isActive, setUser } = useAuth();
+  const [languageAnchorEl, setLanguageAnchorEl] = useState<null | HTMLElement>(null);
+  const [logoutAnchorEl, setLogoutAnchorEl] = useState<null | HTMLElement>(null);
 
   const menuItems = [
     {
@@ -63,13 +77,13 @@ const Sidebar: React.FC<SidebarProps> = ({ open, onToggle }) => {
     },
     {
       text: t('navigation.members'),
-      icon: <People />,
+      icon: <Groups />,
       path: '/members',
       show: user && isActive && hasRole(Roles.ADMIN),
     },
     {
       text: t('navigation.users'),
-      icon: <SupervisorAccount />,
+      icon: <AdminPanelSettings />,
       path: '/users',
       show: user && isActive && hasRole(Roles.SUPER_ADMIN),
     },
@@ -80,6 +94,49 @@ const Sidebar: React.FC<SidebarProps> = ({ open, onToggle }) => {
     if (isMobile) {
       onToggle();
     }
+  };
+
+  const handleLanguageMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setLanguageAnchorEl(event.currentTarget);
+  };
+
+  const handleLanguageMenuClose = () => {
+    setLanguageAnchorEl(null);
+  };
+
+  const handleLanguageChange = (languageCode: string) => {
+    changeInterfaceLanguage(languageCode);
+    handleLanguageMenuClose();
+  };
+
+  const handleLogoutMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setLogoutAnchorEl(event.currentTarget);
+  };
+
+  const handleLogoutMenuClose = () => {
+    setLogoutAnchorEl(null);
+  };
+
+  const handleLogout = async () => {
+    try {
+      await authApi.logout();
+      setUser(null);
+      navigate('/login');
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
+    handleLogoutMenuClose();
+  };
+
+  const handleLogoutAll = async () => {
+    try {
+      await authApi.logoutAll();
+      setUser(null);
+      navigate('/login');
+    } catch (error) {
+      console.error('Logout from all devices failed:', error);
+    }
+    handleLogoutMenuClose();
   };
 
   const drawerContent = (
@@ -283,10 +340,92 @@ const Sidebar: React.FC<SidebarProps> = ({ open, onToggle }) => {
 
       <Divider />
 
+      {/* Interface Language Selector */}
+      <Box sx={{ p: 2, display: 'flex', justifyContent: 'center' }}>
+        <Tooltip
+          title={!open && !isMobile ? t('language.interfaceLanguage') : ''}
+          placement="right"
+        >
+          <IconButton
+            onClick={handleLanguageMenuOpen}
+            sx={{
+              p: 0,
+              '&:hover': {
+                bgcolor: 'transparent',
+              },
+            }}
+          >
+            <Box
+              sx={{
+                borderRadius: open || isMobile ? 2 : '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: open || isMobile ? 'flex-start' : 'center',
+                px: open || isMobile ? 2.5 : 1.5,
+                py: open || isMobile ? 1.5 : 1.5,
+                width: open || isMobile ? '100%' : 'auto',
+                '&:hover': {
+                  bgcolor: 'action.hover',
+                },
+                transition: 'all 0.2s ease-in-out',
+              }}
+            >
+              <Box
+                sx={{
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                }}
+              >
+                <LanguageIcon />
+              </Box>
+              {(open || isMobile) && (
+                <Typography
+                  variant="body2"
+                  fontWeight={500}
+                  sx={{ marginInlineStart: 2 }}
+                >
+                  {t('language.interfaceLanguage')}
+                </Typography>
+              )}
+            </Box>
+          </IconButton>
+        </Tooltip>
+      </Box>
+
+      <Menu
+        anchorEl={languageAnchorEl}
+        open={Boolean(languageAnchorEl)}
+        onClose={handleLanguageMenuClose}
+        anchorOrigin={{
+          vertical: 'top',
+          horizontal: isRTL ? 'left' : 'right',
+        }}
+        transformOrigin={{
+          vertical: 'top',
+          horizontal: isRTL ? 'right' : 'left',
+        }}
+      >
+        {supportedLanguagesWithNames.map((lang) => (
+          <MenuItem
+            key={lang.language_code}
+            onClick={() => handleLanguageChange(lang.language_code)}
+            selected={interfaceLanguage === lang.language_code}
+          >
+            <ListItemText>{lang.language_name}</ListItemText>
+            {interfaceLanguage === lang.language_code && (
+              <ListItemIcon sx={{ minWidth: 'auto', marginInlineStart: 2 }}>
+                <Check fontSize="small" />
+              </ListItemIcon>
+            )}
+          </MenuItem>
+        ))}
+      </Menu>
+
       {/* Theme Toggle */}
       <Box sx={{ p: 2, display: 'flex', justifyContent: 'center' }}>
         <Tooltip
-          title={!open && !isMobile ? 'Toggle Theme' : ''}
+          title={!open && !isMobile ? t('theme.toggleTheme') : ''}
           placement="right"
         >
           <IconButton
@@ -335,6 +474,91 @@ const Sidebar: React.FC<SidebarProps> = ({ open, onToggle }) => {
           </IconButton>
         </Tooltip>
       </Box>
+
+      {/* Logout */}
+      {user && (
+        <>
+          <Divider />
+          <Box sx={{ p: 2, display: 'flex', justifyContent: 'center' }}>
+            <Tooltip
+              title={!open && !isMobile ? t('common.logout') : ''}
+              placement="right"
+            >
+              <IconButton
+                onClick={handleLogoutMenuOpen}
+                sx={{
+                  p: 0,
+                  '&:hover': {
+                    bgcolor: 'transparent',
+                  },
+                }}
+              >
+                <Box
+                  sx={{
+                    borderRadius: open || isMobile ? 2 : '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: open || isMobile ? 'flex-start' : 'center',
+                    px: open || isMobile ? 2.5 : 1.5,
+                    py: open || isMobile ? 1.5 : 1.5,
+                    width: open || isMobile ? '100%' : 'auto',
+                    '&:hover': {
+                      bgcolor: 'action.hover',
+                    },
+                    transition: 'all 0.2s ease-in-out',
+                  }}
+                >
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                    }}
+                  >
+                    <Logout />
+                  </Box>
+                  {(open || isMobile) && (
+                    <Typography
+                      variant="body2"
+                      fontWeight={500}
+                      sx={{ marginInlineStart: 2 }}
+                    >
+                      {t('common.logout')}
+                    </Typography>
+                  )}
+                </Box>
+              </IconButton>
+            </Tooltip>
+          </Box>
+
+          <Menu
+            anchorEl={logoutAnchorEl}
+            open={Boolean(logoutAnchorEl)}
+            onClose={handleLogoutMenuClose}
+            anchorOrigin={{
+              vertical: 'top',
+              horizontal: isRTL ? 'left' : 'right',
+            }}
+            transformOrigin={{
+              vertical: 'bottom',
+              horizontal: isRTL ? 'right' : 'left',
+            }}
+          >
+            <MenuItem onClick={handleLogout}>
+              <ListItemIcon>
+                <ExitToApp fontSize="small" />
+              </ListItemIcon>
+              <ListItemText>{t('common.logout')}</ListItemText>
+            </MenuItem>
+            <MenuItem onClick={handleLogoutAll}>
+              <ListItemIcon>
+                <PowerSettingsNew fontSize="small" />
+              </ListItemIcon>
+              <ListItemText>{t('auth.logoutFromAllDevices')}</ListItemText>
+            </MenuItem>
+          </Menu>
+        </>
+      )}
     </Box>
   );
 

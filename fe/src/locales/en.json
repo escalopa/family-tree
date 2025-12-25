@@ -67,7 +67,8 @@
     "theme": "Theme",
     "appearance": "Appearance",
     "themeDescription": "Choose your preferred color theme for the application",
-    "themePreferenceSaved": "Your theme preference is saved locally on this device"
+    "themePreferenceSaved": "Your theme preference is saved locally on this device",
+    "toggleTheme": "Toggle Theme"
   },
   "member": {
     "title": "Members",
@@ -104,6 +105,9 @@
     "picture": "Picture",
     "uploadPicture": "Upload Picture",
     "deletePicture": "Delete Picture",
+    "deletePhotoConfirmation": "Are you sure you want to delete this photo?",
+    "failedToDeletePhoto": "Failed to delete photo",
+    "failedToUploadPhoto": "Failed to upload photo",
     "male": "Male",
     "female": "Female",
     "alive": "Alive",
@@ -232,14 +236,14 @@
   },
   "language": {
     "title": "Languages",
-    "uiLanguage": "UI Language",
+    "interfaceLanguage": "Interface Language",
     "namesLanguage": "Names Language",
     "selectLanguage": "Select Language",
     "languageSettings": "Language Settings",
     "languagePreferences": "Language Preferences",
     "changeLanguage": "Change Language",
     "languageUpdated": "Language updated successfully",
-    "uiLanguageDescription": "Choose your preferred language for the user interface (buttons, labels, messages).",
+    "interfaceLanguageDescription": "Choose your preferred language for the user interface (buttons, labels, messages).",
     "namesLanguageDescription": "Choose your preferred language for member names in tree view, avatar initials and member list.",
     "languageManagement": "Language Management",
     "addLanguage": "Add Language",
@@ -252,11 +256,11 @@
     "inactive": "Inactive",
     "noLanguagesFound": "No languages found",
     "codeHelperText": "2-10 characters (e.g., 'en', 'ar', 'ru')",
-    "nameHelperText": "Full name of the language (e.g., 'English', 'Arabic')",
+    "nameHelperText": "Full name of the language in its native form (e.g., 'English', 'العربية', 'Русский')",
     "displayOrderHelperText": "Order in which this language appears (0 = first)",
     "english": "English",
-    "arabic": "Arabic",
-    "russian": "Russian",
+    "arabic": "العربية",
+    "russian": "Русский",
     "selected": "Selected"
   },
   "settings": {
@@ -276,7 +280,8 @@
     "languageDescription": "Select your preferred language for viewing member names and information. This setting will be saved to your account.",
     "preferredLanguage": "Preferred Language",
     "loadingLanguages": "Loading languages...",
-    "noLanguagesAvailable": "No languages available"
+    "noLanguagesAvailable": "No languages available",
+    "languageManagement": "Language Management"
   },
   "spouse": {
     "addSpouse": "Add Spouse",

@@ -5,6 +5,14 @@
     "session_expired": "انتهت صلاحية جلستك. يرجى تسجيل الدخول مرة أخرى",
     "invalid_oauth_state": "حالة OAuth غير صالحة أو منتهية الصلاحية",
     "forbidden": "الوصول محظور",
+    "missing_auth_token": "رمز المصادقة مفقود",
+    "invalid_or_expired_token": "رمز مصادقة غير صالح أو منتهي الصلاحية",
+    "failed_to_refresh_token": "فشل تحديث رمز المصادقة",
+    "invalid_refreshed_token": "الرمز المحدث غير صالح",
+    "invalid_session": "جلسة غير صالحة. يرجى تسجيل الدخول مرة أخرى",
+    "user_not_found": "المستخدم غير موجود",
+    "insufficient_permissions": "صلاحيات غير كافية لتنفيذ هذا الإجراء",
+    "account_not_activated_by_admin": "لم يتم تفعيل حسابك من قبل المسؤول بعد",
     "conflict": "{{message}}",
     "invalid_input": "{{message}}",
     "version_conflict": "تم تعديل المورد بواسطة مستخدم آخر. يرجى التحديث والمحاولة مرة أخرى",
@@ -14,7 +22,6 @@
     "external_service": "الخدمة الخارجية غير متاحة حالياً. يرجى المحاولة مرة أخرى لاحقاً",
     "member": {
       "not_found": "العضو غير موجود",
-      "already_exists": "العضو موجود بالفعل",
       "invalid_parent": "{{parent}} غير صالح",
       "circular_relationship": "تم اكتشاف علاقة دائرية بين الوالد والطفل",
       "has_children": "لا يمكن حذف العضو: لديه أطفال",
@@ -23,18 +30,15 @@
     },
     "spouse": {
       "not_found": "الزوج/الزوجة غير موجود",
-      "already_exists": "علاقة الزواج موجودة بالفعل",
       "has_children": "لا يمكن حذف علاقة الزواج: هناك أطفال من كلا الوالدين",
       "invalid_marriage_date": "تاريخ الطلاق يجب أن يكون بعد تاريخ الزواج"
     },
     "user": {
       "not_found": "المستخدم غير موجود",
-      "already_exists": "يوجد مستخدم بهذا البريد الإلكتروني بالفعل",
       "inactive": "حسابك غير نشط. يرجى الاتصال بالمسؤول"
     },
     "language": {
       "not_found": "اللغة غير موجودة",
-      "already_exists": "اللغة موجودة بالفعل",
       "not_active": "اللغة المحددة غير نشطة"
     },
     "oauth": {
@@ -66,8 +70,14 @@
     "mother_id": "الأم",
     "version": "الإصدار",
     "language_code": "رمز اللغة",
-    "language_name": "اسم اللغة",
     "preferred_language": "اللغة المفضلة"
+  },
+  "language": {
+    "name": {
+      "en": "English",
+      "ar": "العربية",
+      "ru": "Русский"
+    }
   },
   "success": {
     "auth": {
@@ -86,6 +96,9 @@
     "user": {
       "role_updated": "تم تحديث دور المستخدم بنجاح",
       "active_status_updated": "تم تحديث حالة نشاط المستخدم بنجاح"
+    },
+    "language": {
+      "order_updated": "تم تحديث ترتيب اللغات بنجاح"
     }
   }
 }

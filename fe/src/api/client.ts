@@ -19,8 +19,8 @@ class ApiClient {
     this.client.interceptors.request.use(
       (config: InternalAxiosRequestConfig) => {
         // Add Accept-Language header from localStorage
-        const uiLanguage = localStorage.getItem('ui_language') || 'en';
-        config.headers['Accept-Language'] = uiLanguage;
+        const interfaceLanguage = localStorage.getItem('interface_language') || 'en';
+        config.headers['Accept-Language'] = interfaceLanguage;
         return config;
       },
       (error) => {

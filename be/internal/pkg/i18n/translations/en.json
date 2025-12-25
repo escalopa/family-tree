@@ -5,6 +5,14 @@
     "session_expired": "Your session has expired. Please login again",
     "invalid_oauth_state": "Invalid or expired OAuth state",
     "forbidden": "Access forbidden",
+    "missing_auth_token": "Authentication token is missing",
+    "invalid_or_expired_token": "Invalid or expired authentication token",
+    "failed_to_refresh_token": "Failed to refresh authentication token",
+    "invalid_refreshed_token": "Refreshed token is invalid",
+    "invalid_session": "Invalid session. Please login again",
+    "user_not_found": "User not found",
+    "insufficient_permissions": "Insufficient permissions to perform this action",
+    "account_not_activated_by_admin": "Your account has not been activated by an administrator yet",
     "conflict": "{{message}}",
     "invalid_input": "{{message}}",
     "version_conflict": "Resource was modified by another user. Please refresh and try again",
@@ -14,7 +22,6 @@
     "external_service": "External service is currently unavailable. Please try again later",
     "member": {
       "not_found": "Member not found",
-      "already_exists": "Member already exists",
       "invalid_parent": "Invalid {{parent}} member",
       "circular_relationship": "Circular parent-child relationship detected",
       "has_children": "Cannot delete member: this member has children",
@@ -23,18 +30,15 @@
     },
     "spouse": {
       "not_found": "Spouse not found",
-      "already_exists": "Spouse relationship already exists",
       "has_children": "Cannot delete spouse relationship: there are children with both parents",
       "invalid_marriage_date": "Divorce date must be after marriage date"
     },
     "user": {
       "not_found": "User not found",
-      "already_exists": "User with this email already exists",
       "inactive": "Your account is inactive. Please contact an administrator"
     },
     "language": {
       "not_found": "Language not found",
-      "already_exists": "Language already exists",
       "not_active": "Selected language is not active"
     },
     "oauth": {
@@ -66,8 +70,14 @@
     "mother_id": "Mother",
     "version": "Version",
     "language_code": "Language code",
-    "language_name": "Language name",
     "preferred_language": "Preferred language"
+  },
+  "language": {
+    "name": {
+      "en": "English",
+      "ar": "العربية",
+      "ru": "Русский"
+    }
   },
   "success": {
     "auth": {
@@ -86,6 +96,9 @@
     "user": {
       "role_updated": "User role updated successfully",
       "active_status_updated": "User active status updated successfully"
+    },
+    "language": {
+      "order_updated": "Language display order updated successfully"
     }
   }
 }

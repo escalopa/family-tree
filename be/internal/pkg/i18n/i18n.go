@@ -4,10 +4,10 @@ import (
 	"embed"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"path/filepath"
 	"slices"
 	"strings"
-	"sync"
 )
 
 const (
@@ -19,10 +19,7 @@ const (
 //go:embed translations/*.json
 var translationsFS embed.FS
 
-var (
-	service     *Service
-	serviceOnce sync.Once
-)
+var service *Service
 
 type Service struct {
 	translations map[string]map[string]any // lang -> nested map
@@ -30,17 +27,16 @@ type Service struct {
 	fallback     string
 }
 
-func Init() error {
-	var err error
-	serviceOnce.Do(func() {
-		service = &Service{
-			translations: make(map[string]map[string]any),
-			supported:    []string{},
-			fallback:     fallbackLang,
-		}
-		err = service.loadTranslations()
-	})
-	return err
+func init() {
+	service = &Service{
+		translations: make(map[string]map[string]any),
+		supported:    []string{},
+		fallback:     fallbackLang,
+	}
+	if err := service.loadTranslations(); err != nil {
+		panic(fmt.Errorf("load translations: %w", err))
+	}
+	slog.Info("i18n initialized", "supported_languages", service.supported)
 }
 
 func (s *Service) loadTranslations() error {
@@ -66,7 +62,7 @@ func (s *Service) loadTranslations() error {
 
 		data, err := translationsFS.ReadFile(filepath.Join(translationsDir, filename))
 		if err != nil {
-			return fmt.Errorf("load translation file %s: %w", filename, err)
+			return fmt.Errorf("load translation file %q: %w", filename, err)
 		}
 
 		var translations map[string]any
@@ -90,29 +86,35 @@ func (s *Service) loadTranslations() error {
 }
 
 func Translate(key, lang string, params map[string]string) string {
-	checkServiceInitialized()
 	return service.translate(key, lang, params)
 }
 
 func IsSupported(lang string) bool {
-	checkServiceInitialized()
 	return service.isSupported(lang)
 }
 
 func NormalizeLanguage(lang string) string {
-	checkServiceInitialized()
 	return service.normalizeLanguage(lang)
 }
 
 func GetSupportedLanguages() []string {
-	checkServiceInitialized()
 	return service.supported
 }
 
-func checkServiceInitialized() {
-	if service == nil {
-		panic("i18n service not initialized")
+// GetLanguageName returns the native display name for a language code
+// It looks up the name from the language's own translation file (e.g., "English" for "en", "العربية" for "ar")
+func GetLanguageName(langCode, uiLang string) string {
+
+	// Look up language.name.{langCode} from the language's own translation file
+	// This ensures we always show native names (e.g., "English", "العربية", "Русский")
+	key := fmt.Sprintf("language.name.%s", langCode)
+	name := service.translate(key, langCode, nil)
+
+	// If translation not found, fallback to the code itself
+	if name == key {
+		return langCode
 	}
+	return name
 }
 
 func (s *Service) isSupported(lang string) bool {

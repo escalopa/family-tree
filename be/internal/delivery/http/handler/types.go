@@ -7,11 +7,11 @@ import (
 )
 
 type LanguageUseCase interface {
-	Create(ctx context.Context, language *domain.Language) error
 	Get(ctx context.Context, code string) (*domain.Language, error)
 	List(ctx context.Context, activeOnly bool) ([]*domain.Language, error)
-	Update(ctx context.Context, language *domain.Language) error
+	ToggleActive(ctx context.Context, code string, isActive bool) error
 	UpdatePreference(ctx context.Context, pref *domain.UserLanguagePreference) error
+	UpdateDisplayOrder(ctx context.Context, orders map[string]int) error
 }
 
 type CookieManager interface {

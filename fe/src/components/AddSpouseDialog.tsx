@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { enqueueSnackbar } from 'notistack';
 import { useTranslation } from 'react-i18next';
@@ -12,9 +13,12 @@ import {
   Typography,
   Autocomplete,
   CircularProgress,
+  Box,
+  Avatar,
 } from '@mui/material';
 import { MemberListItem } from '../types';
 import { membersApi, spousesApi } from '../api';
+import { getMemberPictureUrl, getGenderColor } from '../utils/helpers';
 
 interface AddSpouseDialogProps {
   open: boolean;
@@ -37,6 +41,7 @@ const AddSpouseDialog: React.FC<AddSpouseDialogProps> = ({
   const [selectedSpouse, setSelectedSpouse] = useState<MemberListItem | null>(null);
   const [spouseOptions, setSpouseOptions] = useState<MemberListItem[]>([]);
   const [loadingSpouses, setLoadingSpouses] = useState(false);
+  const [inputValue, setInputValue] = useState('');
   const [marriageDate, setMarriageDate] = useState('');
   const [divorceDate, setDivorceDate] = useState('');
   const [saving, setSaving] = useState(false);
@@ -56,10 +61,15 @@ const AddSpouseDialog: React.FC<AddSpouseDialogProps> = ({
         gender: oppositeGender,
         limit: 20,
       });
+      // Handle null or undefined members array from backend
+      const members = result.members || [];
       // Filter out the current member
-      setSpouseOptions(result.members.filter(option => option.member_id !== memberId));
+      const filteredMembers = members.filter(option => option.member_id !== memberId);
+      console.log('Spouse search results:', filteredMembers); // Debug log
+      setSpouseOptions(filteredMembers);
     } catch (error) {
       console.error('search for spouse:', error);
+      setSpouseOptions([]);
     } finally {
       setLoadingSpouses(false);
     }
@@ -97,6 +107,7 @@ const AddSpouseDialog: React.FC<AddSpouseDialogProps> = ({
   const handleClose = () => {
     setSelectedSpouse(null);
     setSpouseOptions([]);
+    setInputValue('');
     setMarriageDate('');
     setDivorceDate('');
     onClose();
@@ -118,10 +129,20 @@ const AddSpouseDialog: React.FC<AddSpouseDialogProps> = ({
               getOptionLabel={(option) => option.name}
               loading={loadingSpouses}
               value={selectedSpouse}
-              onChange={(_, newValue) => setSelectedSpouse(newValue)}
-              onInputChange={(_, newInputValue) => {
-                handleSearchSpouse(newInputValue);
+              onChange={(_, newValue) => {
+                console.log('Selected spouse:', newValue); // Debug log
+                setSelectedSpouse(newValue);
               }}
+              inputValue={inputValue}
+              onInputChange={(_, newInputValue, reason) => {
+                console.log('Input change:', newInputValue, 'reason:', reason); // Debug log
+                setInputValue(newInputValue);
+                if (reason === 'input') {
+                  handleSearchSpouse(newInputValue);
+                }
+              }}
+              filterOptions={(x) => x}
+              isOptionEqualToValue={(option, value) => option.member_id === value.member_id}
               renderInput={(params) => (
                 <TextField
                   {...params}
@@ -140,13 +161,28 @@ const AddSpouseDialog: React.FC<AddSpouseDialogProps> = ({
                 />
               )}
               renderOption={(props, option) => (
-                <li {...props} key={option.member_id}>
-                  <div>
-                    <div>{option.name}</div>
-                  </div>
-                </li>
+                <Box component="li" {...props} key={option.member_id} sx={{ display: 'flex', gap: 1.5, alignItems: 'center' }}>
+                  <Avatar
+                    src={getMemberPictureUrl(option.member_id, option.picture) || undefined}
+                    sx={{
+                      width: 40,
+                      height: 40,
+                      bgcolor: getGenderColor(option.gender),
+                    }}
+                  >
+                    {option.name.charAt(0) || '?'}
+                  </Avatar>
+                  <Box>
+                    <Typography variant="body2">{option.name}</Typography>
+                    {option.date_of_birth && (
+                      <Typography variant="caption" color="text.secondary">
+                        {option.date_of_birth}
+                      </Typography>
+                    )}
+                  </Box>
+                </Box>
               )}
-              noOptionsText={t('spouse.typeToSearchMembers')}
+              noOptionsText={inputValue.length < 2 ? t('spouse.typeToSearchMembers') : t('member.noMembers')}
             />
           </Grid>
           <Grid item xs={12} sm={6}>

@@ -9,6 +9,7 @@ import {
   Typography,
 } from '@mui/material';
 import { PhotoCamera, Delete, Close } from '@mui/icons-material';
+import { useTranslation } from 'react-i18next';
 import { membersApi } from '../api';
 import { getGenderColor, getMemberPictureUrl } from '../utils/helpers';
 
@@ -35,6 +36,7 @@ const MemberPhotoUpload: React.FC<MemberPhotoUploadProps> = ({
   showName = false,
   compact = false,
 }) => {
+  const { t } = useTranslation();
   const [uploading, setUploading] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -65,7 +67,7 @@ const MemberPhotoUpload: React.FC<MemberPhotoUploadProps> = ({
       const pictureUrl = await membersApi.uploadPicture(memberId, file);
       onPhotoChange?.(memberId, pictureUrl);
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to upload photo');
+      setError(err.response?.data?.error || t('member.failedToUploadPhoto'));
     } finally {
       setUploading(false);
       if (fileInputRef.current) {
@@ -75,7 +77,7 @@ const MemberPhotoUpload: React.FC<MemberPhotoUploadProps> = ({
   };
 
   const handleDelete = async () => {
-    if (!confirm('Are you sure you want to delete this photo?')) return;
+    if (!confirm(t('member.deletePhotoConfirmation'))) return;
 
     setError(null);
     setDeleting(true);
@@ -84,7 +86,7 @@ const MemberPhotoUpload: React.FC<MemberPhotoUploadProps> = ({
       await membersApi.deletePicture(memberId);
       onPhotoChange?.(memberId, null);
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to delete photo');
+      setError(err.response?.data?.error || t('member.failedToDeletePhoto'));
     } finally {
       setDeleting(false);
     }
@@ -139,7 +141,7 @@ const MemberPhotoUpload: React.FC<MemberPhotoUploadProps> = ({
             gap: 0.5,
           }}
         >
-          <Tooltip title="Upload photo">
+          <Tooltip title={t('member.uploadPicture')}>
             <IconButton
               size="small"
               onClick={handleUploadClick}
@@ -157,7 +159,7 @@ const MemberPhotoUpload: React.FC<MemberPhotoUploadProps> = ({
           </Tooltip>
 
           {currentPhoto && (
-            <Tooltip title="Delete photo">
+            <Tooltip title={t('member.deletePicture')}>
               <IconButton
                 size="small"
                 onClick={handleDelete}
@@ -251,7 +253,7 @@ const MemberPhotoUpload: React.FC<MemberPhotoUploadProps> = ({
 
         {/* Small delete button in corner */}
         {currentPhoto && !uploading && !deleting && (
-          <Tooltip title="Delete photo">
+          <Tooltip title={t('member.deletePicture')}>
             <IconButton
               size="small"
               onClick={handleDelete}

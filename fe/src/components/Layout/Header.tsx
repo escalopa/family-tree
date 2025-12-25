@@ -10,8 +10,8 @@ import {
 } from '@mui/material';
 import {
   AccountTree,
-  People,
-  SupervisorAccount,
+  Groups,
+  AdminPanelSettings,
   Leaderboard,
   AccountCircle,
 } from '@mui/icons-material';
@@ -50,7 +50,7 @@ const Header: React.FC = () => {
             {hasRole(Roles.ADMIN) && (
               <Button
                 color="inherit"
-                startIcon={<People />}
+                startIcon={<Groups />}
                 onClick={() => navigate('/members')}
               >
                 Members
@@ -59,7 +59,7 @@ const Header: React.FC = () => {
             {hasRole(Roles.SUPER_ADMIN) && (
               <Button
                 color="inherit"
-                startIcon={<SupervisorAccount />}
+                startIcon={<AdminPanelSettings />}
                 onClick={() => navigate('/users')}
               >
                 Users

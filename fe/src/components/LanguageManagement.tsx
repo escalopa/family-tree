@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
   Box,
-  Button,
   Table,
   TableBody,
   TableCell,
@@ -9,39 +8,106 @@ import {
   TableHead,
   TableRow,
   Paper,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  Switch,
-  FormControlLabel,
   Chip,
   Alert,
   CircularProgress,
   Typography,
+  Switch,
+  Button,
 } from '@mui/material';
-import { Add } from '@mui/icons-material';
+import {
+  DragIndicator,
+  Save,
+} from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { languageApi } from '../api';
 import { Language } from '../types';
+
+interface SortableRowProps {
+  language: Language;
+  onToggleActive: (language: Language, event: React.ChangeEvent<HTMLInputElement>) => void;
+  loading: boolean;
+  t: (key: string) => string;
+}
+
+function SortableRow({ language, onToggleActive, loading, t }: SortableRowProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: language.language_code });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    backgroundColor: isDragging ? 'action.hover' : 'inherit',
+  };
+
+  return (
+    <TableRow ref={setNodeRef} style={style} {...attributes}>
+      <TableCell sx={{ width: 50, cursor: 'grab' }} {...listeners}>
+        <DragIndicator />
+      </TableCell>
+      <TableCell>
+        <Chip label={language.language_code} size="small" />
+      </TableCell>
+      <TableCell>{language.language_name}</TableCell>
+      <TableCell>
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          <Switch
+            checked={language.is_active}
+            onChange={(e) => onToggleActive(language, e)}
+            color="primary"
+            disabled={loading}
+          />
+          <Chip
+            label={language.is_active ? t('language.active') : t('language.inactive')}
+            color={language.is_active ? 'success' : 'default'}
+            size="small"
+            sx={{ marginInlineStart: 1 }}
+          />
+        </Box>
+      </TableCell>
+    </TableRow>
+  );
+}
 
 const LanguageManagement: React.FC = () => {
   const { t } = useTranslation();
   const [languages, setLanguages] = useState<Language[]>([]);
   const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [hasChanges, setHasChanges] = useState(false);
 
-  // Dialog state
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingLanguage, setEditingLanguage] = useState<Language | null>(null);
-  const [formData, setFormData] = useState({
-    language_code: '',
-    language_name: '',
-    is_active: true,
-    display_order: 0,
-  });
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   useEffect(() => {
     loadLanguages();
@@ -54,6 +120,7 @@ const LanguageManagement: React.FC = () => {
       // Get all languages (including inactive)
       const langs = await languageApi.getLanguages(false);
       setLanguages(langs.sort((a, b) => a.display_order - b.display_order));
+      setHasChanges(false);
     } catch (err: any) {
       setError(err?.response?.data?.error || 'Failed to load languages');
       console.error('load languages:', err);
@@ -62,99 +129,73 @@ const LanguageManagement: React.FC = () => {
     }
   };
 
-  const handleOpenDialog = (language?: Language) => {
-    if (language) {
-      setEditingLanguage(language);
-      setFormData({
-        language_code: language.language_code,
-        language_name: language.language_name,
-        is_active: language.is_active,
-        display_order: language.display_order,
-      });
-    } else {
-      setEditingLanguage(null);
-      setFormData({
-        language_code: '',
-        language_name: '',
-        is_active: true,
-        display_order: languages.length,
-      });
-    }
-    setDialogOpen(true);
-    setError(null);
-    setSuccess(null);
-  };
-
-  const handleCloseDialog = () => {
-    setDialogOpen(false);
-    setEditingLanguage(null);
-    setFormData({
-      language_code: '',
-      language_name: '',
-      is_active: true,
-      display_order: 0,
-    });
-  };
-
-  const handleSave = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      if (editingLanguage) {
-        // Update existing language
-        await languageApi.updateLanguage(editingLanguage.language_code, {
-          language_name: formData.language_name,
-          is_active: formData.is_active,
-          display_order: formData.display_order,
-        });
-        setSuccess(`Language "${formData.language_name}" updated successfully`);
-      } else {
-        // Create new language
-        await languageApi.createLanguage({
-          language_code: formData.language_code,
-          language_name: formData.language_name,
-          display_order: formData.display_order,
-        });
-        setSuccess(`Language "${formData.language_name}" created successfully`);
-      }
-
-      await loadLanguages();
-      handleCloseDialog();
-
-      // Clear success message after 3 seconds
-      setTimeout(() => setSuccess(null), 3000);
-    } catch (err: any) {
-      setError(err?.response?.data?.error || 'Failed to save language');
-      console.error('save language:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleToggleActive = async (language: Language, event: React.MouseEvent) => {
-    // Stop propagation to prevent opening the edit dialog
+  const handleToggleActive = async (language: Language, event: React.ChangeEvent<HTMLInputElement>) => {
     event.stopPropagation();
     try {
       setLoading(true);
       setError(null);
 
-      await languageApi.updateLanguage(language.language_code, {
-        language_name: language.language_name,
-        is_active: !language.is_active,
-        display_order: language.display_order,
-      });
+      await languageApi.toggleLanguageActive(language.language_code, !language.is_active);
 
-      setSuccess(`Language "${language.language_name}" ${!language.is_active ? 'activated' : 'deactivated'}`);
+      setSuccess(`Language "${language.language_name}" ${!language.is_active ? 'enabled' : 'disabled'}`);
       await loadLanguages();
 
       // Clear success message after 3 seconds
       setTimeout(() => setSuccess(null), 3000);
     } catch (err: any) {
-      setError(err?.response?.data?.error || 'Failed to update language');
-      console.error('update language:', err);
+      setError(err?.response?.data?.error || 'Failed to toggle language');
+      console.error('toggle language:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      setLanguages((items) => {
+        const oldIndex = items.findIndex((item) => item.language_code === active.id);
+        const newIndex = items.findIndex((item) => item.language_code === over.id);
+
+        const newItems = arrayMove(items, oldIndex, newIndex);
+
+        // Update display_order for all items
+        const updatedItems = newItems.map((item, index) => ({
+          ...item,
+          display_order: index,
+        }));
+
+        setHasChanges(true);
+        return updatedItems;
+      });
+    }
+  };
+
+  const handleSaveOrder = async () => {
+    try {
+      setSaving(true);
+      setError(null);
+
+      // Prepare the order data
+      const orderData = languages.map((lang) => ({
+        language_code: lang.language_code,
+        display_order: lang.display_order,
+      }));
+
+      await languageApi.updateLanguageOrder(orderData);
+
+      setSuccess('Language display order updated successfully');
+      setHasChanges(false);
+      await loadLanguages();
+
+      // Clear success message after 3 seconds
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (err: any) {
+      setError(err?.response?.data?.error || 'Failed to update language order');
+      console.error('update language order:', err);
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -162,14 +203,17 @@ const LanguageManagement: React.FC = () => {
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
         <Typography variant="h6">{t('language.languageManagement')}</Typography>
-        <Button
-          variant="contained"
-          startIcon={<Add />}
-          onClick={() => handleOpenDialog()}
-          disabled={loading}
-        >
-          {t('language.addLanguage')}
-        </Button>
+        {hasChanges && (
+          <Button
+            variant="contained"
+            color="primary"
+            startIcon={<Save />}
+            onClick={handleSaveOrder}
+            disabled={saving || loading}
+          >
+            {saving ? t('common.saving') : t('common.save')}
+          </Button>
+        )}
       </Box>
 
       {error && (
@@ -184,125 +228,50 @@ const LanguageManagement: React.FC = () => {
         </Alert>
       )}
 
-      {loading && !dialogOpen ? (
+      {loading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
           <CircularProgress />
         </Box>
       ) : (
-        <TableContainer component={Paper}>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>{t('language.code')}</TableCell>
-                <TableCell>{t('language.name')}</TableCell>
-                <TableCell>{t('language.status')}</TableCell>
-                <TableCell>{t('language.displayOrder')}</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {!Array.isArray(languages) || languages.length === 0 ? (
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <TableContainer component={Paper}>
+            <Table>
+              <TableHead>
                 <TableRow>
-                  <TableCell colSpan={4} align="center">
-                    <Typography color="text.secondary">{t('language.noLanguagesFound')}</Typography>
-                  </TableCell>
+                  <TableCell sx={{ width: 50 }}></TableCell>
+                  <TableCell>{t('language.code')}</TableCell>
+                  <TableCell>{t('language.name')}</TableCell>
+                  <TableCell>{t('language.status')}</TableCell>
                 </TableRow>
-              ) : (
-                languages.map((language) => (
-                  <TableRow
-                    key={language.language_code}
-                    onClick={() => handleOpenDialog(language)}
-                    sx={{
-                      cursor: 'pointer',
-                      '&:hover': {
-                        backgroundColor: 'action.hover',
-                      },
-                    }}
-                  >
-                    <TableCell>
-                      <Chip label={language.language_code} size="small" />
+              </TableHead>
+              <TableBody>
+                {!Array.isArray(languages) || languages.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={4} align="center">
+                      <Typography color="text.secondary">{t('language.noLanguagesFound')}</Typography>
                     </TableCell>
-                    <TableCell>{language.language_name}</TableCell>
-                    <TableCell>
-                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        <Switch
-                          checked={language.is_active}
-                          onChange={(e) => handleToggleActive(language, e as any)}
-                          onClick={(e) => e.stopPropagation()}
-                          color="primary"
-                          disabled={loading}
-                        />
-                        <Chip
-                          label={language.is_active ? t('language.active') : t('language.inactive')}
-                          color={language.is_active ? 'success' : 'default'}
-                          size="small"
-                          sx={{ marginInlineStart: 1 }}
-                        />
-                      </Box>
-                    </TableCell>
-                    <TableCell>{language.display_order}</TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
+                ) : (
+                  <SortableContext
+                    items={languages.map((l) => l.language_code)}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    {languages.map((language) => (
+                      <SortableRow
+                        key={language.language_code}
+                        language={language}
+                        onToggleActive={handleToggleActive}
+                        loading={loading}
+                        t={t}
+                      />
+                    ))}
+                  </SortableContext>
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </DndContext>
       )}
-
-      {/* Create/Edit Dialog */}
-      <Dialog open={dialogOpen} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
-        <DialogTitle>{editingLanguage ? t('language.editLanguage') : t('language.addLanguage')}</DialogTitle>
-        <DialogContent>
-          <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <TextField
-              label={t('language.code')}
-              value={formData.language_code}
-              onChange={(e) => setFormData({ ...formData, language_code: e.target.value.toLowerCase() })}
-              disabled={!!editingLanguage}
-              required
-              helperText={t('language.codeHelperText')}
-              inputProps={{ maxLength: 10 }}
-            />
-            <TextField
-              label={t('language.name')}
-              value={formData.language_name}
-              onChange={(e) => setFormData({ ...formData, language_name: e.target.value })}
-              required
-              helperText={t('language.nameHelperText')}
-            />
-            <TextField
-              label={t('language.displayOrder')}
-              type="number"
-              value={formData.display_order}
-              onChange={(e) => setFormData({ ...formData, display_order: parseInt(e.target.value) || 0 })}
-              required
-              helperText={t('language.displayOrderHelperText')}
-            />
-            {editingLanguage && (
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={formData.is_active}
-                    onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-                  />
-                }
-                label={t('language.active')}
-              />
-            )}
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseDialog} disabled={loading}>
-            {t('common.cancel')}
-          </Button>
-          <Button
-            onClick={handleSave}
-            variant="contained"
-            disabled={loading || !formData.language_code || !formData.language_name}
-          >
-            {loading ? t('common.saving') : t('common.save')}
-          </Button>
-        </DialogActions>
-      </Dialog>
     </Box>
   );
 };

@@ -73,8 +73,10 @@ func (r *Router) Setup(engine *gin.Engine) {
 	}
 
 	api := engine.Group("/api")
-	api.Use(r.authMiddleware.Authenticate())
-	api.Use(r.apiRateLimitMiddleware.RateLimit())
+	api.Use(
+		r.authMiddleware.Authenticate(),
+		r.apiRateLimitMiddleware.RateLimit(),
+	)
 	{
 		authGroup := api.Group("/auth")
 		{
@@ -131,9 +133,8 @@ func (r *Router) Setup(engine *gin.Engine) {
 		{
 			languageGroup.GET("", r.languageHandler.List)
 			languageGroup.GET("/:code", r.languageHandler.Get)
-
-			languageGroup.POST("", middleware.RequireActive(), middleware.RequireRole(domain.RoleSuperAdmin), r.languageHandler.Create)
-			languageGroup.PUT("/:code", middleware.RequireActive(), middleware.RequireRole(domain.RoleSuperAdmin), r.languageHandler.Update)
+			languageGroup.PATCH("/:code/toggle", middleware.RequireActive(), middleware.RequireRole(domain.RoleSuperAdmin), r.languageHandler.ToggleActive)
+			languageGroup.PUT("/order", middleware.RequireActive(), middleware.RequireRole(domain.RoleSuperAdmin), r.languageHandler.UpdateOrder)
 		}
 
 		userPrefsGroup := api.Group("/users/me/preferences")

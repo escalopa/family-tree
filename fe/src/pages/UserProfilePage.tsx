@@ -228,10 +228,10 @@ const UserProfilePage: React.FC = () => {
         >
         <Paper sx={{ p: 3, mb: 3 }}>
           <Grid container spacing={3}>
-            <Grid item xs={12} md={4} sx={{ textAlign: 'center' }}>
+            <Grid item xs={12} md={4} sx={{ textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
               <Avatar
                 src={user.avatar || undefined}
-                sx={{ width: 150, height: 150, mx: 'auto', mb: 2 }}
+                sx={{ width: 180, height: 180, mb: 2 }}
               >
                 {user.full_name[0]}
               </Avatar>

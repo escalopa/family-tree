@@ -5,16 +5,11 @@ import {
   Paper,
   Typography,
   Avatar,
-  Button,
-  Divider,
   Grid,
   Chip,
-  useTheme,
 } from '@mui/material';
 import {
   Leaderboard,
-  ExitToApp,
-  PowerSettingsNew,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -22,34 +17,13 @@ import { useTranslation } from 'react-i18next';
 import Layout from '../components/Layout/Layout';
 import SettingsContent from '../components/SettingsContent';
 import { useAuth } from '../contexts/AuthContext';
-import { authApi } from '../api';
 import { getRoleName } from '../utils/helpers';
 import DirectionalButton from '../components/DirectionalButton';
 
 const ProfilePage: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { user, setUser } = useAuth();
-
-  const handleLogout = async () => {
-    try {
-      await authApi.logout();
-      setUser(null);
-      navigate('/login');
-    } catch (error) {
-      console.error('Logout failed:', error);
-    }
-  };
-
-  const handleLogoutAll = async () => {
-    try {
-      await authApi.logoutAll();
-      setUser(null);
-      navigate('/login');
-    } catch (error) {
-      console.error('Logout from all devices failed:', error);
-    }
-  };
+  const { user } = useAuth();
 
   if (!user) {
     return (
@@ -138,49 +112,11 @@ const ProfilePage: React.FC = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.2 }}
         >
-          <Paper sx={{ p: 4, mb: 3 }}>
+          <Paper sx={{ p: 4 }}>
             <Typography variant="h5" gutterBottom sx={{ mb: 3 }}>
               {t('settings.title')}
             </Typography>
             <SettingsContent />
-          </Paper>
-        </motion.div>
-
-        {/* Logout Section */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.3 }}
-        >
-          <Paper sx={{ p: 3 }}>
-            <Typography variant="h6" gutterBottom>
-              {t('profile.sessionManagement')}
-            </Typography>
-            <Divider sx={{ my: 2 }} />
-            <Grid container spacing={2}>
-              <Grid item xs={12} sm={6}>
-                <DirectionalButton
-                  variant="outlined"
-                  color="primary"
-                  icon={<ExitToApp />}
-                  onClick={handleLogout}
-                  fullWidth
-                >
-                  {t('common.logout')}
-                </DirectionalButton>
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <DirectionalButton
-                  variant="outlined"
-                  color="error"
-                  icon={<PowerSettingsNew />}
-                  onClick={handleLogoutAll}
-                  fullWidth
-                >
-                  {t('auth.logoutFromAllDevices')}
-                </DirectionalButton>
-              </Grid>
-            </Grid>
           </Paper>
         </motion.div>
       </Container>

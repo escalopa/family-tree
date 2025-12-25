@@ -15,10 +15,10 @@ const resources = {
 const customDetector = {
   name: 'customLocalStorage',
   lookup() {
-    return localStorage.getItem('ui_language') || 'en';
+    return localStorage.getItem('interface_language') || 'en';
   },
   cacheUserLanguage(lng: string) {
-    localStorage.setItem('ui_language', lng);
+    localStorage.setItem('interface_language', lng);
   },
 };
 

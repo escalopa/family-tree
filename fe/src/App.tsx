@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { ThemeProvider } from './contexts/ThemeContext';
 import { AuthProvider } from './contexts/AuthContext';
 import { LanguageProvider } from './contexts/LanguageContext';
-import { UILanguageProvider } from './contexts/UILanguageContext';
+import { InterfaceLanguageProvider } from './contexts/InterfaceLanguageContext';
 import NotificationProvider from './components/NotificationProvider';
 import ProtectedRoute from './components/ProtectedRoute';
 
@@ -26,7 +26,7 @@ const App: React.FC = () => {
     <ThemeProvider>
       <NotificationProvider>
         <AuthProvider>
-          <UILanguageProvider>
+          <InterfaceLanguageProvider>
             <LanguageProvider>
               <Router>
               <Routes>
@@ -96,7 +96,7 @@ const App: React.FC = () => {
               </Routes>
               </Router>
             </LanguageProvider>
-          </UILanguageProvider>
+          </InterfaceLanguageProvider>
         </AuthProvider>
       </NotificationProvider>
     </ThemeProvider>

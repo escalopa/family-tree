@@ -6,7 +6,7 @@ import (
 )
 
 const (
-	keyUILanguage        = "ui_language"
+	keyInterfaceLanguage = "interface_language"
 	headerAcceptLanguage = "Accept-Language"
 )
 
@@ -16,7 +16,15 @@ func LanguageMiddleware() gin.HandlerFunc {
 
 		lang = i18n.NormalizeLanguage(lang)
 
-		c.Set(keyUILanguage, lang)
+		c.Set(keyInterfaceLanguage, lang)
 		c.Next()
 	}
+}
+
+func GetInterfaceLanguage(c *gin.Context) string {
+	lang, exists := c.Get(keyInterfaceLanguage)
+	if !exists {
+		return "en"
+	}
+	return lang.(string)
 }

@@ -67,7 +67,8 @@
     "theme": "المظهر",
     "appearance": "المظهر",
     "themeDescription": "اختر المظهر المفضل لديك للتطبيق",
-    "themePreferenceSaved": "يتم حفظ تفضيلات المظهر محلياً على هذا الجهاز"
+    "themePreferenceSaved": "يتم حفظ تفضيلات المظهر محلياً على هذا الجهاز",
+    "toggleTheme": "تبديل المظهر"
   },
   "member": {
     "title": "الأعضاء",
@@ -104,6 +105,9 @@
     "picture": "الصورة",
     "uploadPicture": "رفع صورة",
     "deletePicture": "حذف الصورة",
+    "deletePhotoConfirmation": "هل أنت متأكد من حذف هذه الصورة؟",
+    "failedToDeletePhoto": "فشل في حذف الصورة",
+    "failedToUploadPhoto": "فشل في رفع الصورة",
     "male": "ذكر",
     "female": "أنثى",
     "alive": "على قيد الحياة",
@@ -232,14 +236,14 @@
   },
   "language": {
     "title": "اللغات",
-    "uiLanguage": "لغة الواجهة",
+    "interfaceLanguage": "لغة الواجهة",
     "namesLanguage": "لغة الأسماء",
     "selectLanguage": "اختر اللغة",
     "languageSettings": "إعدادات اللغة",
     "languagePreferences": "تفضيلات اللغة",
     "changeLanguage": "تغيير اللغة",
     "languageUpdated": "تم تحديث اللغة بنجاح",
-    "uiLanguageDescription": "اختر اللغة المفضلة لديك لواجهة المستخدم (الأزرار والتسميات والرسائل).",
+    "interfaceLanguageDescription": "اختر اللغة المفضلة لديك لواجهة المستخدم (الأزرار والتسميات والرسائل).",
     "namesLanguageDescription": "اختر لغتك المفضلة لأسماء الأعضاء في عرض الشجرة والأحرف الأولى للصورة الرمزية وقائمة الأعضاء.",
     "languageManagement": "إدارة اللغات",
     "addLanguage": "إضافة لغة",
@@ -252,11 +256,11 @@
     "inactive": "غير نشط",
     "noLanguagesFound": "لم يتم العثور على لغات",
     "codeHelperText": "2-10 أحرف (مثل: 'en', 'ar', 'ru')",
-    "nameHelperText": "الاسم الكامل للغة (مثل: 'English', 'Arabic')",
+    "nameHelperText": "الاسم الكامل للغة بشكلها الأصلي (مثل: 'English', 'العربية', 'Русский')",
     "displayOrderHelperText": "الترتيب الذي تظهر به هذه اللغة (0 = الأول)",
-    "english": "الإنجليزية",
+    "english": "English",
     "arabic": "العربية",
-    "russian": "الروسية",
+    "russian": "Русский",
     "selected": "المحدد"
   },
   "settings": {

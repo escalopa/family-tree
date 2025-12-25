@@ -47,10 +47,10 @@ type TreeHandler interface {
 type LanguageHandler interface {
 	Get(c *gin.Context)
 	List(c *gin.Context)
-	Create(c *gin.Context)
-	Update(c *gin.Context)
+	ToggleActive(c *gin.Context)
 	GetPreference(c *gin.Context)
 	UpdatePreference(c *gin.Context)
+	UpdateOrder(c *gin.Context)
 }
 
 type AuthMiddleware interface {

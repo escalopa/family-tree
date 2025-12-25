@@ -4,7 +4,6 @@ import "time"
 
 type Language struct {
 	LanguageCode string    `json:"language_code"`
-	LanguageName string    `json:"language_name"`
 	IsActive     bool      `json:"is_active"`
 	DisplayOrder int       `json:"display_order"`
 	CreatedAt    time.Time `json:"created_at"`

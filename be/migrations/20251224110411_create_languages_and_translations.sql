@@ -6,7 +6,6 @@
 -- =============================
 CREATE TABLE IF NOT EXISTS languages (
     language_code VARCHAR(10) PRIMARY KEY,
-    language_name VARCHAR(50) NOT NULL,
     is_active BOOLEAN DEFAULT TRUE NOT NULL,
     display_order INT DEFAULT 0 NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
@@ -14,31 +13,6 @@ CREATE TABLE IF NOT EXISTS languages (
 
 CREATE INDEX IF NOT EXISTS idx_languages_display_order ON languages(display_order);
 CREATE INDEX IF NOT EXISTS idx_languages_is_active ON languages(is_active);
-
--- Seed popular languages
-INSERT INTO languages (language_code, language_name, is_active, display_order)
-VALUES
-    ('en', 'English', true, 1),
-    ('ar', 'Arabic', false, 2),
-    ('zh', 'Chinese', false, 3),
-    ('es', 'Spanish', false, 4),
-    ('hi', 'Hindi', false, 5),
-    ('fr', 'French', false, 6),
-    ('ru', 'Russian', false, 7),
-    ('pt', 'Portuguese', false, 8),
-    ('de', 'German', false, 9),
-    ('ja', 'Japanese', false, 10),
-    ('ko', 'Korean', false, 11),
-    ('it', 'Italian', false, 12),
-    ('tr', 'Turkish', false, 13),
-    ('pl', 'Polish', false, 14),
-    ('uk', 'Ukrainian', false, 15),
-    ('fa', 'Persian', false, 16),
-    ('ur', 'Urdu', false, 17),
-    ('vi', 'Vietnamese', false, 18),
-    ('nl', 'Dutch', false, 19),
-    ('th', 'Thai', false, 20)
-ON CONFLICT (language_code) DO NOTHING;
 
 -- =============================
 -- Member Names Table

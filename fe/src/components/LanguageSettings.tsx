@@ -123,7 +123,7 @@ const LanguageSettings: React.FC<LanguageSettingsProps> = ({ onSave }) => {
                     key={lang.language_code}
                     value={lang.language_code}
                   >
-                    {lang.language_name} ({lang.language_code.toUpperCase()})
+                    {lang.language_name}
                   </MenuItem>
                 ))}
               </Select>

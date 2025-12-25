@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"fmt"
 	"log/slog"
 
 	"github.com/escalopa/family-tree/internal/delivery"
@@ -27,11 +28,15 @@ func (m *RateLimitMiddleware) RateLimit() gin.HandlerFunc {
 			return
 		}
 
-		ip := c.ClientIP()
-
-		allowed, err := m.limiter.Allow(c.Request.Context(), ip)
+		key, ip, userID := m.getKey(c)
+		allowed, err := m.limiter.Allow(c.Request.Context(), key)
 		if err != nil {
-			slog.Error("Rate limiter error", "error", err, "ip", ip)
+			slog.Error("Rate limiter",
+				"error", err,
+				"key", key,
+				"ip", ip,
+				"userID", userID,
+			)
 			c.Next()
 			return
 		}
@@ -44,4 +49,13 @@ func (m *RateLimitMiddleware) RateLimit() gin.HandlerFunc {
 
 		c.Next()
 	}
+}
+
+func (m *RateLimitMiddleware) getKey(c *gin.Context) (string, string, int) {
+	ip := c.ClientIP()
+	userID := GetUserID(c)
+	if userID == 0 { // anonymous user (not logged in)
+		return ip, ip, 0
+	}
+	return fmt.Sprintf("user:%d", userID), ip, userID
 }

@@ -11,18 +11,18 @@ import (
 	"github.com/go-playground/validator/v10"
 )
 
-const keyUILanguage = "ui_language"
+const keyInterfaceLanguage = "interface_language"
 
-func getUILanguage(c *gin.Context) string {
-	lang, _ := c.Get(keyUILanguage)
+func getInterfaceLanguage(c *gin.Context) string {
+	lang, _ := c.Get(keyInterfaceLanguage)
 	return lang.(string)
 }
 
 func Error(c *gin.Context, err error) {
-	uiLang := getUILanguage(c)
+	interfaceLang := getInterfaceLanguage(c)
 
 	if validationErrs, ok := err.(validator.ValidationErrors); ok {
-		message := i18n.TranslateValidationErrors(validationErrs, uiLang)
+		message := i18n.TranslateValidationErrors(validationErrs, interfaceLang)
 		c.JSON(http.StatusBadRequest, dto.Response{
 			Success:   false,
 			Error:     message,
@@ -35,7 +35,7 @@ func Error(c *gin.Context, err error) {
 	if errors.As(err, &domainErr) {
 		translatedMsg := i18n.Translate(
 			domainErr.TranslationKey,
-			uiLang,
+			interfaceLang,
 			domainErr.Params,
 		)
 
@@ -49,14 +49,14 @@ func Error(c *gin.Context, err error) {
 
 	c.JSON(http.StatusInternalServerError, dto.Response{
 		Success:   false,
-		Error:     i18n.Translate("error.internal", uiLang, nil),
+		Error:     i18n.Translate("error.internal", interfaceLang, nil),
 		ErrorCode: domain.ErrCodeInternal.String(),
 	})
 }
 
 func Success(c *gin.Context, translationKey string, params map[string]string) {
-	uiLang := getUILanguage(c)
-	message := i18n.Translate(translationKey, uiLang, params)
+	interfaceLang := getInterfaceLanguage(c)
+	message := i18n.Translate(translationKey, interfaceLang, params)
 
 	c.JSON(http.StatusOK, dto.Response{
 		Success: true,

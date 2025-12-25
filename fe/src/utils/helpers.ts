@@ -167,14 +167,15 @@ export const getChangeTypeColor = (changeType: string): 'default' | 'primary' | 
 };
 
 export const getLocalizedLanguageName = (languageCode: string, t: (key: string) => string): string => {
+  // Return native language names (not translated)
   const lowerCode = languageCode.toLowerCase();
   switch (lowerCode) {
     case 'en':
-      return t('language.english');
+      return 'English';
     case 'ar':
-      return t('language.arabic');
+      return 'العربية';
     case 'ru':
-      return t('language.russian');
+      return 'Русский';
     default:
       return languageCode.toUpperCase();
   }

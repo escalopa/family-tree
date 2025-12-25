@@ -707,49 +707,65 @@ const MembersPage: React.FC = () => {
                   <Box
                     sx={{
                       display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
+                      flexDirection: { xs: 'column', sm: 'row' },
+                      alignItems: { xs: 'center', sm: 'flex-start' },
+                      justifyContent: 'space-between',
                       py: 3,
-                      gap: 2,
+                      px: 2,
+                      gap: 3,
+                      bgcolor: 'action.hover',
+                      borderRadius: 2,
                     }}
                   >
                     {/* Avatar */}
-                    <MemberPhotoUpload
-                      memberId={editingMember.member_id}
-                      currentPhoto={editingMember.picture}
-                      memberName={editingMember.name}
-                      gender={editingMember.gender}
-                      version={editingMember.version}
-                      onPhotoChange={handlePhotoChange}
-                      size={120}
-                      showName={false}
-                    />
+                    <Box sx={{ flexShrink: 0 }}>
+                      <MemberPhotoUpload
+                        memberId={editingMember.member_id}
+                        currentPhoto={editingMember.picture}
+                        memberName={editingMember.name}
+                        gender={editingMember.gender}
+                        version={editingMember.version}
+                        onPhotoChange={handlePhotoChange}
+                        size={120}
+                        showName={false}
+                      />
+                    </Box>
 
-                    {/* Member Name */}
-                    <Typography variant="h6" sx={{ textAlign: 'center' }}>
-                      {editingMember.name}
-                    </Typography>
+                    {/* Member Info */}
+                    <Box
+                      sx={{
+                        flex: 1,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 1.5,
+                        textAlign: { xs: 'center', sm: 'start' },
+                        alignItems: { xs: 'center', sm: 'flex-start' },
+                      }}
+                    >
+                      {/* Member Name */}
+                      <Typography variant="h5" fontWeight="bold">
+                        {editingMember.name}
+                      </Typography>
 
-                    {/* Full Name - only if exists */}
-                    {editingMember.full_name && (
-                      <Box sx={{ textAlign: 'center' }}>
-                        <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
-                          {t('member.fullName')}
-                        </Typography>
-                        <Typography variant="body2" fontWeight="medium">
-                          {editingMember.full_name}
-                        </Typography>
-                      </Box>
-                    )}
+                      {/* Full Name - only if exists and different from name */}
+                      {editingMember.full_name && editingMember.full_name !== editingMember.name && (
+                        <Box>
+                          <Typography variant="caption" color="text.secondary" display="block">
+                            {t('member.fullName')}
+                          </Typography>
+                          <Typography variant="body1" fontWeight="medium" color="text.primary">
+                            {editingMember.full_name}
+                          </Typography>
+                        </Box>
+                      )}
 
-                    {/* Age - only if exists */}
-                    {editingMember.age !== undefined && editingMember.age !== null && (
-                      <Box sx={{ textAlign: 'center' }}>
-                        <Typography variant="body2" color="text.secondary">
+                      {/* Age - only if exists */}
+                      {editingMember.age !== undefined && editingMember.age !== null && (
+                        <Typography variant="body1" color="text.secondary">
                           {t('member.age')}: <strong>{editingMember.age} {t('member.years')}</strong>
                         </Typography>
-                      </Box>
-                    )}
+                      )}
+                    </Box>
                   </Box>
                 </Grid>
               )}

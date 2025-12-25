@@ -44,3 +44,4 @@ export const getLTRCellClass = (content: string | null | undefined): string => {
   const dir = getTextDirection(content);
   return dir === 'ltr' ? 'force-ltr' : '';
 };
+

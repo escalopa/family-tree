@@ -16,6 +16,20 @@ services:
       timeout: 5s
       retries: 5
 
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   migrate:
     image: gomicro/goose:latest
     container_name: migrate
@@ -75,6 +89,8 @@ services:
         condition: service_healthy
       migrate:
         condition: service_completed_successfully
+      redis:
+        condition: service_healthy
       minio:
         condition: service_healthy
     volumes:
@@ -100,3 +116,4 @@ services:
 volumes:
   postgres_data:
   minio_data:
+  redis_data:

@@ -11,7 +11,6 @@ import (
 	"github.com/escalopa/family-tree/internal/delivery/http/cookie"
 	"github.com/escalopa/family-tree/internal/delivery/http/handler"
 	"github.com/escalopa/family-tree/internal/delivery/http/middleware"
-	"github.com/escalopa/family-tree/internal/pkg/i18n"
 	"github.com/escalopa/family-tree/internal/pkg/oauth"
 	"github.com/escalopa/family-tree/internal/pkg/ratelimit"
 	"github.com/escalopa/family-tree/internal/pkg/redis"
@@ -35,13 +34,6 @@ type App struct {
 func NewApp(cfg *config.Config) (*App, error) {
 	gin.SetMode(cfg.Server.Mode)
 
-	// Initialize i18n translations (embedded)
-	if err := i18n.Init(); err != nil {
-		slog.Error("App.NewApp: initialize i18n", "error", err)
-		return nil, err
-	}
-
-	slog.Info("App.NewApp: i18n initialized", "supported_languages", i18n.GetSupportedLanguages())
 
 	ctx := context.Background()
 	pool, err := db.NewPool(ctx, &cfg.Database)
@@ -50,6 +42,12 @@ func NewApp(cfg *config.Config) (*App, error) {
 	}
 
 	slog.Info("App.NewApp: database connected")
+
+	// Initialize languages from i18n translation files
+	langRepo := repository.NewLanguageRepository(pool)
+	if err := langRepo.InitializeLanguages(ctx); err != nil {
+		return nil, err
+	}
 
 	redisClient, err := redis.NewClient(ctx, cfg.Redis.URI)
 	if err != nil {
@@ -75,7 +73,6 @@ func NewApp(cfg *config.Config) (*App, error) {
 	userRepo := repository.NewUserRepository(pool)
 	sessionRepo := repository.NewSessionRepository(pool)
 	oauthStateRepo := repository.NewOAuthStateRepository(pool)
-	langRepo := repository.NewLanguageRepository(pool)
 	langPrefRepo := repository.NewUserLanguagePreferenceRepository(pool)
 	memberRepo := repository.NewMemberRepository(pool)
 	spouseRepo := repository.NewSpouseRepository(pool)

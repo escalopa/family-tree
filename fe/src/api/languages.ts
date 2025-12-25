@@ -2,6 +2,8 @@ import { apiClient } from './client';
 import { Language, UserLanguagePreference } from '../types';
 
 // Language API
+// Note: Languages are static and managed via i18n translation files
+// Languages cannot be created or deleted, but can be enabled/disabled
 export const languageApi = {
   // Get all languages
   getLanguages: async (activeOnly = false): Promise<Language[]> => {
@@ -16,27 +18,20 @@ export const languageApi = {
     return response.data.data || response.data;
   },
 
-  // Create a new language (Super Admin only)
-  createLanguage: async (data: {
-    language_code: string;
-    language_name: string;
-    display_order?: number;
-  }): Promise<Language> => {
-    const response = await apiClient.post('/api/languages', data);
+  // Toggle language active status (Super Admin only)
+  toggleLanguageActive: async (
+    code: string,
+    isActive: boolean
+  ): Promise<Language> => {
+    const response = await apiClient.patch(`/api/languages/${code}/toggle`, { is_active: isActive });
     return response.data.data || response.data;
   },
 
-  // Update a language (Super Admin only)
-  updateLanguage: async (
-    code: string,
-    data: {
-      language_name: string;
-      is_active: boolean;
-      display_order: number;
-    }
-  ): Promise<Language> => {
-    const response = await apiClient.put(`/api/languages/${code}`, data);
-    return response.data.data || response.data;
+  // Update language display order (Super Admin only)
+  updateLanguageOrder: async (
+    languages: { language_code: string; display_order: number }[]
+  ): Promise<void> => {
+    await apiClient.put('/api/languages/order', { languages });
   },
 };
 

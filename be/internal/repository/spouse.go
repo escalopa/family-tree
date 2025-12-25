@@ -48,7 +48,7 @@ func (r *SpouseRepository) Get(ctx context.Context, spouseID int) (*domain.Spous
 	)
 	if errors.Is(err, pgx.ErrNoRows) {
 		slog.Warn("SpouseRepository.Get: spouse relationship not found", "spouse_id", spouseID)
-		return nil, domain.NewNotFoundError("spouse relationship")
+		return nil, domain.NewNotFoundError("spouse")
 	}
 	if err != nil {
 		return nil, domain.NewDatabaseError(err)
@@ -68,7 +68,7 @@ func (r *SpouseRepository) GetByParents(ctx context.Context, fatherID, motherID 
 	)
 	if errors.Is(err, pgx.ErrNoRows) {
 		slog.Warn("SpouseRepository.Get: spouse relationship not found", "father_id", fatherID, "mother_id", motherID)
-		return nil, domain.NewNotFoundError("spouse relationship")
+		return nil, domain.NewNotFoundError("spouse")
 	}
 	if err != nil {
 		return nil, domain.NewDatabaseError(err)
@@ -88,7 +88,7 @@ func (r *SpouseRepository) Update(ctx context.Context, spouse *domain.Spouse) er
 	}
 	if result.RowsAffected() == 0 {
 		slog.Warn("SpouseRepository.Update: spouse relationship not found", "spouse_id", spouse.SpouseID)
-		return domain.NewNotFoundError("spouse relationship")
+		return domain.NewNotFoundError("spouse")
 	}
 	return nil
 }
@@ -105,7 +105,7 @@ func (r *SpouseRepository) Delete(ctx context.Context, spouseID int) error {
 	}
 	if result.RowsAffected() == 0 {
 		slog.Warn("SpouseRepository.Delete: spouse relationship not found", "spouse_id", spouseID)
-		return domain.NewNotFoundError("spouse relationship")
+		return domain.NewNotFoundError("spouse")
 	}
 	return nil
 }

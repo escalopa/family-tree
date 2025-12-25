@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/escalopa/family-tree/internal/domain"
+	"github.com/escalopa/family-tree/internal/pkg/i18n"
 )
 
 type languageUseCase struct {
@@ -21,27 +22,10 @@ func NewLanguageUseCase(
 	}
 }
 
-// CreateLanguage creates a new language (Super Admin only)
-func (uc *languageUseCase) Create(ctx context.Context, language *domain.Language) error {
-	// Check if language already exists
-	existing, _ := uc.langRepo.GetByCode(ctx, language.LanguageCode)
-	if existing != nil {
-		return domain.NewAlreadyExistsError("language")
-	}
-
-	if err := uc.langRepo.Create(ctx, language); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// GetLanguage gets a language by code
 func (uc *languageUseCase) Get(ctx context.Context, code string) (*domain.Language, error) {
 	return uc.langRepo.GetByCode(ctx, code)
 }
 
-// GetAllLanguages gets all languages (optionally filtered by active status)
 func (uc *languageUseCase) List(ctx context.Context, activeOnly bool) ([]*domain.Language, error) {
 	filter := domain.LanguageFilter{}
 	if activeOnly {
@@ -51,22 +35,19 @@ func (uc *languageUseCase) List(ctx context.Context, activeOnly bool) ([]*domain
 	return uc.langRepo.GetAll(ctx, filter)
 }
 
-// UpdateLanguage updates a language
-func (uc *languageUseCase) Update(ctx context.Context, language *domain.Language) error {
-	// Check if language exists
-	_, err := uc.langRepo.GetByCode(ctx, language.LanguageCode)
-	if err != nil {
-		return err
+func (uc *languageUseCase) ToggleActive(ctx context.Context, code string, isActive bool) error {
+	if !i18n.IsSupported(code) {
+		return domain.NewNotFoundError("language")
 	}
 
-	if err := uc.langRepo.Update(ctx, language); err != nil {
-		return err
-	}
-
-	return nil
+	return uc.langRepo.ToggleActive(ctx, code, isActive)
 }
 
 func (uc *languageUseCase) UpdatePreference(ctx context.Context, pref *domain.UserLanguagePreference) error {
+	if !i18n.IsSupported(pref.PreferredLanguage) {
+		return domain.NewNotFoundError("language")
+	}
+
 	lang, err := uc.langRepo.GetByCode(ctx, pref.PreferredLanguage)
 	if err != nil {
 		return err
@@ -80,4 +61,14 @@ func (uc *languageUseCase) UpdatePreference(ctx context.Context, pref *domain.Us
 	}
 
 	return nil
+}
+
+func (uc *languageUseCase) UpdateDisplayOrder(ctx context.Context, orders map[string]int) error {
+	for code := range orders {
+		if !i18n.IsSupported(code) {
+			return domain.NewNotFoundError("language")
+		}
+	}
+
+	return uc.langRepo.UpdateDisplayOrder(ctx, orders)
 }

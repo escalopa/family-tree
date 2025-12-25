@@ -95,11 +95,13 @@ type OAuthManager interface {
 	GetSupportedProviders() []string
 }
 
+// LanguageRepository provides access to languages
+// Languages are static and managed via i18n translation files, but can be enabled/disabled
 type LanguageRepository interface {
-	Create(ctx context.Context, language *domain.Language) error
 	GetByCode(ctx context.Context, code string) (*domain.Language, error)
 	GetAll(ctx context.Context, filter domain.LanguageFilter) ([]*domain.Language, error)
-	Update(ctx context.Context, language *domain.Language) error
+	ToggleActive(ctx context.Context, code string, isActive bool) error
+	UpdateDisplayOrder(ctx context.Context, orders map[string]int) error
 }
 
 type UserLanguagePreferenceRepository interface {
