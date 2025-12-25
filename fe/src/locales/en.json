@@ -261,7 +261,8 @@
     "english": "English",
     "arabic": "العربية",
     "russian": "Русский",
-    "selected": "Selected"
+    "selected": "Selected",
+    "orderUpdated": "Language display order updated successfully"
   },
   "settings": {
     "title": "Settings",

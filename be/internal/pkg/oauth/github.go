@@ -139,10 +139,16 @@ func (g *GitHubProvider) GetUserInfo(ctx context.Context, token *oauth2.Token) (
 		displayName = githubInfo.Login
 	}
 
+	// GitHub avatar URLs support size parameter (s=800) for higher resolution
+	avatarURL := githubInfo.AvatarURL
+	if avatarURL != "" {
+		avatarURL = fmt.Sprintf("%s?s=800", avatarURL)
+	}
+
 	return &domain.OAuthUserInfo{
 		ID:      strconv.FormatInt(githubInfo.ID, 10),
 		Email:   email,
 		Name:    displayName,
-		Picture: githubInfo.AvatarURL,
+		Picture: avatarURL,
 	}, nil
 }

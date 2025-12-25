@@ -69,7 +69,8 @@ func (f *FacebookProvider) GetUserInfo(ctx context.Context, token *oauth2.Token)
 	client := f.config.Client(ctx, token)
 
 	// Facebook Graph API requires fields parameter
-	url := fmt.Sprintf("%s?fields=id,email,name,first_name,last_name,picture.width(200).height(200)", f.userInfoURL)
+	// Request high-resolution profile picture (800x800)
+	url := fmt.Sprintf("%s?fields=id,email,name,first_name,last_name,picture.width(800).height(800)", f.userInfoURL)
 	resp, err := client.Get(url)
 	if err != nil {
 		slog.Error("FacebookProvider.GetUserInfo: get user info from API", "error", err)

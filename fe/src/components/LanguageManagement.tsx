@@ -136,12 +136,7 @@ const LanguageManagement: React.FC = () => {
       setError(null);
 
       await languageApi.toggleLanguageActive(language.language_code, !language.is_active);
-
-      setSuccess(`Language "${language.language_name}" ${!language.is_active ? 'enabled' : 'disabled'}`);
       await loadLanguages();
-
-      // Clear success message after 3 seconds
-      setTimeout(() => setSuccess(null), 3000);
     } catch (err: any) {
       setError(err?.response?.data?.error || 'Failed to toggle language');
       console.error('toggle language:', err);
@@ -185,7 +180,7 @@ const LanguageManagement: React.FC = () => {
 
       await languageApi.updateLanguageOrder(orderData);
 
-      setSuccess('Language display order updated successfully');
+      setSuccess(t('language.orderUpdated'));
       setHasChanges(false);
       await loadLanguages();
 

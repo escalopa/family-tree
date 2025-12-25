@@ -314,7 +314,7 @@ const MembersPage: React.FC = () => {
 
     if (missingLanguages.length > 0) {
       const missingNames = missingLanguages.map(lang => lang.language_name).join(', ');
-      enqueueSnackbar(`Please provide names for all active languages: ${missingNames}`, { variant: 'warning' });
+      enqueueSnackbar(t('validation.provideNamesForLanguages', { missing: missingNames }), { variant: 'warning' });
       return;
     }
 

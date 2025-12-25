@@ -100,7 +100,8 @@ func (y *YandexProvider) GetUserInfo(ctx context.Context, token *oauth2.Token) (
 
 	picture := ""
 	if !yandexInfo.IsAvatarEmpty && yandexInfo.DefaultAvatarID != "" {
-		picture = fmt.Sprintf("https://avatars.yandex.net/get-yapic/%s/islands-200", yandexInfo.DefaultAvatarID)
+		// Use islands-retina for high-resolution avatar (original quality)
+		picture = fmt.Sprintf("https://avatars.yandex.net/get-yapic/%s/islands-retina-50", yandexInfo.DefaultAvatarID)
 	}
 
 	return &domain.OAuthUserInfo{

@@ -19,10 +19,11 @@ type VKProvider struct {
 
 type vkUserInfo struct {
 	Response []struct {
-		ID        int64  `json:"id"`
-		FirstName string `json:"first_name"`
-		LastName  string `json:"last_name"`
-		Photo200  string `json:"photo_200"`
+		ID         int64  `json:"id"`
+		FirstName  string `json:"first_name"`
+		LastName   string `json:"last_name"`
+		Photo200   string `json:"photo_200"`
+		PhotoMax   string `json:"photo_max_orig"` // High resolution original photo
 	} `json:"response"`
 }
 
@@ -62,7 +63,8 @@ func (v *VKProvider) GetUserInfo(ctx context.Context, token *oauth2.Token) (*dom
 	client := v.config.Client(ctx, token)
 
 	// VK API requires access token and API version
-	url := fmt.Sprintf("%s?access_token=%s&v=5.131", v.userInfoURL, token.AccessToken)
+	// Request photo_max_orig for high-resolution profile picture
+	url := fmt.Sprintf("%s?access_token=%s&v=5.131&fields=photo_200,photo_max_orig", v.userInfoURL, token.AccessToken)
 	resp, err := client.Get(url)
 	if err != nil {
 		slog.Error("VKProvider.GetUserInfo: get user info from API", "error", err)
@@ -103,10 +105,16 @@ func (v *VKProvider) GetUserInfo(ctx context.Context, token *oauth2.Token) (*dom
 		}
 	}
 
+	// Use high-resolution photo if available, fallback to photo_200
+	picture := user.PhotoMax
+	if picture == "" {
+		picture = user.Photo200
+	}
+
 	return &domain.OAuthUserInfo{
 		ID:      fmt.Sprintf("%d", user.ID),
 		Email:   email,
 		Name:    displayName,
-		Picture: user.Photo200,
+		Picture: picture,
 	}, nil
 }

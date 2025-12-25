@@ -44,7 +44,7 @@ const ProfilePage: React.FC = () => {
         >
           <Paper sx={{ p: 4, mb: 3 }}>
             <Grid container spacing={3}>
-              <Grid item xs={12} md={4} sx={{ textAlign: 'center' }}>
+              <Grid item xs={12} md={4} sx={{ textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
                 <motion.div
                   initial={{ scale: 0.8, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}

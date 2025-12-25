@@ -82,10 +82,19 @@ func (g *GoogleProvider) GetUserInfo(ctx context.Context, token *oauth2.Token) (
 		return nil, domain.NewInternalError(err)
 	}
 
+	// Google's default picture URL is low resolution (96x96)
+	// Modify the URL to request higher resolution (800x800)
+	picture := googleInfo.Picture
+	if picture != "" {
+		// Replace the default size parameter with a larger one
+		// Google picture URLs typically end with =s96-c, we replace with =s800-c
+		picture = fmt.Sprintf("%s=s800-c", picture[:len(picture)-6])
+	}
+
 	return &domain.OAuthUserInfo{
 		ID:      googleInfo.ID,
 		Email:   googleInfo.Email,
 		Name:    googleInfo.Name,
-		Picture: googleInfo.Picture,
+		Picture: picture,
 	}, nil
 }

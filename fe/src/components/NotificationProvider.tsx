@@ -1,8 +1,8 @@
 import React from 'react';
-import { SnackbarProvider, closeSnackbar } from 'notistack';
+import { SnackbarProvider } from 'notistack';
 import { styled } from '@mui/material/styles';
-import { CheckCircle, Error, Warning, Info, Close } from '@mui/icons-material';
-import { IconButton } from '@mui/material';
+import { CheckCircle, Error, Warning, Info } from '@mui/icons-material';
+import { Box } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 
 const StyledSnackbarProvider = styled(SnackbarProvider)(({ theme }) => ({
@@ -12,9 +12,6 @@ const StyledSnackbarProvider = styled(SnackbarProvider)(({ theme }) => ({
     borderRadius: theme.shape.borderRadius,
     boxShadow: theme.shadows[3],
     padding: theme.spacing(1.5, 2),
-    '& .MuiSvgIcon-root': {
-      marginInlineEnd: theme.spacing(1.5),
-    },
   },
   '&.SnackbarItem-variantError': {
     backgroundColor: theme.palette.error.main,
@@ -22,9 +19,6 @@ const StyledSnackbarProvider = styled(SnackbarProvider)(({ theme }) => ({
     borderRadius: theme.shape.borderRadius,
     boxShadow: theme.shadows[3],
     padding: theme.spacing(1.5, 2),
-    '& .MuiSvgIcon-root': {
-      marginInlineEnd: theme.spacing(1.5),
-    },
   },
   '&.SnackbarItem-variantWarning': {
     backgroundColor: theme.palette.warning.main,
@@ -32,9 +26,6 @@ const StyledSnackbarProvider = styled(SnackbarProvider)(({ theme }) => ({
     borderRadius: theme.shape.borderRadius,
     boxShadow: theme.shadows[3],
     padding: theme.spacing(1.5, 2),
-    '& .MuiSvgIcon-root': {
-      marginInlineEnd: theme.spacing(1.5),
-    },
   },
   '&.SnackbarItem-variantInfo': {
     backgroundColor: theme.palette.info.main,
@@ -42,11 +33,20 @@ const StyledSnackbarProvider = styled(SnackbarProvider)(({ theme }) => ({
     borderRadius: theme.shape.borderRadius,
     boxShadow: theme.shadows[3],
     padding: theme.spacing(1.5, 2),
-    '& .MuiSvgIcon-root': {
-      marginInlineEnd: theme.spacing(1.5),
-    },
   },
 }));
+
+const IconWrapper: React.FC<{ icon: React.ReactNode }> = ({ icon }) => {
+  return (
+    <Box sx={{
+      display: 'flex',
+      alignItems: 'center',
+      marginInlineEnd: 1.5
+    }}>
+      {icon}
+    </Box>
+  );
+};
 
 interface NotificationProviderProps {
   children: React.ReactNode;
@@ -63,23 +63,13 @@ const NotificationProvider: React.FC<NotificationProviderProps> = ({ children })
         vertical: 'top',
         horizontal: isRTL ? 'left' : 'right',
       }}
-      autoHideDuration={6000}
+      autoHideDuration={3000}
       iconVariant={{
-        success: <CheckCircle />,
-        error: <Error />,
-        warning: <Warning />,
-        info: <Info />,
+        success: <IconWrapper icon={<CheckCircle />} />,
+        error: <IconWrapper icon={<Error />} />,
+        warning: <IconWrapper icon={<Warning />} />,
+        info: <IconWrapper icon={<Info />} />,
       }}
-      action={(snackbarId) => (
-        <IconButton
-          size="small"
-          aria-label="close"
-          color="inherit"
-          onClick={() => closeSnackbar(snackbarId)}
-        >
-          <Close fontSize="small" />
-        </IconButton>
-      )}
       preventDuplicate
       dense
     >

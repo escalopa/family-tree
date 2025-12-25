@@ -93,26 +93,56 @@ func (m *AuthMiddleware) Authenticate() gin.HandlerFunc {
 }
 
 func GetUserID(c *gin.Context) int {
-	userID, _ := c.Get(keyUserID)
-	return userID.(int)
+	userID, exists := c.Get(keyUserID)
+	if !exists {
+		return 0
+	}
+	if id, ok := userID.(int); ok {
+		return id
+	}
+	return 0
 }
 
 func GetUserRole(c *gin.Context) int {
-	roleID, _ := c.Get(keyUserRole)
-	return roleID.(int)
+	roleID, exists := c.Get(keyUserRole)
+	if !exists {
+		return 0
+	}
+	if id, ok := roleID.(int); ok {
+		return id
+	}
+	return 0
 }
 
 func GetIsActive(c *gin.Context) bool {
-	isActive, _ := c.Get(keyIsActive)
-	return isActive.(bool)
+	isActive, exists := c.Get(keyIsActive)
+	if !exists {
+		return false
+	}
+	if active, ok := isActive.(bool); ok {
+		return active
+	}
+	return false
 }
 
 func GetSessionID(c *gin.Context) string {
-	sessionID, _ := c.Get(keySessionID)
-	return sessionID.(string)
+	sessionID, exists := c.Get(keySessionID)
+	if !exists {
+		return ""
+	}
+	if id, ok := sessionID.(string); ok {
+		return id
+	}
+	return ""
 }
 
 func GetPreferredLanguage(c *gin.Context) string {
-	preferredLang, _ := c.Get(keyPreferredLanguage)
-	return preferredLang.(string)
+	preferredLang, exists := c.Get(keyPreferredLanguage)
+	if !exists {
+		return ""
+	}
+	if lang, ok := preferredLang.(string); ok {
+		return lang
+	}
+	return ""
 }

@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { useTranslation } from 'react-i18next';
 import { languageApi } from '../api';
 import { Language } from '../types';
+import { useAuth } from './AuthContext';
 
 interface InterfaceLanguageContextType {
   interfaceLanguage: string;
@@ -27,12 +28,24 @@ interface InterfaceLanguageProviderProps {
 
 export const InterfaceLanguageProvider: React.FC<InterfaceLanguageProviderProps> = ({ children }) => {
   const { i18n } = useTranslation();
+  const { isAuthenticated, loading: authLoading } = useAuth();
   const [supportedLanguages, setSupportedLanguages] = useState<string[]>(['en', 'ar', 'ru']);
   const [supportedLanguagesWithNames, setSupportedLanguagesWithNames] = useState<Language[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // Load supported languages from backend
+  // Load supported languages from backend only if authenticated
   useEffect(() => {
+    // Wait for auth to complete
+    if (authLoading) {
+      return;
+    }
+
+    // Only fetch from API if authenticated
+    if (!isAuthenticated) {
+      // Use default languages for unauthenticated users
+      return;
+    }
+
     const loadSupportedLanguages = async () => {
       try {
         setLoading(true);
@@ -51,7 +64,7 @@ export const InterfaceLanguageProvider: React.FC<InterfaceLanguageProviderProps>
     };
 
     loadSupportedLanguages();
-  }, []);
+  }, [isAuthenticated, authLoading]);
 
   // Initialize interface language from localStorage or default
   useEffect(() => {

@@ -597,6 +597,9 @@ const Sidebar: React.FC<SidebarProps> = ({ open, onToggle }) => {
           ModalProps={{
             keepMounted: true, // Better mobile performance
           }}
+          SlideProps={{
+            direction: isRTL ? 'left' : 'right',
+          }}
           sx={{
             '& .MuiDrawer-paper': {
               width: DRAWER_WIDTH,

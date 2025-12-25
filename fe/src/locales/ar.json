@@ -261,7 +261,8 @@
     "english": "English",
     "arabic": "العربية",
     "russian": "Русский",
-    "selected": "المحدد"
+    "selected": "المحدد",
+    "orderUpdated": "تم تحديث ترتيب عرض اللغات بنجاح"
   },
   "settings": {
     "title": "الإعدادات",

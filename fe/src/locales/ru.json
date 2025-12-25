@@ -261,7 +261,8 @@
     "english": "English",
     "arabic": "العربية",
     "russian": "Русский",
-    "selected": "Выбрано"
+    "selected": "Выбрано",
+    "orderUpdated": "Порядок отображения языков успешно обновлён"
   },
   "settings": {
     "title": "Настройки",

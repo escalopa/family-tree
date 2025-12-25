@@ -21,6 +21,6 @@ type ProvidersResponse struct {
 }
 
 type CallbackQuery struct {
-	Code  string `query:"code" binding:"required"`
-	State string `query:"state" binding:"required"`
+	Code  string `form:"code" binding:"required"`
+	State string `form:"state" binding:"required"`
 }

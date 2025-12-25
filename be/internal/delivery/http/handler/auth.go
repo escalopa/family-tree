@@ -75,13 +75,13 @@ func (h *authHandler) HandleCallback(c *gin.Context) {
 		return
 	}
 
-	var query dto.CallbackQuery
-	if err := c.ShouldBindQuery(&query); err != nil {
+	var params dto.CallbackQuery
+	if err := c.ShouldBindQuery(&params); err != nil {
 		delivery.Error(c, err)
 		return
 	}
 
-	user, tokens, err := h.authUseCase.HandleCallback(c.Request.Context(), uri.Provider, query.Code, query.State)
+	user, tokens, err := h.authUseCase.HandleCallback(c.Request.Context(), uri.Provider, params.Code, params.State)
 	if err != nil {
 		delivery.Error(c, err)
 		return

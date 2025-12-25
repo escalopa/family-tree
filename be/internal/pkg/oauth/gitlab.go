@@ -83,10 +83,16 @@ func (g *GitLabProvider) GetUserInfo(ctx context.Context, token *oauth2.Token) (
 		return nil, domain.NewInternalError(err)
 	}
 
+	// GitLab avatar URLs support size parameter for higher resolution
+	avatarURL := gitlabInfo.AvatarURL
+	if avatarURL != "" {
+		avatarURL = fmt.Sprintf("%s?width=800", avatarURL)
+	}
+
 	return &domain.OAuthUserInfo{
 		ID:      strconv.FormatInt(gitlabInfo.ID, 10),
 		Email:   gitlabInfo.Email,
 		Name:    gitlabInfo.Name,
-		Picture: gitlabInfo.AvatarURL,
+		Picture: avatarURL,
 	}, nil
 }
