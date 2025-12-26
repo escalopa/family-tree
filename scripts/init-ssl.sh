@@ -2,13 +2,15 @@
 
 # SSL Certificate Initialization Script for Let's Encrypt
 # This script sets up SSL certificates for your domain
+# After running this script, start the application with:
+#   docker compose -f docker-compose.prod.yml --env-file .env up -d
 
 set -e
 
 # Check if .env file exists
 if [ ! -f .env ]; then
     echo "Error: .env file not found!"
-    echo "Please copy .env.prod to .env and configure your domain and email"
+    echo "Please copy env.prod.example to .env and configure your domain and email"
     exit 1
 fi
 
@@ -28,32 +30,30 @@ if [ -z "$EMAIL" ] || [ "$EMAIL" = "your-email@example.com" ]; then
     exit 1
 fi
 
-echo "Initializing SSL certificates for domain: $DOMAIN"
-echo "Email for notifications: $EMAIL"
+echo "=========================================="
+echo "SSL Certificate Initialization"
+echo "=========================================="
+echo "Domain: $DOMAIN"
+echo "Email: $EMAIL"
+echo ""
 
 # Create required directories
+echo "Creating certbot directories..."
 mkdir -p certbot/conf
 mkdir -p certbot/www
 
 # Update nginx configuration with actual domain
 echo "Updating Nginx configuration with domain: $DOMAIN"
-sed "s/your-domain.com/$DOMAIN/g" nginx/nginx-initial.conf > nginx/nginx.conf.tmp
+sed "s/your-domain.com/$DOMAIN/g" nginx/nginx.conf > nginx/nginx.conf.tmp
 mv nginx/nginx.conf.tmp nginx/nginx.conf
 
-# Start services without SSL first
-echo "Starting services without SSL..."
-docker compose -f docker-compose.prod.yml --env-file .env up -d postgres redis minio createbuckets migrate backend frontend
+# Start all services to obtain certificate
+echo "Starting services to obtain SSL certificate..."
+docker compose -f docker-compose.prod.yml --env-file .env up -d
 
-# Wait for backend to be healthy
-echo "Waiting for backend to be ready..."
-sleep 10
-
-# Start nginx with initial configuration
-docker compose -f docker-compose.prod.yml --env-file .env up -d nginx
-
-# Wait for nginx to start
-echo "Waiting for Nginx to start..."
-sleep 5
+# Wait for services to be ready
+echo "Waiting for services to be ready..."
+sleep 15
 
 # Obtain SSL certificate
 echo "Obtaining SSL certificate from Let's Encrypt..."
@@ -67,24 +67,23 @@ docker compose -f docker-compose.prod.yml --env-file .env run --rm \
     --no-eff-email \
     -d $DOMAIN
 
-# Update nginx configuration with SSL
-echo "Updating Nginx configuration with SSL..."
-sed "s/your-domain.com/$DOMAIN/g" nginx/nginx.conf > nginx/nginx.conf.final
-mv nginx/nginx.conf.final nginx/nginx.conf
-
-# Restart nginx with SSL configuration
-echo "Restarting Nginx with SSL configuration..."
-docker compose -f docker-compose.prod.yml --env-file .env restart nginx
-
-# Start certbot renewal service
-echo "Starting SSL certificate auto-renewal service..."
-docker compose -f docker-compose.prod.yml --env-file .env up -d certbot
+# Reload nginx to apply SSL certificate
+echo "Reloading Nginx with SSL configuration..."
+docker compose -f docker-compose.prod.yml --env-file .env exec nginx nginx -s reload
 
 echo ""
-echo "✅ SSL certificates have been successfully initialized!"
+echo "=========================================="
+echo "✅ SSL Setup Complete!"
+echo "=========================================="
 echo ""
 echo "Your application is now available at:"
 echo "  https://$DOMAIN"
 echo ""
 echo "SSL certificates will be automatically renewed every 12 hours."
+echo ""
+echo "To stop the application:"
+echo "  docker compose -f docker-compose.prod.yml --env-file .env down"
+echo ""
+echo "To view logs:"
+echo "  docker compose -f docker-compose.prod.yml --env-file .env logs -f"
 echo ""

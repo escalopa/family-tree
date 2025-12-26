@@ -119,27 +119,28 @@ func (r *LanguageRepository) InitializeLanguages(ctx context.Context) error {
 	slog.Info("Initializing languages from i18n translations")
 
 	supportedLangs := i18n.GetSupportedLanguages()
+	batch := &pgx.Batch{}
+	query := `
+		INSERT INTO languages (language_code, is_active, display_order)
+		VALUES ($1, $2, $3)
+		ON CONFLICT (language_code) DO NOTHING
+	`
+
 	for i, langCode := range supportedLangs {
-		query := `
-			INSERT INTO languages (language_code, is_active, display_order)
-			VALUES ($1, $2, $3)
-			ON CONFLICT (language_code) DO NOTHING
-		`
-
-		isActive := false
+		isActive := langCode == i18n.DefaultLanguage
 		displayOrder := i + 1
+		batch.Queue(query, langCode, isActive, displayOrder)
+	}
 
-		_, err := r.db.Exec(ctx, query,
-			langCode,
-			isActive,
-			displayOrder,
-		)
+	br := r.db.SendBatch(ctx, batch)
+	defer br.Close()
+
+	for _, langCode := range supportedLangs {
+		_, err := br.Exec()
 		if err != nil {
-			slog.Error("Failed to initialize language", "code", langCode, "error", err)
-			return err
+			slog.Error("initialize language", "code", langCode, "error", err)
+			return domain.NewDatabaseError(err)
 		}
-
-		slog.Debug("Language initialized", "code", langCode, "active", isActive)
 	}
 
 	slog.Info("Languages initialized successfully", "count", len(supportedLangs))

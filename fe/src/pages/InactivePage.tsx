@@ -1,15 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Card, CardContent, Typography, Container, Button, CircularProgress, Alert } from '@mui/material';
-import { Info, Refresh } from '@mui/icons-material';
+import { Info, Refresh, SwapHoriz } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
+import { authApi } from '../api';
 
 const InactivePage: React.FC = () => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
-  const { refreshUser, isActive, user } = useAuth();
+  const { refreshUser, isActive, user, setUser } = useAuth();
   const [checking, setChecking] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const isRTL = i18n.dir() === 'rtl';
@@ -39,6 +40,21 @@ const InactivePage: React.FC = () => {
       setError(t('inactive.failedToCheckStatus'));
     } finally {
       setChecking(false);
+    }
+  };
+
+  const handleChangeAccount = async () => {
+    try {
+      // Logout from backend
+      await authApi.logout();
+      // Clear user state
+      setUser(null);
+      // Redirect to login page
+      navigate('/login', { replace: true });
+    } catch (err: any) {
+      // Even if logout fails on backend, still redirect to login
+      setUser(null);
+      navigate('/login', { replace: true });
     }
   };
 
@@ -96,6 +112,15 @@ const InactivePage: React.FC = () => {
                 fullWidth
               >
                 {checking ? t('inactive.checkingStatus') : t('inactive.checkAccountStatus')}
+              </Button>
+              <Button
+                variant="outlined"
+                color="secondary"
+                startIcon={<SwapHoriz />}
+                onClick={handleChangeAccount}
+                fullWidth
+              >
+                {t('inactive.changeAccount')}
               </Button>
             </Box>
           </CardContent>

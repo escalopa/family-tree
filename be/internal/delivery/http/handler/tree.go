@@ -139,13 +139,5 @@ func (h *treeHandler) convertToTreeResponse(node *domain.MemberTreeNode, preferr
 		response.Children = append(response.Children, h.convertToTreeResponse(child, preferredLang))
 	}
 
-	for _, spouse := range node.SpouseNodes {
-		response.SpouseNodes = append(response.SpouseNodes, h.convertToTreeResponse(spouse, preferredLang))
-	}
-
-	for _, sibling := range node.SiblingNodes {
-		response.SiblingNodes = append(response.SiblingNodes, h.convertToTreeResponse(sibling, preferredLang))
-	}
-
 	return response
 }

@@ -19,6 +19,7 @@ func NewSpouseRepository(db *pgxpool.Pool) *SpouseRepository {
 }
 
 func (r *SpouseRepository) Create(ctx context.Context, spouse *domain.Spouse) error {
+	querier := getQuerier(ctx, r.db)
 	query := `
 		INSERT INTO members_spouse (father_id, mother_id, marriage_date, divorce_date)
 		VALUES ($1, $2, $3, $4)
@@ -29,7 +30,7 @@ func (r *SpouseRepository) Create(ctx context.Context, spouse *domain.Spouse) er
 			deleted_at = NULL
 		RETURNING spouse_id
 	`
-	err := r.db.QueryRow(ctx, query, spouse.FatherID, spouse.MotherID, spouse.MarriageDate, spouse.DivorceDate).Scan(&spouse.SpouseID)
+	err := querier.QueryRow(ctx, query, spouse.FatherID, spouse.MotherID, spouse.MarriageDate, spouse.DivorceDate).Scan(&spouse.SpouseID)
 	if err != nil {
 		return domain.NewDatabaseError(err)
 	}

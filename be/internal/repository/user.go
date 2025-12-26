@@ -20,15 +20,24 @@ func NewUserRepository(db *pgxpool.Pool) *UserRepository {
 
 func (r *UserRepository) Create(ctx context.Context, user *domain.User) error {
 	query := `
+		WITH first_user AS (
+			SELECT NOT EXISTS (SELECT 1 FROM users LIMIT 1) AS is_first
+		)
 		INSERT INTO users (full_name, email, avatar, role_id, is_active)
-		VALUES ($1, $2, $3, $4, $5)
+		SELECT
+			$1,
+			$2,
+			$3,
+			CASE WHEN is_first THEN (SELECT MAX(role_id) FROM roles) ELSE $4 END,
+			CASE WHEN is_first THEN true ELSE $5 END
+		FROM first_user
 		ON CONFLICT (email) DO UPDATE SET
 			full_name = EXCLUDED.full_name,
 			avatar = EXCLUDED.avatar
-		RETURNING user_id, created_at
+		RETURNING user_id, created_at, role_id, is_active
 	`
 	err := r.db.QueryRow(ctx, query, user.FullName, user.Email, user.Avatar, user.RoleID, user.IsActive).
-		Scan(&user.UserID, &user.CreatedAt)
+		Scan(&user.UserID, &user.CreatedAt, &user.RoleID, &user.IsActive)
 	if err != nil {
 		return domain.NewDatabaseError(err)
 	}

@@ -31,8 +31,6 @@ type MemberWithComputed struct {
 
 type MemberTreeNode struct {
 	MemberWithComputed
-	Children     []*MemberTreeNode `json:"children,omitempty"`
-	SpouseNodes  []*MemberTreeNode `json:"spouse_nodes,omitempty"`
-	SiblingNodes []*MemberTreeNode `json:"sibling_nodes,omitempty"`
-	IsInPath     bool              `json:"is_in_path,omitempty"`
+	Children []*MemberTreeNode `json:"children,omitempty"`
+	IsInPath bool              `json:"is_in_path,omitempty"`
 }

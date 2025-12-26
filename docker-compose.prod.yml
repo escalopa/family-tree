@@ -114,7 +114,7 @@ services:
       dockerfile: Dockerfile
       target: production
       args:
-        - VITE_API_URL=${VITE_API_URL:-/api}
+        - VITE_API_URL=${VITE_API_URL:-/ft}
     container_name: frontend
     networks:
       - app-network

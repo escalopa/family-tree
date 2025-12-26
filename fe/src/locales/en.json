@@ -113,6 +113,8 @@
     "alive": "Alive",
     "deceased": "Deceased",
     "noMembers": "No members found",
+    "noMembersFound": "No members found",
+    "typeAtLeastTwoCharacters": "Type at least 2 characters",
     "searchPlaceholder": "Search by name (any language)",
     "searchByName": "Search by name...",
     "deleteConfirm": "Are you sure you want to delete this member?",
@@ -227,7 +229,10 @@
     "topContributors": "Top contributors to the family tree",
     "rank": "Rank",
     "user": "User",
-    "totalScore": "Total Score"
+    "totalScore": "Total Score",
+    "champion": "Champion",
+    "secondPlace": "Second Place",
+    "thirdPlace": "Third Place"
   },
   "profile": {
     "title": "Profile",
@@ -383,7 +388,8 @@
     "accountStillInactive": "Your account is still inactive. Please contact an administrator.",
     "failedToCheckStatus": "Failed to check account status. Please try again.",
     "checkingStatus": "Checking Status...",
-    "checkAccountStatus": "Check Account Status"
+    "checkAccountStatus": "Check Account Status",
+    "changeAccount": "Change Account"
   },
   "unauthorized": {
     "title": "Unauthorized Access",

@@ -22,6 +22,7 @@ func (r *ScoreRepository) Create(ctx context.Context, scores ...domain.Score) er
 		return nil
 	}
 
+	querier := getQuerier(ctx, r.db)
 	batch := &pgx.Batch{}
 	query := `
 		INSERT INTO user_scores (user_id, member_id, field_name, points, member_version)
@@ -37,7 +38,7 @@ func (r *ScoreRepository) Create(ctx context.Context, scores ...domain.Score) er
 		)
 	}
 
-	br := r.db.SendBatch(ctx, batch)
+	br := querier.SendBatch(ctx, batch)
 	if err := br.Close(); err != nil {
 		return domain.NewDatabaseError(err)
 	}

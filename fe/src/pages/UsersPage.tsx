@@ -35,11 +35,14 @@ import { User, Roles } from '../types';
 import { getRoleName } from '../utils/helpers';
 import Layout from '../components/Layout/Layout';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
 
 const UsersPage: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { hasRole } = useAuth();
+  const { mode } = useTheme();
+  const isDarkMode = mode === 'dark';
   const [searchParams, setSearchParams] = useSearchParams();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
@@ -174,22 +177,22 @@ const UsersPage: React.FC = () => {
     <Layout>
       <Box sx={{ width: '100%' }}>
         <motion.div
-          initial={{ opacity: 0, y: -20 }}
+          initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
         >
-        <Typography variant="h4" gutterBottom sx={{ mb: 3 }}>
-          {t('users.management')}
-        </Typography>
+          <Typography variant="h4" gutterBottom sx={{ mb: 3 }}>
+            {t('users.management')}
+          </Typography>
         </motion.div>
 
-        {/* Filters */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.1 }}
         >
-        <Paper sx={{ p: 2, mb: 3 }}>
+        {/* Filters */}
+        <Paper className={isDarkMode ? 'organic-paper-dark' : 'organic-paper'} sx={{ p: 2, mb: 3 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
             <Typography variant="h6">
               {t('common.filter')} {!hasActiveFilters && t('users.showingAllUsers')}
@@ -213,6 +216,7 @@ const UsersPage: React.FC = () => {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder={t('users.typeToSearch')}
+                className="enhanced-textfield"
               />
             </Grid>
             <Grid item xs={12} sm={6} md={3}>
@@ -257,7 +261,19 @@ const UsersPage: React.FC = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.2 }}
           >
-            <TableContainer component={Paper}>
+            <TableContainer
+              component={Paper}
+              className={isDarkMode ? 'organic-paper-dark enhanced-table-dark' : 'organic-paper enhanced-table'}
+              sx={{
+                '& .MuiTableHead-root .MuiTableRow-root': {
+                  transition: 'none !important',
+                  '&:hover': {
+                    backgroundColor: 'transparent !important',
+                    transform: 'none !important',
+                  }
+                }
+              }}
+            >
               <Table>
                 <TableHead>
                   <TableRow>
@@ -273,11 +289,23 @@ const UsersPage: React.FC = () => {
                     <TableRow
                       key={user.user_id}
                       hover
-                      sx={{ cursor: isSuperAdmin ? 'pointer' : 'default' }}
+                      sx={{
+                        cursor: isSuperAdmin ? 'pointer' : 'default',
+                        transition: 'background-color 0.2s ease',
+                        transform: 'none !important',
+                      }}
                       onClick={() => isSuperAdmin && handleOpenDialog(user)}
                     >
                       <TableCell>
-                        <Avatar src={user.avatar || undefined}>{user.full_name[0]}</Avatar>
+                        <Avatar
+                          src={user.avatar || undefined}
+                          className={isDarkMode ? 'enhanced-avatar-dark' : 'enhanced-avatar'}
+                          sx={{
+                            bgcolor: user.role_id >= Roles.ADMIN ? 'primary.main' : 'default'
+                          }}
+                        >
+                          {user.full_name[0]}
+                        </Avatar>
                       </TableCell>
                       <TableCell className="mixed-content-cell">{user.full_name}</TableCell>
                       <TableCell className="email-cell">{user.email}</TableCell>
@@ -285,14 +313,18 @@ const UsersPage: React.FC = () => {
                         <Chip
                           label={getRoleName(user.role_id, t)}
                           size="small"
+                          className="enhanced-chip"
                           color={user.role_id >= Roles.ADMIN ? 'primary' : 'default'}
+                          variant={user.role_id >= Roles.ADMIN ? 'filled' : 'outlined'}
                         />
                       </TableCell>
                       <TableCell>
                         <Chip
                           label={user.is_active ? t('user.active') : t('user.inactive')}
                           size="small"
+                          className="enhanced-chip"
                           color={user.is_active ? 'success' : 'default'}
+                          variant={user.is_active ? 'filled' : 'outlined'}
                         />
                       </TableCell>
                     </TableRow>

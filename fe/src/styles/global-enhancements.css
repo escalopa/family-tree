@@ -1,0 +1,490 @@
+/* =====================================================
+   GLOBAL UI ENHANCEMENTS - ORGANIC & WARM DESIGN
+   Applied across all pages of the Family Tree application
+   ===================================================== */
+
+/* =====================================================
+   GLOBAL PAGE BACKGROUNDS
+   ===================================================== */
+
+/* Light Mode - Warm & Welcoming */
+.page-background-light {
+  background: linear-gradient(135deg, #fdfbf7 0%, #f8f6f2 100%);
+  min-height: 100vh;
+}
+
+/* Dark Mode - Calm & Professional */
+.page-background-dark {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  min-height: 100vh;
+}
+
+/* =====================================================
+   ENHANCED PAPER/CARD COMPONENTS
+   ===================================================== */
+
+/* Organic card styling - applied globally */
+.organic-paper {
+  border-radius: 16px !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08) !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  overflow: hidden;
+}
+
+.organic-paper-dark {
+  border-radius: 16px !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3) !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  overflow: hidden;
+}
+
+.organic-paper:hover,
+.organic-paper-dark:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12) !important;
+}
+
+.organic-paper-dark:hover {
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4) !important;
+}
+
+/* =====================================================
+   TABLE ENHANCEMENTS
+   ===================================================== */
+
+/* Enhanced table styling */
+.enhanced-table {
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.enhanced-table .MuiTableHead-root {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(99, 102, 241, 0.04) 100%);
+}
+
+.enhanced-table-dark .MuiTableHead-root {
+  background: linear-gradient(135deg, rgba(129, 140, 248, 0.12) 0%, rgba(129, 140, 248, 0.06) 100%);
+}
+
+.enhanced-table .MuiTableRow-root {
+  transition: all 0.2s ease;
+}
+
+.enhanced-table .MuiTableRow-root:hover {
+  background-color: rgba(99, 102, 241, 0.04);
+  transform: scale(1.005);
+}
+
+.enhanced-table-dark .MuiTableRow-root:hover {
+  background-color: rgba(129, 140, 248, 0.08);
+  transform: scale(1.005);
+}
+
+/* =====================================================
+   AVATAR ENHANCEMENTS
+   ===================================================== */
+
+/* Enhanced avatar with subtle glow */
+.enhanced-avatar {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  border: 3px solid rgba(255, 255, 255, 0.2);
+}
+
+.enhanced-avatar:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+}
+
+.enhanced-avatar-dark {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s ease;
+  border: 3px solid rgba(255, 255, 255, 0.1);
+}
+
+.enhanced-avatar-dark:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+}
+
+/* =====================================================
+   CHIP ENHANCEMENTS
+   ===================================================== */
+
+/* Enhanced chips with better styling */
+.enhanced-chip {
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.enhanced-chip:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* =====================================================
+   BUTTON ENHANCEMENTS
+   ===================================================== */
+
+/* Organic button styling */
+.enhanced-button {
+  border-radius: 10px !important;
+  font-weight: 600 !important;
+  text-transform: none !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+}
+
+.enhanced-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12) !important;
+}
+
+.enhanced-button:active {
+  transform: translateY(0);
+}
+
+/* =====================================================
+   DIALOG ENHANCEMENTS
+   ===================================================== */
+
+/* Enhanced dialog styling */
+.enhanced-dialog .MuiDialog-paper {
+  border-radius: 16px;
+  padding: 8px;
+}
+
+.enhanced-dialog .MuiDialogTitle-root {
+  font-weight: 700;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.05) 0%, rgba(99, 102, 241, 0.02) 100%);
+  border-radius: 12px 12px 0 0;
+  margin: -8px -8px 0 -8px;
+  padding: 24px;
+}
+
+.enhanced-dialog-dark .MuiDialogTitle-root {
+  background: linear-gradient(135deg, rgba(129, 140, 248, 0.08) 0%, rgba(129, 140, 248, 0.04) 100%);
+}
+
+/* =====================================================
+   TEXT FIELD ENHANCEMENTS
+   ===================================================== */
+
+/* Enhanced text fields */
+.enhanced-textfield .MuiOutlinedInput-root {
+  border-radius: 10px;
+  transition: all 0.3s ease;
+}
+
+.enhanced-textfield .MuiOutlinedInput-root:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.enhanced-textfield .MuiOutlinedInput-root.Mui-focused {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
+}
+
+/* =====================================================
+   HEADER/PAGE TITLE ENHANCEMENTS
+   ===================================================== */
+
+/* Enhanced page titles */
+.page-title {
+  font-weight: 700;
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 24px;
+}
+
+.page-title-dark {
+  font-weight: 700;
+  background: linear-gradient(135deg, #818cf8 0%, #a78bfa 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 24px;
+}
+
+/* =====================================================
+   LEADERBOARD SPECIFIC ENHANCEMENTS
+   ===================================================== */
+
+/* Medal rankings with glow effects */
+.rank-medal-gold {
+  color: #FFD700;
+  filter: drop-shadow(0 0 8px rgba(255, 215, 0, 0.5));
+  animation: medalShine 2s ease-in-out infinite;
+}
+
+.rank-medal-silver {
+  color: #C0C0C0;
+  filter: drop-shadow(0 0 8px rgba(192, 192, 192, 0.5));
+  animation: medalShine 2s ease-in-out infinite;
+}
+
+.rank-medal-bronze {
+  color: #CD7F32;
+  filter: drop-shadow(0 0 8px rgba(205, 127, 50, 0.5));
+  animation: medalShine 2s ease-in-out infinite;
+}
+
+@keyframes medalShine {
+  0%, 100% {
+    filter: drop-shadow(0 0 8px currentColor) brightness(1);
+  }
+  50% {
+    filter: drop-shadow(0 0 12px currentColor) brightness(1.2);
+  }
+}
+
+/* Top 3 row highlighting */
+.leaderboard-top-1 {
+  background: linear-gradient(90deg, rgba(255, 215, 0, 0.08) 0%, rgba(255, 215, 0, 0.02) 100%);
+  font-weight: 600;
+}
+
+.leaderboard-top-2 {
+  background: linear-gradient(90deg, rgba(192, 192, 192, 0.08) 0%, rgba(192, 192, 192, 0.02) 100%);
+  font-weight: 600;
+}
+
+.leaderboard-top-3 {
+  background: linear-gradient(90deg, rgba(205, 127, 50, 0.08) 0%, rgba(205, 127, 50, 0.02) 100%);
+  font-weight: 600;
+}
+
+/* =====================================================
+   PROFILE PAGE ENHANCEMENTS
+   ===================================================== */
+
+/* Profile stats cards */
+.profile-stat-card {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.05) 0%, rgba(139, 92, 246, 0.05) 100%);
+  border-radius: 16px;
+  padding: 24px;
+  transition: all 0.3s ease;
+  border: 1px solid rgba(99, 102, 241, 0.1);
+}
+
+.profile-stat-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.15);
+  border-color: rgba(99, 102, 241, 0.3);
+}
+
+.profile-stat-card-dark {
+  background: linear-gradient(135deg, rgba(129, 140, 248, 0.08) 0%, rgba(167, 139, 250, 0.08) 100%);
+  border: 1px solid rgba(129, 140, 248, 0.15);
+}
+
+.profile-stat-card-dark:hover {
+  box-shadow: 0 8px 24px rgba(129, 140, 248, 0.2);
+  border-color: rgba(129, 140, 248, 0.4);
+}
+
+/* =====================================================
+   LOADING STATES
+   ===================================================== */
+
+/* Enhanced loading spinner container */
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
+  padding: 40px;
+}
+
+/* Pulse animation for loading elements */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.loading-pulse {
+  animation: pulse 2s ease-in-out infinite;
+}
+
+/* =====================================================
+   MEMBER CARDS (for Member List/Grid)
+   ===================================================== */
+
+/* Enhanced member card */
+.member-card {
+  border-radius: 16px;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 2px solid transparent;
+}
+
+.member-card:hover {
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+  border-color: rgba(99, 102, 241, 0.3);
+}
+
+.member-card-dark:hover {
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+  border-color: rgba(129, 140, 248, 0.4);
+}
+
+/* =====================================================
+   TABS ENHANCEMENTS
+   ===================================================== */
+
+/* Enhanced tabs */
+.enhanced-tabs .MuiTab-root {
+  font-weight: 600;
+  text-transform: none;
+  transition: all 0.2s ease;
+}
+
+.enhanced-tabs .MuiTab-root:hover {
+  background-color: rgba(99, 102, 241, 0.04);
+}
+
+.enhanced-tabs .MuiTab-root.Mui-selected {
+  background-color: rgba(99, 102, 241, 0.08);
+}
+
+/* =====================================================
+   DIVIDER ENHANCEMENTS
+   ===================================================== */
+
+.enhanced-divider {
+  background: linear-gradient(90deg, transparent 0%, rgba(99, 102, 241, 0.2) 50%, transparent 100%);
+  height: 2px;
+  border: none;
+  margin: 24px 0;
+}
+
+.enhanced-divider-dark {
+  background: linear-gradient(90deg, transparent 0%, rgba(129, 140, 248, 0.3) 50%, transparent 100%);
+}
+
+/* =====================================================
+   FORM ENHANCEMENTS
+   ===================================================== */
+
+/* Enhanced form sections */
+.form-section {
+  background: rgba(99, 102, 241, 0.02);
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 16px;
+  border: 1px solid rgba(99, 102, 241, 0.08);
+}
+
+.form-section-dark {
+  background: rgba(129, 140, 248, 0.04);
+  border-color: rgba(129, 140, 248, 0.12);
+}
+
+/* =====================================================
+   SCROLL ENHANCEMENTS
+   ===================================================== */
+
+/* Simple, functional scrollbar - no colors */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+/* Dark mode scrollbar */
+body.dark-mode ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+body.dark-mode ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* =====================================================
+   ACCESSIBILITY & REDUCED MOTION
+   ===================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* =====================================================
+   RESPONSIVE ADJUSTMENTS
+   ===================================================== */
+
+@media (max-width: 768px) {
+  .organic-paper,
+  .organic-paper-dark {
+    border-radius: 12px !important;
+  }
+
+  .member-card {
+    border-radius: 12px;
+  }
+
+  .enhanced-dialog .MuiDialog-paper {
+    margin: 16px;
+    max-width: calc(100% - 32px);
+  }
+}
+
+/* =====================================================
+   UTILITY CLASSES
+   ===================================================== */
+
+/* Glass morphism effect */
+.glass-effect {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.glass-effect-dark {
+  background: rgba(30, 41, 59, 0.7);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Gradient text */
+.gradient-text {
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Subtle hover effect */
+.subtle-hover {
+  transition: all 0.2s ease;
+}
+
+.subtle-hover:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}

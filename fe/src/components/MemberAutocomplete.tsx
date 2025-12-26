@@ -1,8 +1,9 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Autocomplete, TextField, Box, Typography, CircularProgress, Avatar } from '@mui/material';
+import { useTranslation } from 'react-i18next';
 import { membersApi } from '../api';
 import { MemberListItem } from '../types';
-import { debounce, getGenderColor, getMemberPictureUrl } from '../utils/helpers';
+import { getGenderColor, getMemberPictureUrl } from '../utils/helpers';
 
 interface MemberAutocompleteProps {
   label: string;
@@ -17,53 +18,73 @@ const MemberAutocomplete: React.FC<MemberAutocompleteProps> = ({
   onChange,
   disabled,
 }) => {
+  const { t } = useTranslation();
   const [options, setOptions] = useState<MemberListItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [inputValue, setInputValue] = useState('');
 
-  // Debounced search function
-  const searchMembers = useCallback(
-    debounce(async (query: string) => {
-      if (!query || query.length < 2) {
+  // Debounced search with useEffect
+  useEffect(() => {
+    if (inputValue.length < 2) {
+      // Don't clear options immediately - let user see previous results
+      if (inputValue.length === 0) {
         setOptions([]);
-        return;
       }
+      return;
+    }
 
+    const timer = setTimeout(async () => {
       setLoading(true);
       try {
         const result = await membersApi.searchMembers({
-          name: query,
+          name: inputValue,
           limit: 20,
         });
-        setOptions(result.members || []);
+        console.log('Search result:', result);
+        if (Array.isArray(result.members)) {
+          setOptions(result.members);
+        } else {
+          console.warn('Search results is not an array:', result);
+          setOptions([]);
+        }
       } catch (error) {
-
+        console.error('Failed to search members:', error);
         setOptions([]);
       } finally {
         setLoading(false);
       }
-    }, 300),
-    []
-  );
+    }, 300);
 
-  const handleInputChange = (_: any, newInputValue: string) => {
-    setInputValue(newInputValue);
-    searchMembers(newInputValue);
-  };
+    return () => clearTimeout(timer);
+  }, [inputValue]);
 
   return (
     <Autocomplete
+      options={options}
       value={value}
-      onChange={(_, newValue) => onChange(newValue)}
+      onChange={(_, newValue) => {
+        onChange(newValue);
+      }}
       inputValue={inputValue}
-      onInputChange={handleInputChange}
-      options={options || []}
-      loading={loading}
-      disabled={disabled}
+      onInputChange={(_, newInputValue, reason) => {
+        // Clear value when user clears the input
+        if (reason === 'clear') {
+          onChange(null);
+          setInputValue('');
+        } else {
+          setInputValue(newInputValue);
+        }
+      }}
       getOptionLabel={(option) => option.name}
       isOptionEqualToValue={(option, value) => option.member_id === value.member_id}
+      filterOptions={(x) => x} // Don't filter options - backend already filtered them
+      loading={loading}
+      disabled={disabled}
+      freeSolo={false}
+      clearOnEscape
+      clearOnBlur={false}
       renderOption={(props, option) => (
-        <Box component="li" {...props} sx={{ display: 'flex', gap: 1.5, alignItems: 'center' }}>
+        <Box component="li" {...props} key={option.member_id} sx={{ display: 'flex', gap: 1.5, alignItems: 'center' }}>
           <Avatar
             src={getMemberPictureUrl(option.member_id, option.picture) || undefined}
             sx={{
@@ -83,6 +104,8 @@ const MemberAutocomplete: React.FC<MemberAutocompleteProps> = ({
         <TextField
           {...params}
           label={label}
+          placeholder={value ? '' : t('member.searchByName')}
+          helperText={value ? `${t('language.selected')}: ${value.name}` : undefined}
           InputProps={{
             ...params.InputProps,
             startAdornment: value && (
@@ -107,7 +130,13 @@ const MemberAutocomplete: React.FC<MemberAutocompleteProps> = ({
           }}
         />
       )}
-      noOptionsText={inputValue.length < 2 ? 'Type at least 2 characters' : 'No members found'}
+      noOptionsText={
+        loading
+          ? t('common.loading')
+          : inputValue.length < 2
+          ? t('member.typeAtLeastTwoCharacters')
+          : t('member.noMembersFound')
+      }
     />
   );
 };

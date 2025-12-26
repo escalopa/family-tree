@@ -1,9 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Box, Paper, IconButton, Tooltip, Dialog, DialogTitle, DialogContent, Typography } from '@mui/material';
-import { ZoomIn, ZoomOut, ZoomOutMap, Info } from '@mui/icons-material';
+import { Paper, Dialog, DialogTitle, DialogContent, Typography } from '@mui/material';
 import * as d3 from 'd3';
 import { TreeNode, Member } from '../types';
-import { getGenderColor } from '../utils/helpers';
+import { getGenderColor, getMemberPictureUrl } from '../utils/helpers';
+import { useTheme } from '../contexts/ThemeContext';
+import '../styles/tree-theme.css';
 
 interface TreeVisualizationProps {
   data: TreeNode;
@@ -16,7 +17,17 @@ interface D3Node extends d3.HierarchyPointNode<TreeNode> {
   _children?: D3Node[];
 }
 
+interface NodePosition {
+  memberId: number;
+  x: number;
+  y: number;
+  member: Member;
+  isInPath: boolean;
+}
+
 const TreeVisualization: React.FC<TreeVisualizationProps> = ({ data, onNodeClick, onSetRoot, currentRootId }) => {
+  const { mode } = useTheme();
+  const isDarkMode = mode === 'dark';
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [infoDialogOpen, setInfoDialogOpen] = useState(false);
@@ -31,11 +42,11 @@ const TreeVisualization: React.FC<TreeVisualizationProps> = ({ data, onNodeClick
     const width = container.clientWidth;
     const height = container.clientHeight;
 
-    // Node dimensions
-    const nodeWidth = 180;
-    const nodeHeight = 100;
-    const horizontalSpacing = 40;
-    const verticalSpacing = 150;
+    // Circular node configuration
+    const nodeRadius = 40;
+    const horizontalSpacing = 80;
+    const verticalSpacing = 180;
+    const spouseOffset = nodeRadius * 2 + 30; // Distance between spouses
 
     // Create SVG
     const svg = d3
@@ -43,242 +54,303 @@ const TreeVisualization: React.FC<TreeVisualizationProps> = ({ data, onNodeClick
       .attr('width', width)
       .attr('height', height);
 
-    const g = svg.append('g').attr('transform', `translate(${width / 2},50)`);
+    const g = svg.append('g').attr('transform', `translate(${width / 2},${nodeRadius + 40})`);
 
     // Create tree layout
     const treeLayout = d3
       .tree<TreeNode>()
-      .nodeSize([nodeWidth + horizontalSpacing, nodeHeight + verticalSpacing])
+      .nodeSize([nodeRadius * 2 + horizontalSpacing, verticalSpacing])
       .separation((a, b) => {
         // Increase separation for nodes with spouses
-        const aHasSpouses = a.data.spouse_nodes && a.data.spouse_nodes.length > 0;
-        const bHasSpouses = b.data.spouse_nodes && b.data.spouse_nodes.length > 0;
-        return aHasSpouses || bHasSpouses ? 2 : 1;
+        const aHasSpouses = a.data.member.spouses && a.data.member.spouses.length > 0;
+        const bHasSpouses = b.data.member.spouses && b.data.member.spouses.length > 0;
+        return aHasSpouses || bHasSpouses ? 2.5 : 1.5;
       });
 
     // Create hierarchy
     const root = d3.hierarchy(data);
     const treeData = treeLayout(root);
 
-    // Get all nodes
-    const nodes = treeData.descendants();
-    const links = treeData.links();
+    // Get all nodes and links from tree
+    const treeNodes = treeData.descendants();
+    const treeLinks = treeData.links();
 
-    // Process spouse and sibling nodes
-    const allNodes: Array<{ node: D3Node; isSpouse: boolean; isSibling: boolean; relatedTo?: D3Node }> = [];
-    const allLinks: Array<{ source: D3Node; target: D3Node; type: 'parent' | 'spouse' | 'sibling' }> = [];
+    // Build node positions map including spouses
+    const nodePositions: NodePosition[] = [];
+    const nodePositionMap = new Map<number, NodePosition>();
+    const links: Array<{ sourceId: number; targetId: number; type: 'parent' | 'spouse' }> = [];
 
-    nodes.forEach((node) => {
-      allNodes.push({ node: node as D3Node, isSpouse: false, isSibling: false });
+    treeNodes.forEach((node) => {
+      const member = node.data.member;
+      const memberId = member.member_id;
 
-      let offset = 0;
-
-      // Add spouse nodes
-      if (node.data.spouse_nodes && node.data.spouse_nodes.length > 0) {
-        node.data.spouse_nodes.forEach((spouseData) => {
-          offset++;
-          const spouseNode: any = {
-            data: spouseData,
-            x: node.x + offset * (nodeWidth + 20),
-            y: node.y,
-            parent: node.parent,
-          };
-          allNodes.push({ node: spouseNode, isSpouse: true, isSibling: false, relatedTo: node as D3Node });
-
-          // Add spouse link (pink line)
-          allLinks.push({ source: node as D3Node, target: spouseNode, type: 'spouse' });
-        });
+      // Add main member position
+      if (!nodePositionMap.has(memberId)) {
+        const position: NodePosition = {
+          memberId,
+          x: node.x,
+          y: node.y,
+          member,
+          isInPath: node.data.is_in_path || false
+        };
+        nodePositions.push(position);
+        nodePositionMap.set(memberId, position);
       }
 
-      // Add sibling nodes
-      if (node.data.sibling_nodes && node.data.sibling_nodes.length > 0) {
-        node.data.sibling_nodes.forEach((siblingData) => {
-          offset++;
-          const siblingNode: any = {
-            data: siblingData,
-            x: node.x + offset * (nodeWidth + 20),
-            y: node.y,
-            parent: node.parent,
-          };
-          allNodes.push({ node: siblingNode, isSpouse: false, isSibling: true, relatedTo: node as D3Node });
+      // Add spouse positions next to the member
+      if (member.spouses && member.spouses.length > 0) {
+        member.spouses.forEach((spouse, index) => {
+          if (!nodePositionMap.has(spouse.member_id)) {
+            const spousePosition: NodePosition = {
+              memberId: spouse.member_id,
+              x: node.x + spouseOffset * (index + 1),
+              y: node.y,
+              member: {
+                member_id: spouse.member_id,
+                name: spouse.name,
+                names: {},
+                gender: spouse.gender,
+                picture: spouse.picture,
+                date_of_birth: null,
+                date_of_death: null,
+                father_id: null,
+                mother_id: null,
+                nicknames: [],
+                profession: null,
+                version: 0,
+                is_married: true,
+                generation_level: member.generation_level
+              },
+              isInPath: false
+            };
+            nodePositions.push(spousePosition);
+            nodePositionMap.set(spouse.member_id, spousePosition);
 
-          // Add sibling link (gray dashed line)
-          allLinks.push({ source: node as D3Node, target: siblingNode, type: 'sibling' });
-
-          // Add sibling's spouses
-          if (siblingData.spouse_nodes && siblingData.spouse_nodes.length > 0) {
-            siblingData.spouse_nodes.forEach((siblingSpouseData) => {
-              offset++;
-              const siblingSpouseNode: any = {
-                data: siblingSpouseData,
-                x: node.x + offset * (nodeWidth + 20),
-                y: node.y,
-                parent: node.parent,
-              };
-              allNodes.push({ node: siblingSpouseNode, isSpouse: true, isSibling: false, relatedTo: siblingNode });
-
-              // Add spouse link for sibling's spouse
-              allLinks.push({ source: siblingNode, target: siblingSpouseNode, type: 'spouse' });
+            // Add spouse link
+            links.push({
+              sourceId: memberId,
+              targetId: spouse.member_id,
+              type: 'spouse'
             });
           }
         });
       }
     });
 
-    // Add parent-child links (black lines)
-    links.forEach((link) => {
-      allLinks.push({ source: link.source as D3Node, target: link.target as D3Node, type: 'parent' });
+    // Add parent-child links
+    treeLinks.forEach((link) => {
+      const sourceId = (link.source as D3Node).data.member.member_id;
+      const targetId = (link.target as D3Node).data.member.member_id;
+
+      links.push({
+        sourceId,
+        targetId,
+        type: 'parent'
+      });
     });
 
     // Draw links
     const linkGroup = g.append('g').attr('class', 'links');
 
-    allLinks.forEach((link) => {
+    links.forEach((link) => {
+      const sourcePos = nodePositionMap.get(link.sourceId);
+      const targetPos = nodePositionMap.get(link.targetId);
+
+      if (!sourcePos || !targetPos) return;
+
       const path = linkGroup
         .append('path')
-        .attr('class', `link ${link.type}`)
+        .attr('class', `link ${link.type} tree-link-organic`)
         .attr('d', () => {
-          if (link.type === 'spouse' || link.type === 'sibling') {
-            // Horizontal line for spouses and siblings
-            return `M ${link.source.x},${link.source.y} L ${link.target.x},${link.target.y}`;
+          if (link.type === 'spouse') {
+            // Horizontal curved line for spouses
+            const midX = (sourcePos.x + targetPos.x) / 2;
+            const curveOffset = 15;
+            return `M ${sourcePos.x},${sourcePos.y}
+                    Q ${midX},${sourcePos.y - curveOffset} ${targetPos.x},${targetPos.y}`;
           } else {
-            // Vertical line from parent to child
-            const sourceX = link.source.x;
-            const sourceY = link.source.y + nodeHeight / 2;
-            const targetX = link.target.x;
-            const targetY = link.target.y - nodeHeight / 2;
+            // Vertical curved line from parent to child
+            const sourceX = sourcePos.x;
+            const sourceY = sourcePos.y + nodeRadius;
+            const targetX = targetPos.x;
+            const targetY = targetPos.y - nodeRadius;
             const midY = (sourceY + targetY) / 2;
+            const curveOffset = Math.abs(targetX - sourceX) * 0.15;
 
             return `M ${sourceX},${sourceY}
-                    L ${sourceX},${midY}
+                    C ${sourceX},${midY - curveOffset}
+                      ${sourceX},${midY + curveOffset}
+                      ${sourceX},${midY}
                     L ${targetX},${midY}
-                    L ${targetX},${targetY}`;
+                    C ${targetX},${midY + curveOffset}
+                      ${targetX},${midY + curveOffset * 2}
+                      ${targetX},${targetY}`;
           }
         })
         .attr('fill', 'none')
         .attr('stroke',
-          link.type === 'spouse' ? '#EC407A' :
-          link.type === 'sibling' ? '#9E9E9E' :
-          '#424242'
+          link.type === 'spouse' ? (isDarkMode ? '#F472B6' : '#EC407A') :
+          (isDarkMode ? '#6B7280' : '#424242')
         )
-        .attr('stroke-width', link.type === 'spouse' ? 3 : 2)
-        .attr('stroke-dasharray', link.type === 'sibling' ? '5,5' : 'none')
-        .attr('opacity', 0.7);
+        .attr('stroke-width', link.type === 'spouse' ? 3 : 2.5)
+        .attr('opacity', isDarkMode ? 0.7 : 0.6);
 
       // Highlight path links
-      if (link.source.data.is_in_path && link.target.data.is_in_path && link.type === 'parent') {
-        path.attr('stroke', '#FF9800').attr('stroke-width', 4).attr('opacity', 1);
+      if (sourcePos.isInPath && targetPos.isInPath && link.type === 'parent') {
+        path
+          .attr('stroke', isDarkMode ? '#FFA726' : '#FF9800')
+          .attr('stroke-width', 4)
+          .attr('opacity', 1)
+          .attr('class', 'tree-link-highlighted');
       }
     });
 
-    // Draw nodes
+    // Draw circular nodes
     const nodeGroup = g.append('g').attr('class', 'nodes');
 
-    allNodes.forEach(({ node }) => {
+    nodePositions.forEach((posData) => {
+      const { memberId, x, y, member, isInPath } = posData;
+
       const nodeG = nodeGroup
         .append('g')
-        .attr('class', 'node')
-        .attr('transform', `translate(${node.x - nodeWidth / 2},${node.y - nodeHeight / 2})`)
+        .attr('class', 'node tree-node-organic')
+        .attr('transform', `translate(${x},${y})`)
         .style('cursor', 'pointer');
 
-      // Check if this is the current root
-      const isCurrentRoot = currentRootId !== undefined && node.data.member.member_id === currentRootId;
+      const isCurrentRoot = currentRootId !== undefined && memberId === currentRootId;
 
-      // Node background with gender color border
-      const rect = nodeG
-        .append('rect')
-        .attr('width', nodeWidth)
-        .attr('height', nodeHeight)
-        .attr('rx', 8)
-        .attr('fill', isCurrentRoot ? '#E3F2FD' : '#ffffff')
-        .attr('stroke', isCurrentRoot ? '#1976D2' : getGenderColor(node.data.member.gender))
-        .attr('stroke-width', isCurrentRoot ? 5 : node.data.is_in_path ? 4 : 3);
+      // Background circle
+      nodeG
+        .append('circle')
+        .attr('r', nodeRadius)
+        .attr('fill', () => {
+          if (isCurrentRoot) return isDarkMode ? '#1E3A8A' : '#E3F2FD';
+          if (isInPath) return isDarkMode ? '#92400E' : '#FFF3E0';
+          return isDarkMode ? '#1E293B' : '#FFFFFF';
+        })
+        .attr('stroke', isCurrentRoot ? (isDarkMode ? '#60A5FA' : '#1976D2') : getGenderColor(member.gender))
+        .attr('stroke-width', isCurrentRoot ? 5 : isInPath ? 4 : 3)
+        .style('filter', isCurrentRoot
+          ? 'drop-shadow(0 0 12px rgba(25, 118, 210, 0.5))'
+          : 'drop-shadow(0 4px 12px rgba(0, 0, 0, 0.1))')
+        .attr('class', isCurrentRoot ? 'root-node-glow' : '');
 
-      // Highlight path nodes (but root takes precedence)
-      if (!isCurrentRoot && node.data.is_in_path) {
-        rect.attr('fill', '#FFF3E0');
+      // Growth rings
+      nodeG.append('circle')
+        .attr('r', nodeRadius + 6)
+        .attr('fill', 'none')
+        .attr('stroke', getGenderColor(member.gender))
+        .attr('stroke-width', 1)
+        .attr('opacity', isDarkMode ? 0.2 : 0.15)
+        .style('pointer-events', 'none');
+
+      nodeG.append('circle')
+        .attr('r', nodeRadius + 10)
+        .attr('fill', 'none')
+        .attr('stroke', getGenderColor(member.gender))
+        .attr('stroke-width', 0.5)
+        .attr('opacity', isDarkMode ? 0.15 : 0.1)
+        .style('pointer-events', 'none');
+
+      // Avatar or initials
+      const pictureUrl = getMemberPictureUrl(member.member_id, member.picture);
+      const avatarRadius = nodeRadius - 5;
+
+      if (pictureUrl) {
+        const clipId = `clip-tree-${memberId}`;
+        const defs = nodeG.append('defs');
+        defs.append('clipPath')
+          .attr('id', clipId)
+          .append('circle')
+          .attr('r', avatarRadius);
+
+        nodeG.append('image')
+          .attr('xlink:href', pictureUrl)
+          .attr('x', -avatarRadius)
+          .attr('y', -avatarRadius)
+          .attr('width', avatarRadius * 2)
+          .attr('height', avatarRadius * 2)
+          .attr('clip-path', `url(#${clipId})`)
+          .style('pointer-events', 'none');
+      } else {
+        const initials = member.name ? member.name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase() : '?';
+        nodeG.append('text')
+          .text(initials)
+          .attr('text-anchor', 'middle')
+          .attr('dy', '0.35em')
+          .attr('font-size', nodeRadius * 0.5)
+          .attr('font-weight', 'bold')
+          .attr('fill', getGenderColor(member.gender))
+          .style('pointer-events', 'none')
+          .style('text-shadow', isDarkMode
+            ? '0 1px 2px rgba(0, 0, 0, 0.8)'
+            : '0 1px 2px rgba(255, 255, 255, 0.8)');
       }
 
-      // Add names (without avatar)
-      const name = node.data.member.name || 'Unknown';
-      const fullName = node.data.member.full_name || '';
-
+      // Name label
+      const name = member.name || 'Unknown';
       nodeG
         .append('text')
-        .attr('x', nodeWidth / 2)
-        .attr('y', 30)
+        .attr('y', nodeRadius + 18)
         .attr('text-anchor', 'middle')
         .attr('font-size', '13px')
-        .attr('font-weight', 'bold')
-        .attr('fill', '#000')
-        .text(truncateText(name, 20));
+        .attr('font-weight', '600')
+        .attr('fill', isDarkMode ? '#F1F5F9' : '#000')
+        .attr('class', isDarkMode ? 'tree-label-dark' : 'tree-label')
+        .text(truncateText(name, 15))
+        .style('pointer-events', 'none');
 
-      if (fullName) {
-        nodeG
-          .append('text')
-          .attr('x', nodeWidth / 2)
-          .attr('y', 48)
-          .attr('text-anchor', 'middle')
-          .attr('font-size', '12px')
-          .attr('fill', '#666')
-          .text(truncateText(fullName, 25));
-      }
+      // Generation badge
+      if (member.generation_level !== undefined) {
+        const badgeSize = 22;
+        const badgeX = nodeRadius * 0.6;
+        const badgeY = -nodeRadius * 0.6;
 
-      // Add generation level or age
-      if (node.data.member.generation_level !== undefined) {
-        nodeG
-          .append('text')
-          .attr('x', nodeWidth / 2)
-          .attr('y', 65)
-          .attr('text-anchor', 'middle')
-          .attr('font-size', '10px')
-          .attr('fill', '#999')
-          .text(`Gen: ${node.data.member.generation_level}`);
-      } else if (node.data.member.age) {
-        nodeG
-          .append('text')
-          .attr('x', nodeWidth / 2)
-          .attr('y', 65)
-          .attr('text-anchor', 'middle')
-          .attr('font-size', '10px')
-          .attr('fill', '#999')
-          .text(`Age: ${node.data.member.age}`);
-      }
-
-      // Married indicator
-      if (node.data.member.is_married) {
         nodeG
           .append('circle')
-          .attr('cx', nodeWidth - 15)
-          .attr('cy', 15)
-          .attr('r', 5)
-          .attr('fill', '#EC407A');
+          .attr('cx', badgeX)
+          .attr('cy', badgeY)
+          .attr('r', badgeSize / 2)
+          .attr('fill', isDarkMode ? '#60A5FA' : '#2196F3')
+          .attr('class', 'generation-badge')
+          .style('filter', 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3))')
+          .style('pointer-events', 'none');
+
+        nodeG
+          .append('text')
+          .attr('x', badgeX)
+          .attr('y', badgeY)
+          .attr('dy', '0.35em')
+          .attr('text-anchor', 'middle')
+          .attr('font-size', '11px')
+          .attr('font-weight', 'bold')
+          .attr('fill', 'white')
+          .text(member.generation_level)
+          .style('pointer-events', 'none')
+          .style('text-shadow', '0 1px 2px rgba(0, 0, 0, 0.5)');
       }
+
+      // Married indicator removed - visible from spouse edges
 
       // Click handlers
       nodeG.on('click', (event) => {
         event.stopPropagation();
-        onNodeClick(node.data.member);
+        onNodeClick(member);
       });
 
       nodeG.on('contextmenu', (event) => {
         event.preventDefault();
         event.stopPropagation();
-        // If this is already the root, unselect it (pass undefined)
-        if (node.depth === 0) {
-          onSetRoot(-1); // Special value to indicate root reset
-        } else {
-          onSetRoot(node.data.member.member_id);
-        }
+        onSetRoot(memberId);
       });
 
-      // Hover effect
+      // No hover animations - completely stable
       nodeG.on('mouseenter', function () {
-        d3.select(this).select('rect').attr('filter', 'drop-shadow(0 4px 8px rgba(0,0,0,0.2))');
+        d3.select(this).style('opacity', 0.85);
       });
 
       nodeG.on('mouseleave', function () {
-        d3.select(this).select('rect').attr('filter', 'none');
+        d3.select(this).style('opacity', 1);
       });
     });
 
@@ -300,7 +372,7 @@ const TreeVisualization: React.FC<TreeVisualizationProps> = ({ data, onNodeClick
       const midX = bounds.x + fullWidth / 2;
       const midY = bounds.y + fullHeight / 2;
 
-      const scale = Math.min(width / fullWidth, height / fullHeight) * 0.8;
+      const scale = Math.min(width / fullWidth, height / fullHeight) * 0.75;
       const translate = [width / 2 - scale * midX, height / 2 - scale * midY];
 
       svg.call(
@@ -308,87 +380,39 @@ const TreeVisualization: React.FC<TreeVisualizationProps> = ({ data, onNodeClick
         d3.zoomIdentity.translate(translate[0], translate[1]).scale(scale)
       );
     }
-  }, [data, onNodeClick, onSetRoot]);
+  }, [data, onNodeClick, onSetRoot, currentRootId, isDarkMode]);
 
-  const handleZoomIn = () => {
-    if (svgRef.current) {
-      const svg = d3.select(svgRef.current);
-      svg.transition().call(d3.zoom<SVGSVGElement, unknown>().scaleBy as any, 1.3);
-    }
-  };
-
-  const handleZoomOut = () => {
-    if (svgRef.current) {
-      const svg = d3.select(svgRef.current);
-      svg.transition().call(d3.zoom<SVGSVGElement, unknown>().scaleBy as any, 0.7);
-    }
-  };
-
-  const handleResetZoom = () => {
-    if (svgRef.current) {
-      const svg = d3.select(svgRef.current);
-      svg.transition().call(d3.zoom<SVGSVGElement, unknown>().transform as any, d3.zoomIdentity);
-    }
-  };
+  // Zoom handlers removed
 
   return (
     <Paper
       ref={containerRef}
+      className={`tree-container ${isDarkMode ? 'tree-container-dark tree-canvas-dark' : 'tree-canvas-light'} tree-fade-in`}
       sx={{
         position: 'relative',
         width: '100%',
         height: '800px',
         overflow: 'hidden',
-        backgroundColor: '#fafafa',
+        backgroundColor: isDarkMode ? '#0a0e1a' : '#fdfbf7',
       }}
     >
       <svg ref={svgRef} style={{ width: '100%', height: '100%' }} />
 
-      {/* Controls */}
-      <Box
-        sx={{
-          position: 'absolute',
-          top: 16,
-          right: 16,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 1,
-        }}
-      >
-        <Tooltip title="Info">
-          <IconButton onClick={() => setInfoDialogOpen(true)} sx={{ bgcolor: 'white' }}>
-            <Info />
-          </IconButton>
-        </Tooltip>
-        <Tooltip title="Zoom In">
-          <IconButton onClick={handleZoomIn} sx={{ bgcolor: 'white' }}>
-            <ZoomIn />
-          </IconButton>
-        </Tooltip>
-        <Tooltip title="Zoom Out">
-          <IconButton onClick={handleZoomOut} sx={{ bgcolor: 'white' }}>
-            <ZoomOut />
-          </IconButton>
-        </Tooltip>
-        <Tooltip title="Reset Zoom">
-          <IconButton onClick={handleResetZoom} sx={{ bgcolor: 'white' }}>
-            <ZoomOutMap />
-          </IconButton>
-        </Tooltip>
-      </Box>
+      {/* Controls - Info and zoom controls removed */}
 
       {/* Info Dialog */}
       <Dialog open={infoDialogOpen} onClose={() => setInfoDialogOpen(false)}>
-        <DialogTitle>Hierarchical Tree View - Instructions</DialogTitle>
+        <DialogTitle>Tree View - Instructions</DialogTitle>
         <DialogContent>
           <Typography variant="body2" paragraph>
             <strong>Navigation:</strong>
           </Typography>
           <Typography variant="body2" component="div" sx={{ mb: 2, pl: 2 }}>
             • Click on a node to view detailed member information<br />
-            • Right-click on a node to set/unset it as the tree root<br />
+            • Right-click on a node to set it as the tree root<br />
             • Drag to pan the view<br />
-            • Scroll to zoom in/out
+            • Scroll to zoom in/out<br />
+            • Siblings are connected through their shared parents
           </Typography>
 
           <Typography variant="body2" paragraph>
@@ -398,9 +422,8 @@ const TreeVisualization: React.FC<TreeVisualizationProps> = ({ data, onNodeClick
             • <span style={{ color: '#1976D2', fontWeight: 'bold' }}>Blue border</span> = Current root node<br />
             • <span style={{ color: '#EC407A', fontWeight: 'bold' }}>Pink lines</span> = Spouse connections<br />
             • <span style={{ color: '#424242', fontWeight: 'bold' }}>Black lines</span> = Parent-child relationships<br />
-            • <span style={{ color: '#9E9E9E', fontWeight: 'bold' }}>Gray dashed lines</span> = Sibling connections<br />
-            • <span style={{ color: '#FF9800', fontWeight: 'bold' }}>Orange highlights</span> = Relation path (when finding relations)<br />
-            • <span style={{ color: '#EC407A', fontWeight: 'bold' }}>Pink dot</span> = Married member
+            • <span style={{ color: '#FF9800', fontWeight: 'bold' }}>Orange highlights</span> = Relation path<br />
+            • <span style={{ color: '#2196F3', fontWeight: 'bold' }}>Blue badge</span> = Generation number
           </Typography>
         </DialogContent>
       </Dialog>

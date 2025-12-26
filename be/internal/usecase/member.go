@@ -31,6 +31,7 @@ type (
 		repo      memberUseCaseRepo
 		validator memberUseCaseValidator
 		s3Client  S3Client
+		tx        TransactionManager
 	}
 )
 
@@ -40,6 +41,7 @@ func NewMemberUseCase(
 	historyRepo HistoryRepository,
 	scoreRepo ScoreRepository,
 	s3Client S3Client,
+	txManager TransactionManager,
 	marriageValidator MarriageValidator,
 	birthDateValidator BirthDateValidator,
 	relationshipValidator RelationshipValidator,
@@ -48,6 +50,7 @@ func NewMemberUseCase(
 		repo:      memberUseCaseRepo{memberRepo, spouseRepo, historyRepo, scoreRepo},
 		validator: memberUseCaseValidator{marriageValidator, birthDateValidator, relationshipValidator},
 		s3Client:  s3Client,
+		tx:        txManager,
 	}
 }
 
@@ -66,6 +69,12 @@ func (uc *memberUseCase) Create(ctx context.Context, member *domain.Member, user
 		return err
 	}
 
+	return uc.tx.Do(ctx, func(txCtx context.Context) error {
+		return uc.createTx(txCtx, member, userID)
+	})
+}
+
+func (uc *memberUseCase) createTx(ctx context.Context, member *domain.Member, userID int) error {
 	if err := uc.repo.member.Create(ctx, member); err != nil {
 		return err
 	}
@@ -128,6 +137,12 @@ func (uc *memberUseCase) Update(ctx context.Context, member *domain.Member, expe
 		return err
 	}
 
+	return uc.tx.Do(ctx, func(txCtx context.Context) error {
+		return uc.updateTx(txCtx, member, oldMember, expectedVersion, userID)
+	})
+}
+
+func (uc *memberUseCase) updateTx(ctx context.Context, member, oldMember *domain.Member, expectedVersion, userID int) error {
 	if err := uc.repo.member.Update(ctx, member, expectedVersion); err != nil {
 		return err
 	}
@@ -171,6 +186,28 @@ func (uc *memberUseCase) Delete(ctx context.Context, memberID, userID int) error
 		return domain.NewConflictError("error.member.has_children", map[string]string{"count": fmt.Sprintf("%d", len(children))})
 	}
 
+	var pictureURL *string
+	err = uc.tx.Do(ctx, func(txCtx context.Context) error {
+		var err error
+		pictureURL, err = uc.deleteMemberTx(txCtx, memberID, oldMember, userID)
+		return err
+	})
+
+	if err != nil {
+		return err
+	}
+
+	// Delete from S3 after successful transaction
+	if pictureURL != nil && *pictureURL != "" {
+		if err := uc.s3Client.DeleteImage(ctx, *pictureURL); err != nil {
+			slog.Error("delete member picture from storage", "error", err, "member_id", memberID, "picture", *pictureURL)
+		}
+	}
+
+	return nil
+}
+
+func (uc *memberUseCase) deleteMemberTx(ctx context.Context, memberID int, oldMember *domain.Member, userID int) (*string, error) {
 	oldValuesJSON, _ := json.Marshal(oldMember)
 	history := &domain.History{
 		MemberID:      memberID,
@@ -181,21 +218,15 @@ func (uc *memberUseCase) Delete(ctx context.Context, memberID, userID int) error
 		MemberVersion: oldMember.Version + 1,
 	}
 	if err := uc.repo.history.Create(ctx, history); err != nil {
-		slog.Error("record delete history", "error", err, "member_id", memberID)
+		return nil, err
 	}
 
 	pictureURL, err := uc.repo.member.Delete(ctx, memberID)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	if pictureURL != nil && *pictureURL != "" {
-		if err := uc.s3Client.DeleteImage(ctx, *pictureURL); err != nil {
-			slog.Error("delete member picture from storage", "error", err, "member_id", memberID, "picture", *pictureURL)
-		}
-	}
-
-	return nil
+	return pictureURL, nil
 }
 
 func (uc *memberUseCase) Get(ctx context.Context, memberID int) (*domain.Member, error) {
@@ -229,9 +260,14 @@ func (uc *memberUseCase) UploadPicture(ctx context.Context, memberID int, data [
 		return "", err
 	}
 
-	if err := uc.repo.member.UpdatePicture(ctx, memberID, newPictureURL); err != nil {
+	err = uc.tx.Do(ctx, func(txCtx context.Context) error {
+		return uc.uploadPictureTx(txCtx, memberID, newPictureURL, oldMember, userID)
+	})
+
+	if err != nil {
+		// Rollback S3 upload on transaction failure
 		if deleteErr := uc.s3Client.DeleteImage(ctx, newPictureURL); deleteErr != nil {
-			slog.Error("rollback S3 upload after DB error",
+			slog.Error("rollback S3 upload after transaction error",
 				"error", deleteErr,
 				"member_id", memberID,
 				"picture_url", newPictureURL,
@@ -240,6 +276,7 @@ func (uc *memberUseCase) UploadPicture(ctx context.Context, memberID int, data [
 		return "", err
 	}
 
+	// Delete old picture from S3 after successful transaction
 	if oldMember.Picture != nil && *oldMember.Picture != "" {
 		if err := uc.s3Client.DeleteImage(ctx, *oldMember.Picture); err != nil {
 			slog.Warn("delete old picture from S3",
@@ -249,9 +286,17 @@ func (uc *memberUseCase) UploadPicture(ctx context.Context, memberID int, data [
 		}
 	}
 
+	return newPictureURL, nil
+}
+
+func (uc *memberUseCase) uploadPictureTx(ctx context.Context, memberID int, newPictureURL string, oldMember *domain.Member, userID int) error {
+	if err := uc.repo.member.UpdatePicture(ctx, memberID, newPictureURL); err != nil {
+		return err
+	}
+
 	updatedMember, err := uc.repo.member.Get(ctx, memberID)
 	if err != nil {
-		return "", err
+		return err
 	}
 
 	oldValuesJSON, _ := json.Marshal(map[string]any{"picture": oldMember.Picture})
@@ -265,7 +310,7 @@ func (uc *memberUseCase) UploadPicture(ctx context.Context, memberID int, data [
 		MemberVersion: updatedMember.Version,
 	}
 	if err := uc.repo.history.Create(ctx, history); err != nil {
-		slog.Error("create history for picture upload", "error", err, "member_id", memberID)
+		return err
 	}
 
 	if oldMember.Picture == nil || *oldMember.Picture == "" {
@@ -278,10 +323,12 @@ func (uc *memberUseCase) UploadPicture(ctx context.Context, memberID int, data [
 				MemberVersion: oldMember.Version + 1,
 			},
 		}
-		_ = uc.repo.score.Create(ctx, scores...)
+		if err := uc.repo.score.Create(ctx, scores...); err != nil {
+			return err
+		}
 	}
 
-	return newPictureURL, nil
+	return nil
 }
 
 func (uc *memberUseCase) DeletePicture(ctx context.Context, memberID int, userID int) error {
@@ -292,10 +339,15 @@ func (uc *memberUseCase) DeletePicture(ctx context.Context, memberID int, userID
 
 	oldPictureURL := member.Picture
 
-	if err := uc.repo.member.DeletePicture(ctx, memberID); err != nil {
+	err = uc.tx.Do(ctx, func(txCtx context.Context) error {
+		return uc.deletePictureTx(txCtx, memberID, oldPictureURL, userID)
+	})
+
+	if err != nil {
 		return err
 	}
 
+	// Delete from S3 after successful transaction
 	if oldPictureURL != nil && *oldPictureURL != "" {
 		if err := uc.s3Client.DeleteImage(ctx, *oldPictureURL); err != nil {
 			slog.Warn("delete picture from S3 after DB update",
@@ -303,6 +355,14 @@ func (uc *memberUseCase) DeletePicture(ctx context.Context, memberID int, userID
 				"member_id", memberID,
 				"picture_url", *oldPictureURL)
 		}
+	}
+
+	return nil
+}
+
+func (uc *memberUseCase) deletePictureTx(ctx context.Context, memberID int, oldPictureURL *string, userID int) error {
+	if err := uc.repo.member.DeletePicture(ctx, memberID); err != nil {
+		return err
 	}
 
 	updatedMember, err := uc.repo.member.Get(ctx, memberID)
@@ -321,7 +381,7 @@ func (uc *memberUseCase) DeletePicture(ctx context.Context, memberID int, userID
 		MemberVersion: updatedMember.Version,
 	}
 	if err := uc.repo.history.Create(ctx, history); err != nil {
-		slog.Error("create history for picture deletion", "error", err, "member_id", memberID)
+		return err
 	}
 
 	return nil

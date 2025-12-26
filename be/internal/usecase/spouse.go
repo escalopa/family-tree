@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"log/slog"
-	"time"
 
 	"github.com/escalopa/family-tree/internal/domain"
 	"github.com/escalopa/family-tree/internal/pkg/validator"
@@ -25,6 +24,7 @@ type (
 	spouseUseCase struct {
 		repo      spouseUseCaseRepo
 		validator spouseUseCaseValidator
+		tx        TransactionManager
 	}
 )
 
@@ -33,6 +33,7 @@ func NewSpouseUseCase(
 	memberRepo MemberRepository,
 	historyRepo HistoryRepository,
 	scoreRepo ScoreRepository,
+	txManager TransactionManager,
 	marriageValidator MarriageValidator,
 ) *spouseUseCase {
 	return &spouseUseCase{
@@ -45,6 +46,7 @@ func NewSpouseUseCase(
 		validator: spouseUseCaseValidator{
 			marriage: marriageValidator,
 		},
+		tx: txManager,
 	}
 }
 
@@ -122,19 +124,20 @@ func (uc *spouseUseCase) Create(ctx context.Context, spouse *domain.Spouse, user
 		return domain.NewValidationError("error.member.invalid_mother")
 	}
 
-	// Validate Islamic marriage prohibitions
 	if err := uc.validator.marriage.Create(ctx, spouse.FatherID, spouse.MotherID); err != nil {
 		return err
 	}
 
-	if err := uc.validateMarriageDateAgainstBirth(father, mother, spouse.MarriageDate); err != nil {
+	if err := uc.validator.marriage.MarriageDate(ctx, spouse.FatherID, spouse.MotherID, spouse.MarriageDate); err != nil {
 		return err
 	}
 
-	if err := uc.validateMarriageDateAgainstChildren(ctx, spouse.FatherID, spouse.MotherID, spouse.MarriageDate); err != nil {
-		return err
-	}
+	return uc.tx.Do(ctx, func(txCtx context.Context) error {
+		return uc.createTx(txCtx, spouse, father, mother, userID)
+	})
+}
 
+func (uc *spouseUseCase) createTx(ctx context.Context, spouse *domain.Spouse, father, mother *domain.Member, userID int) error {
 	if err := uc.repo.spouse.Create(ctx, spouse); err != nil {
 		return err
 	}
@@ -175,24 +178,16 @@ func (uc *spouseUseCase) Update(ctx context.Context, spouse *domain.Spouse, user
 	spouse.FatherID = oldSpouse.FatherID
 	spouse.MotherID = oldSpouse.MotherID
 
-	father, err := uc.repo.member.Get(ctx, spouse.FatherID)
-	if err != nil {
+	if err := uc.validator.marriage.MarriageDate(ctx, spouse.FatherID, spouse.MotherID, spouse.MarriageDate); err != nil {
 		return err
 	}
 
-	mother, err := uc.repo.member.Get(ctx, spouse.MotherID)
-	if err != nil {
-		return err
-	}
+	return uc.tx.Do(ctx, func(txCtx context.Context) error {
+		return uc.updateTx(txCtx, spouse, oldSpouse, userID)
+	})
+}
 
-	if err := uc.validateMarriageDateAgainstBirth(father, mother, spouse.MarriageDate); err != nil {
-		return err
-	}
-
-	if err := uc.validateMarriageDateAgainstChildren(ctx, spouse.FatherID, spouse.MotherID, spouse.MarriageDate); err != nil {
-		return err
-	}
-
+func (uc *spouseUseCase) updateTx(ctx context.Context, spouse, oldSpouse *domain.Spouse, userID int) error {
 	if err := uc.repo.spouse.Update(ctx, spouse); err != nil {
 		return err
 	}
@@ -218,54 +213,18 @@ func (uc *spouseUseCase) Delete(ctx context.Context, spouseID, userID int) error
 		return domain.NewConflictError("error.spouse.has_children", nil)
 	}
 
+	return uc.tx.Do(ctx, func(txCtx context.Context) error {
+		return uc.deleteTx(txCtx, spouseID, oldSpouse, userID)
+	})
+}
+
+func (uc *spouseUseCase) deleteTx(ctx context.Context, spouseID int, oldSpouse *domain.Spouse, userID int) error {
 	if err := uc.repo.spouse.Delete(ctx, spouseID); err != nil {
 		return err
 	}
 
 	oldValues, _ := json.Marshal(oldSpouse)
 	uc.recordSpouseHistory(ctx, oldSpouse.FatherID, oldSpouse.MotherID, domain.ChangeTypeRemoveSpouse, oldValues, nil, userID)
-
-	return nil
-}
-
-// validateParentAges ensures both parents exist (already validated by caller)
-func (uc *spouseUseCase) validateParentAges(ctx context.Context, father, mother *domain.Member) error {
-	// Both members already validated to exist and have correct genders
-	return nil
-}
-
-// validateMarriageDateAgainstBirth ensures marriage date is after both parents' birth dates
-func (uc *spouseUseCase) validateMarriageDateAgainstBirth(father, mother *domain.Member, marriageDate *time.Time) error {
-	if marriageDate == nil {
-		return nil
-	}
-
-	if father.DateOfBirth != nil && marriageDate.Before(*father.DateOfBirth) {
-		return domain.NewValidationError("error.spouse.marriage_before_father_birth")
-	}
-
-	if mother.DateOfBirth != nil && marriageDate.Before(*mother.DateOfBirth) {
-		return domain.NewValidationError("error.spouse.marriage_before_mother_birth")
-	}
-
-	return nil
-}
-
-func (uc *spouseUseCase) validateMarriageDateAgainstChildren(ctx context.Context, fatherID, motherID int, marriageDate *time.Time) error {
-	if marriageDate == nil {
-		return nil
-	}
-
-	children, err := uc.repo.member.GetChildrenByParents(ctx, fatherID, motherID)
-	if err != nil {
-		return err
-	}
-
-	for _, child := range children {
-		if child.DateOfBirth != nil && marriageDate.After(*child.DateOfBirth) {
-			return domain.NewValidationError("error.spouse.marriage_after_child_birth")
-		}
-	}
 
 	return nil
 }

@@ -113,6 +113,8 @@
     "alive": "على قيد الحياة",
     "deceased": "متوفى",
     "noMembers": "لم يتم العثور على أعضاء",
+    "noMembersFound": "لم يتم العثور على أعضاء",
+    "typeAtLeastTwoCharacters": "اكتب حرفين على الأقل",
     "searchPlaceholder": "البحث بالاسم (أي لغة)",
     "searchByName": "البحث بالاسم...",
     "deleteConfirm": "هل أنت متأكد من حذف هذا العضو؟",
@@ -227,7 +229,10 @@
     "topContributors": "أفضل المساهمين في شجرة العائلة",
     "rank": "الترتيب",
     "user": "المستخدم",
-    "totalScore": "النقاط الإجمالية"
+    "totalScore": "النقاط الإجمالية",
+    "champion": "البطل",
+    "secondPlace": "المركز الثاني",
+    "thirdPlace": "المركز الثالث"
   },
   "profile": {
     "title": "الملف الشخصي",
@@ -383,7 +388,8 @@
     "accountStillInactive": "حسابك لا يزال غير نشط. يرجى الاتصال بالمسؤول.",
     "failedToCheckStatus": "فشل في التحقق من حالة الحساب. يرجى المحاولة مرة أخرى.",
     "checkingStatus": "جاري التحقق من الحالة...",
-    "checkAccountStatus": "التحقق من حالة الحساب"
+    "checkAccountStatus": "التحقق من حالة الحساب",
+    "changeAccount": "تغيير الحساب"
   },
   "unauthorized": {
     "title": "وصول غير مصرح به",

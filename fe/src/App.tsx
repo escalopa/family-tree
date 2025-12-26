@@ -1,11 +1,12 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { ThemeProvider } from './contexts/ThemeContext';
+import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import { AuthProvider } from './contexts/AuthContext';
 import { LanguageProvider } from './contexts/LanguageContext';
 import { InterfaceLanguageProvider } from './contexts/InterfaceLanguageContext';
 import NotificationProvider from './components/NotificationProvider';
 import ProtectedRoute from './components/ProtectedRoute';
+import { Box } from '@mui/material';
 
 // Pages
 import LoginPage from './pages/LoginPage';
@@ -14,12 +15,30 @@ import InactivePage from './pages/InactivePage';
 import UnauthorizedPage from './pages/UnauthorizedPage';
 import TreePage from './pages/TreePage';
 import LeaderboardPage from './pages/LeaderboardPage';
-import MembersPage from './pages/MembersPage';
 import UsersPage from './pages/UsersPage';
 import UserProfilePage from './pages/UserProfilePage';
 import ProfilePage from './pages/ProfilePage';
 
 import { Roles } from './types';
+
+// Tree branches background component
+const TreeBranchesBackground: React.FC = () => {
+  const { mode } = useTheme();
+  return (
+    <Box
+      className={mode === 'dark' ? 'tree-branches-dark' : 'tree-branches-light'}
+      sx={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100%',
+        pointerEvents: 'none',
+        zIndex: -999,
+      }}
+    />
+  );
+};
 
 const App: React.FC = () => {
   return (
@@ -28,6 +47,7 @@ const App: React.FC = () => {
         <AuthProvider>
           <InterfaceLanguageProvider>
             <LanguageProvider>
+              <TreeBranchesBackground />
               <Router>
               <Routes>
                 {/* Public Routes */}
@@ -66,16 +86,6 @@ const App: React.FC = () => {
                   element={
                     <ProtectedRoute requireActive>
                       <ProfilePage />
-                    </ProtectedRoute>
-                  }
-                />
-
-                {/* Admin Routes */}
-                <Route
-                  path="/members"
-                  element={
-                    <ProtectedRoute requireActive minRole={Roles.ADMIN}>
-                      <MembersPage />
                     </ProtectedRoute>
                   }
                 />

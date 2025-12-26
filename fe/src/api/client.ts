@@ -4,6 +4,7 @@ import i18n from '../i18n';
 
 class ApiClient {
   private client: AxiosInstance;
+  private redirecting: boolean = false;
 
   constructor() {
     this.client = axios.create({
@@ -45,6 +46,11 @@ class ApiClient {
         return response;
       },
       (error: AxiosError<any>) => {
+        // If already redirecting, suppress all error notifications
+        if (this.redirecting) {
+          return Promise.resolve(null);
+        }
+
         const currentPath = window.location.pathname;
         const publicPaths = ['/login', '/auth', '/inactive', '/unauthorized'];
         const isPublicPage = publicPaths.some(path => currentPath.startsWith(path));
@@ -53,30 +59,48 @@ class ApiClient {
         if (error.response?.status === 401) {
           if (!isPublicPage) {
             // Clear user data and redirect to login (no notification for auth errors)
+            this.redirecting = true;
             localStorage.removeItem('user');
             window.location.href = '/login';
+            return Promise.resolve(null);
           }
         }
         // Handle 403 - Forbidden with account deactivation
         else if (error.response?.status === 403) {
           const errorCode = error.response?.data?.error_code;
 
+          // Debug logging
+          console.log('[API Client] 403 Error Details:', {
+            errorCode,
+            isPublicPage,
+            currentPath,
+            responseData: error.response?.data
+          });
+
           // Check if it's an account deactivation error
           if (errorCode === 'ACCOUNT_DEACTIVATED' && !isPublicPage) {
-            // Redirect to inactive page without showing notification
+            console.log('[API Client] Account deactivated - redirecting without notification');
+            // Set redirecting flag to suppress any subsequent error notifications
+            this.redirecting = true;
+            // Redirect to inactive page without showing any notification or error
             window.location.href = '/inactive';
-          } else {
-            // For other 403 errors (insufficient permissions), show error notification
-            const errorMessage = error.response?.data?.error ||
-                                'You do not have permission to perform this action.';
-            enqueueSnackbar(errorMessage, {
-              variant: 'error',
-              persist: false,
-            });
+            return Promise.resolve(null);
           }
+          // For other 403 errors (insufficient permissions), show error notification
+          const errorMessage = error.response?.data?.error ||
+                              'You do not have permission to perform this action.';
+          enqueueSnackbar(errorMessage, {
+            variant: 'error',
+            persist: false,
+          });
+          return Promise.reject(error);
         }
-        else if (error.response?.status !== 404) {
-          // Show error notification for all other errors except 404
+        // Handle 404 - silently reject without notification
+        else if (error.response?.status === 404) {
+          return Promise.reject(error);
+        }
+        // Show error notification for all other errors
+        else {
           const errorMessage = error.response?.data?.error ||
                               error.response?.data?.message ||
                               'An error occurred. Please try again.';
@@ -85,6 +109,7 @@ class ApiClient {
             persist: false,
           });
         }
+
         return Promise.reject(error);
       }
     );

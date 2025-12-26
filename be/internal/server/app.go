@@ -43,12 +43,6 @@ func NewApp(cfg *config.Config) (*App, error) {
 
 	slog.Info("App.NewApp: database connected")
 
-	// Initialize languages from i18n translation files
-	langRepo := repository.NewLanguageRepository(pool)
-	if err := langRepo.InitializeLanguages(ctx); err != nil {
-		return nil, err
-	}
-
 	redisClient, err := redis.NewClient(ctx, cfg.Redis.URI)
 	if err != nil {
 		return nil, err
@@ -70,6 +64,11 @@ func NewApp(cfg *config.Config) (*App, error) {
 		return nil, err
 	}
 
+	langRepo := repository.NewLanguageRepository(pool)
+	if err := langRepo.InitializeLanguages(ctx); err != nil {
+		return nil, err
+	}
+
 	userRepo := repository.NewUserRepository(pool)
 	sessionRepo := repository.NewSessionRepository(pool)
 	oauthStateRepo := repository.NewOAuthStateRepository(pool)
@@ -80,6 +79,8 @@ func NewApp(cfg *config.Config) (*App, error) {
 	scoreRepo := repository.NewScoreRepository(pool)
 	roleRepo := repository.NewRoleRepository(pool)
 	_ = roleRepo // May be used later
+
+	txManager := repository.NewTransactionManager(pool)
 
 	oauthManager := oauth.NewOAuthManager(&cfg.OAuth)
 
@@ -98,8 +99,8 @@ func NewApp(cfg *config.Config) (*App, error) {
 
 	authUseCase := usecase.NewAuthUseCase(userRepo, sessionRepo, oauthStateRepo, oauthManager, tokenMgr)
 	userUseCase := usecase.NewUserUseCase(userRepo, scoreRepo, historyRepo)
-	memberUseCase := usecase.NewMemberUseCase(memberRepo, spouseRepo, historyRepo, scoreRepo, s3Client, marriageValidator, birthDateValidator, relationshipValidator)
-	spouseUseCase := usecase.NewSpouseUseCase(spouseRepo, memberRepo, historyRepo, scoreRepo, marriageValidator)
+	memberUseCase := usecase.NewMemberUseCase(memberRepo, spouseRepo, historyRepo, scoreRepo, s3Client, txManager, marriageValidator, birthDateValidator, relationshipValidator)
+	spouseUseCase := usecase.NewSpouseUseCase(spouseRepo, memberRepo, historyRepo, scoreRepo, txManager, marriageValidator)
 	treeUseCase := usecase.NewTreeUseCase(memberRepo, spouseRepo)
 	languageUseCase := usecase.NewLanguageUseCase(langRepo, langPrefRepo)
 

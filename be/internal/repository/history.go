@@ -18,12 +18,13 @@ func NewHistoryRepository(db *pgxpool.Pool) *HistoryRepository {
 }
 
 func (r *HistoryRepository) Create(ctx context.Context, history *domain.History) error {
+	querier := getQuerier(ctx, r.db)
 	query := `
 		INSERT INTO members_history (member_id, user_id, change_type, old_values, new_values, member_version)
 		VALUES ($1, $2, $3, $4, $5, $6)
 		RETURNING history_id, changed_at
 	`
-	err := r.db.QueryRow(ctx, query,
+	err := querier.QueryRow(ctx, query,
 		history.MemberID, history.UserID, history.ChangeType,
 		history.OldValues, history.NewValues, history.MemberVersion,
 	).Scan(&history.HistoryID, &history.ChangedAt)
@@ -38,6 +39,7 @@ func (r *HistoryRepository) CreateBatch(ctx context.Context, histories ...*domai
 		return nil
 	}
 
+	querier := getQuerier(ctx, r.db)
 	batch := &pgx.Batch{}
 	query := `
 		INSERT INTO members_history (member_id, user_id, change_type, old_values, new_values, member_version)
@@ -52,16 +54,14 @@ func (r *HistoryRepository) CreateBatch(ctx context.Context, histories ...*domai
 		)
 	}
 
-	results := r.db.SendBatch(ctx, batch)
+	results := querier.SendBatch(ctx, batch)
 	defer results.Close()
 
-	// Scan the results back into the history objects
-	for i, history := range histories {
+	for _, history := range histories {
 		err := results.QueryRow().Scan(&history.HistoryID, &history.ChangedAt)
 		if err != nil {
 			return domain.NewDatabaseError(err)
 		}
-		_ = i // Avoid unused variable warning
 	}
 
 	return nil

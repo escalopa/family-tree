@@ -1,0 +1,73 @@
+/* =====================================================
+   TREE BRANCHES DECORATIVE BACKGROUND
+   Realistic branches with edges scattered across the background
+   ===================================================== */
+
+/* Ensure ALL content is above the background */
+#root {
+  position: relative;
+  z-index: 100;
+}
+
+#root > * {
+  position: relative;
+  z-index: 100;
+}
+
+/* Make sure all MUI components are above branches */
+.MuiPaper-root,
+.MuiCard-root,
+.MuiDialog-root,
+.MuiDrawer-root,
+.MuiAppBar-root,
+.MuiButton-root,
+.MuiTable-root {
+  position: relative;
+  z-index: 100;
+}
+
+/* SVG Branch shapes - realistic branches with edges */
+.tree-branches-light,
+.tree-branches-dark {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: -999;
+  overflow: hidden;
+}
+
+.tree-branches-light::before,
+.tree-branches-light::after,
+.tree-branches-dark::before,
+.tree-branches-dark::after {
+  content: '';
+  position: absolute;
+  pointer-events: none;
+}
+
+/* Light mode branch SVGs as background - 4x more branches */
+.tree-branches-light {
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice"><g opacity="0.15"><path d="M 50 100 Q 150 120 250 100 T 400 80" stroke="%238B4513" stroke-width="6" fill="none" stroke-linecap="round"/><path d="M 250 100 Q 280 150 300 200" stroke="%23654321" stroke-width="4" fill="none" stroke-linecap="round"/><path d="M 400 80 Q 420 60 450 50" stroke="%238B4513" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M 150 120 Q 170 140 180 170" stroke="%23654321" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M 1600 200 Q 1500 180 1400 200 T 1250 220" stroke="%23228B22" stroke-width="6" fill="none" stroke-linecap="round"/><path d="M 1400 200 Q 1380 250 1370 300" stroke="%232E7D32" stroke-width="4" fill="none" stroke-linecap="round"/><path d="M 1500 180 Q 1520 160 1550 140" stroke="%232E7D32" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M 1250 220 Q 1230 240 1220 270" stroke="%23228B22" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M 100 600 Q 200 580 300 600 T 450 620" stroke="%236B8E23" stroke-width="5" fill="none" stroke-linecap="round"/><path d="M 300 600 Q 320 650 330 700" stroke="%23556B2F" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M 200 580 Q 220 560 240 540" stroke="%236B8E23" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M 450 620 Q 470 640 480 670" stroke="%23556B2F" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M 1700 700 Q 1600 720 1500 700 T 1350 680" stroke="%23008080" stroke-width="5" fill="none" stroke-linecap="round"/><path d="M 1500 700 Q 1480 750 1470 800" stroke="%23006666" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M 1600 720 Q 1620 740 1640 770" stroke="%23008080" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M 1350 680 Q 1330 660 1310 640" stroke="%23006666" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M 800 50 Q 850 70 900 50" stroke="%23A0522D" stroke-width="4" fill="none" stroke-linecap="round"/><path d="M 850 70 Q 860 90 870 110" stroke="%23A0522D" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M 1200 900 Q 1250 920 1300 900" stroke="%233CB371" stroke-width="4" fill="none" stroke-linecap="round"/><path d="M 1250 920 Q 1260 940 1270 960" stroke="%233CB371" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M 500 400 Q 550 420 600 400" stroke="%238B4513" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M 550 420 Q 560 440 570 460" stroke="%238B4513" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M 1400 500 Q 1450 480 1500 500" stroke="%23228B22" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M 1450 480 Q 1460 460 1470 440" stroke="%23228B22" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M 300 250 Q 350 270 400 250 T 500 230" stroke="%236B8E23" stroke-width="5" fill="none" stroke-linecap="round"/><path d="M 400 250 Q 420 280 430 310" stroke="%23556B2F" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M 350 270 Q 360 290 370 310" stroke="%236B8E23" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M 1500 400 Q 1550 420 1600 400 T 1700 380" stroke="%23008080" stroke-width="5" fill="none" stroke-linecap="round"/><path d="M 1600 400 Q 1620 430 1630 460" stroke="%23006666" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M 1550 420 Q 1560 440 1570 460" stroke="%23008080" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M 200 850 Q 250 870 300 850 T 400 830" stroke="%23A0522D" stroke-width="5" fill="none" stroke-linecap="round"/><path d="M 300 850 Q 320 880 330 910" stroke="%23A0522D" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M 250 870 Q 260 890 270 910" stroke="%23654321" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M 700 300 Q 750 320 800 300" stroke="%23228B22" stroke-width="4" fill="none" stroke-linecap="round"/><path d="M 750 320 Q 760 340 770 360" stroke="%232E7D32" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M 1100 600 Q 1150 620 1200 600" stroke="%236B8E23" stroke-width="4" fill="none" stroke-linecap="round"/><path d="M 1150 620 Q 1160 640 1170 660" stroke="%23556B2F" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M 600 750 Q 650 770 700 750" stroke="%23008080" stroke-width="4" fill="none" stroke-linecap="round"/><path d="M 650 770 Q 660 790 670 810" stroke="%23006666" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M 900 800 Q 950 820 1000 800" stroke="%238B4513" stroke-width="4" fill="none" stroke-linecap="round"/><path d="M 950 820 Q 960 840 970 860" stroke="%23654321" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M 400 500 Q 450 520 500 500" stroke="%23228B22" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M 450 520 Q 460 540 470 560" stroke="%232E7D32" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M 1300 300 Q 1350 320 1400 300" stroke="%236B8E23" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M 1350 320 Q 1360 340 1370 360" stroke="%23556B2F" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M 150 450 Q 200 470 250 450" stroke="%23A0522D" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M 200 470 Q 210 490 220 510" stroke="%23654321" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M 1650 550 Q 1700 570 1750 550" stroke="%23008080" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M 1700 570 Q 1710 590 1720 610" stroke="%23006666" stroke-width="2" fill="none" stroke-linecap="round"/></g></svg>');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+/* Dark mode branch SVGs as background - 4x more branches */
+.tree-branches-dark {
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice"><g opacity="0.2"><path d="M 50 100 Q 150 120 250 100 T 400 80" stroke="%23CD853F" stroke-width="6" fill="none" stroke-linecap="round"/><path d="M 250 100 Q 280 150 300 200" stroke="%23D2B48C" stroke-width="4" fill="none" stroke-linecap="round"/><path d="M 400 80 Q 420 60 450 50" stroke="%23CD853F" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M 150 120 Q 170 140 180 170" stroke="%23D2B48C" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M 1600 200 Q 1500 180 1400 200 T 1250 220" stroke="%234CAF50" stroke-width="6" fill="none" stroke-linecap="round"/><path d="M 1400 200 Q 1380 250 1370 300" stroke="%2366BB6A" stroke-width="4" fill="none" stroke-linecap="round"/><path d="M 1500 180 Q 1520 160 1550 140" stroke="%2366BB6A" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M 1250 220 Q 1230 240 1220 270" stroke="%234CAF50" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M 100 600 Q 200 580 300 600 T 450 620" stroke="%239CAF53" stroke-width="5" fill="none" stroke-linecap="round"/><path d="M 300 600 Q 320 650 330 700" stroke="%23AEBB74" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M 200 580 Q 220 560 240 540" stroke="%239CAF53" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M 450 620 Q 470 640 480 670" stroke="%23AEBB74" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M 1700 700 Q 1600 720 1500 700 T 1350 680" stroke="%2300BCD4" stroke-width="5" fill="none" stroke-linecap="round"/><path d="M 1500 700 Q 1480 750 1470 800" stroke="%234DD0E1" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M 1600 720 Q 1620 740 1640 770" stroke="%2300BCD4" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M 1350 680 Q 1330 660 1310 640" stroke="%234DD0E1" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M 800 50 Q 850 70 900 50" stroke="%23D2B48C" stroke-width="4" fill="none" stroke-linecap="round"/><path d="M 850 70 Q 860 90 870 110" stroke="%23D2B48C" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M 1200 900 Q 1250 920 1300 900" stroke="%234DD0E1" stroke-width="4" fill="none" stroke-linecap="round"/><path d="M 1250 920 Q 1260 940 1270 960" stroke="%234DD0E1" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M 500 400 Q 550 420 600 400" stroke="%23CD853F" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M 550 420 Q 560 440 570 460" stroke="%23CD853F" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M 1400 500 Q 1450 480 1500 500" stroke="%234CAF50" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M 1450 480 Q 1460 460 1470 440" stroke="%234CAF50" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M 300 250 Q 350 270 400 250 T 500 230" stroke="%239CAF53" stroke-width="5" fill="none" stroke-linecap="round"/><path d="M 400 250 Q 420 280 430 310" stroke="%23AEBB74" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M 350 270 Q 360 290 370 310" stroke="%239CAF53" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M 1500 400 Q 1550 420 1600 400 T 1700 380" stroke="%2300BCD4" stroke-width="5" fill="none" stroke-linecap="round"/><path d="M 1600 400 Q 1620 430 1630 460" stroke="%234DD0E1" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M 1550 420 Q 1560 440 1570 460" stroke="%2300BCD4" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M 200 850 Q 250 870 300 850 T 400 830" stroke="%23D2B48C" stroke-width="5" fill="none" stroke-linecap="round"/><path d="M 300 850 Q 320 880 330 910" stroke="%23D2B48C" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M 250 870 Q 260 890 270 910" stroke="%23CD853F" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M 700 300 Q 750 320 800 300" stroke="%234CAF50" stroke-width="4" fill="none" stroke-linecap="round"/><path d="M 750 320 Q 760 340 770 360" stroke="%2366BB6A" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M 1100 600 Q 1150 620 1200 600" stroke="%239CAF53" stroke-width="4" fill="none" stroke-linecap="round"/><path d="M 1150 620 Q 1160 640 1170 660" stroke="%23AEBB74" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M 600 750 Q 650 770 700 750" stroke="%2300BCD4" stroke-width="4" fill="none" stroke-linecap="round"/><path d="M 650 770 Q 660 790 670 810" stroke="%234DD0E1" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M 900 800 Q 950 820 1000 800" stroke="%23CD853F" stroke-width="4" fill="none" stroke-linecap="round"/><path d="M 950 820 Q 960 840 970 860" stroke="%23D2B48C" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M 400 500 Q 450 520 500 500" stroke="%234CAF50" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M 450 520 Q 460 540 470 560" stroke="%2366BB6A" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M 1300 300 Q 1350 320 1400 300" stroke="%239CAF53" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M 1350 320 Q 1360 340 1370 360" stroke="%23AEBB74" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M 150 450 Q 200 470 250 450" stroke="%23D2B48C" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M 200 470 Q 210 490 220 510" stroke="%23CD853F" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M 1650 550 Q 1700 570 1750 550" stroke="%2300BCD4" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M 1700 570 Q 1710 590 1720 610" stroke="%234DD0E1" stroke-width="2" fill="none" stroke-linecap="round"/></g></svg>');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+/* Accessibility - respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .tree-branches-light,
+  .tree-branches-dark {
+    animation: none !important;
+  }
+}

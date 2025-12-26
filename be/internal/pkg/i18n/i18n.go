@@ -13,7 +13,7 @@ import (
 const (
 	translationsDir = "translations"
 	translationsExt = ".json"
-	fallbackLang    = "en"
+	DefaultLanguage = "en"
 )
 
 //go:embed translations/*.json
@@ -24,14 +24,12 @@ var service *Service
 type Service struct {
 	translations map[string]map[string]any // lang -> nested map
 	supported    []string
-	fallback     string
 }
 
 func init() {
 	service = &Service{
 		translations: make(map[string]map[string]any),
 		supported:    []string{},
-		fallback:     fallbackLang,
 	}
 	if err := service.loadTranslations(); err != nil {
 		panic(fmt.Errorf("load translations: %w", err))
@@ -77,9 +75,8 @@ func (s *Service) loadTranslations() error {
 		return fmt.Errorf("no translation files found")
 	}
 
-	// If service.fallback doesn't exist, use first available language as fallback
-	if !s.isSupported(s.fallback) {
-		s.fallback = s.supported[0]
+	if !s.isSupported(DefaultLanguage) {
+		return fmt.Errorf("default language %q is not supported", DefaultLanguage)
 	}
 
 	return nil
@@ -124,7 +121,7 @@ func (s *Service) isSupported(lang string) bool {
 // normalizeLanguage: "ar-SA" -> "ar", "en-US" -> "en", "unknown" -> "en" (fallback)
 func (s *Service) normalizeLanguage(lang string) string {
 	if lang == "" {
-		return s.fallback
+		return DefaultLanguage
 	}
 
 	parts := strings.Split(lang, "-")
@@ -134,7 +131,7 @@ func (s *Service) normalizeLanguage(lang string) string {
 		return baseLang
 	}
 
-	return s.fallback
+	return DefaultLanguage
 }
 
 func (s *Service) translate(key, lang string, params map[string]string) string {
@@ -144,8 +141,8 @@ func (s *Service) translate(key, lang string, params map[string]string) string {
 		return s.interpolate(msg, params)
 	}
 
-	if lang != s.fallback {
-		if msg := s.lookup(key, s.fallback); msg != "" {
+	if lang != DefaultLanguage {
+		if msg := s.lookup(key, DefaultLanguage); msg != "" {
 			return s.interpolate(msg, params)
 		}
 	}

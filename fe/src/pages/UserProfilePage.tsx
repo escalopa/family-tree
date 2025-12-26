@@ -28,7 +28,7 @@ import {
   ResponsiveContainer,
   Legend,
 } from 'recharts';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { usersApi } from '../api';
 import { User, ScoreHistory, HistoryRecord } from '../types';
@@ -307,16 +307,8 @@ const UserProfilePage: React.FC = () => {
             {hasRole(Roles.SUPER_ADMIN) && <Tab label={t('userProfile.recentChanges')} />}
           </Tabs>
 
-          <AnimatePresence mode="wait">
           {/* Score History Tab */}
           {activeTab === 0 && (
-            <motion.div
-              key="score-history"
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 20 }}
-              transition={{ duration: 0.3 }}
-            >
             <Box sx={{ p: 2 }}>
               {loadingScoreHistory ? (
                 <Box sx={{ textAlign: 'center', py: 4 }}>
@@ -506,18 +498,10 @@ const UserProfilePage: React.FC = () => {
                 </>
               )}
             </Box>
-            </motion.div>
           )}
 
           {/* Recent Changes Tab (Super Admin only) */}
           {activeTab === 1 && hasRole(Roles.SUPER_ADMIN) && (
-            <motion.div
-              key="recent-changes"
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 20 }}
-              transition={{ duration: 0.3 }}
-            >
             <Box sx={{ p: 2 }}>
               {loadingUserChanges ? (
                 <Box sx={{ textAlign: 'center', py: 4 }}>
@@ -538,7 +522,6 @@ const UserProfilePage: React.FC = () => {
                           <TableCell className="table-header-cell">{t('userProfile.changeType')}</TableCell>
                           <TableCell className="table-header-cell">{t('userProfile.member')}</TableCell>
                           <TableCell className="table-header-cell numeric-cell">{t('userProfile.date')}</TableCell>
-                          <TableCell className="table-header-cell numeric-cell">{t('history.version')}</TableCell>
                         </TableRow>
                       </TableHead>
                       <TableBody>
@@ -571,7 +554,6 @@ const UserProfilePage: React.FC = () => {
                                 </Typography>
                               </Box>
                             </TableCell>
-                            <TableCell className="numeric-cell">{change.member_version}</TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
@@ -590,9 +572,7 @@ const UserProfilePage: React.FC = () => {
                 </>
               )}
             </Box>
-            </motion.div>
           )}
-          </AnimatePresence>
         </Paper>
         </motion.div>
 

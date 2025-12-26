@@ -1,56 +1,46 @@
 import React, { useEffect, useState } from 'react';
-import { Box, Button, Card, CardContent, Typography, Container, Stack, CircularProgress, SvgIcon } from '@mui/material';
-import {
-  Google,
-  GitHub,
-  Facebook,
-  LinkedIn,
-  Code,
-  Language,
-} from '@mui/icons-material';
+import { Box, Card, CardContent, Typography, Container, CircularProgress } from '@mui/material';
+import { Language } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
 import { authApi } from '../api';
 
-// Custom SVG Icons for providers not in Material-UI
-const YandexIcon = () => (
-  <SvgIcon viewBox="0 0 24 24">
-    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1.93 15.88h-2.12l-2.25-5.77H9.3V17.88H7.5V6.12h3.84c2.37 0 3.78 1.17 3.78 3.18 0 1.56-.84 2.58-2.19 2.97l2.49 5.61h.51zm-2.49-7.59c1.17 0 1.86-.63 1.86-1.71 0-1.08-.69-1.68-1.86-1.68h-1.8v3.39h1.8z" />
-  </SvgIcon>
-);
-
-const VKIcon = () => (
-  <SvgIcon viewBox="0 0 24 24">
-    <path d="M15.07 2H8.93C3.33 2 2 3.33 2 8.93v6.14C2 20.67 3.33 22 8.93 22h6.14c5.6 0 6.93-1.33 6.93-6.93V8.93C22 3.33 20.67 2 15.07 2zm3.83 14.2h-1.43c-.52 0-.68-.42-1.61-1.35-.81-.79-1.17-.89-1.38-.89-.28 0-.36.08-.36.47v1.23c0 .33-.11.53-1 .53-1.47 0-3.1-.89-4.24-2.55-1.71-2.4-2.18-4.2-2.18-4.57 0-.21.08-.4.47-.4h1.43c.35 0 .48.16.62.53.68 1.97 1.82 3.69 2.29 3.69.18 0 .26-.08.26-.52v-2.03c-.06-.98-.58-1.06-.58-1.41 0-.17.14-.33.36-.33h2.24c.3 0 .4.16.4.5v2.73c0 .3.14.4.22.4.18 0 .33-.1.66-.43 1.02-1.14 1.75-2.9 1.75-2.9.1-.2.25-.4.64-.4h1.43c.43 0 .52.22.43.52-.16.75-1.88 3.19-1.88 3.19-.15.24-.18.35 0 .62.13.2.57.56.86.9.53.6.94 1.1 1.05 1.45.11.35-.08.53-.51.53z" />
-  </SvgIcon>
-);
-
-const InstagramIcon = () => (
-  <SvgIcon viewBox="0 0 24 24">
-    <path d="M7.8 2h8.4C19.4 2 22 4.6 22 7.8v8.4c0 3.2-2.6 5.8-5.8 5.8H7.8C4.6 22 2 19.4 2 16.2V7.8C2 4.6 4.6 2 7.8 2m-.2 2C5.6 4 4 5.6 4 7.6v8.8C4 18.39 5.61 20 7.6 20h8.8c1.99 0 3.6-1.61 3.6-3.6V7.6C20 5.61 18.39 4 16.4 4H7.6m9.65 1.5a1.25 1.25 0 0 1 1.25 1.25A1.25 1.25 0 0 1 17.25 8 1.25 1.25 0 0 1 16 6.75a1.25 1.25 0 0 1 1.25-1.25M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3z" />
-  </SvgIcon>
-);
+import googleIcon from '../assets/icons/google.svg';
+import githubIcon from '../assets/icons/github.svg';
+import gitlabIcon from '../assets/icons/gitlab.svg';
+import yandexIcon from '../assets/icons/yandex.svg';
 
 // Provider icon and display name mapping
-const providerConfig: Record<string, { icon: React.ReactElement; name: string; color?: string }> = {
-  google: { icon: <Google />, name: 'Google', color: '#4285F4' },
-  github: { icon: <GitHub />, name: 'GitHub', color: '#24292e' },
-  gitlab: { icon: <Code />, name: 'GitLab', color: '#FC6D26' },
-  facebook: { icon: <Facebook />, name: 'Facebook', color: '#1877F2' },
-  instagram: { icon: <InstagramIcon />, name: 'Instagram', color: '#E4405F' },
-  linkedin: { icon: <LinkedIn />, name: 'LinkedIn', color: '#0A66C2' },
-  yandex: { icon: <YandexIcon />, name: 'Yandex', color: '#FF0000' },
-  vk: { icon: <VKIcon />, name: 'VK', color: '#0077FF' },
+const providerConfig: Record<string, { icon: React.ReactElement; name: string }> = {
+  google: {
+    icon: <img src={googleIcon} alt="Google" style={{ width: '1.8rem', height: '1.8rem' }} />,
+    name: 'Google'
+  },
+  github: {
+    icon: <img src={githubIcon} alt="GitHub" style={{ width: '1.8rem', height: '1.8rem' }} />,
+    name: 'GitHub'
+  },
+  gitlab: {
+    icon: <img src={gitlabIcon} alt="GitLab" style={{ width: '1.8rem', height: '1.8rem' }} />,
+    name: 'GitLab'
+  },
+  yandex: {
+    icon: <img src={yandexIcon} alt="Yandex" style={{ width: '1.8rem', height: '1.8rem' }} />,
+    name: 'Yandex'
+  },
 };
 
 const LoginPage: React.FC = () => {
   const { t } = useTranslation();
   const { user, loading } = useAuth();
+  const { mode } = useTheme();
   const navigate = useNavigate();
   const [providers, setProviders] = useState<string[]>([]);
   const [loadingProviders, setLoadingProviders] = useState(true);
+  const isDarkMode = mode === 'dark';
 
   useEffect(() => {
     // Redirect to home if already logged in
@@ -92,32 +82,111 @@ const LoginPage: React.FC = () => {
   }
 
   return (
-    <Container maxWidth="sm">
-      <Box
-        sx={{
-          minHeight: '100vh',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
+    <Box
+      sx={{
+        minHeight: '100vh',
+        position: 'relative',
+        overflow: 'hidden',
+        background: isDarkMode
+          ? 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)'
+          : 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)',
+        '&::before': {
+          content: '""',
+          position: 'absolute',
+          top: '-50%',
+          right: '-50%',
+          width: '100%',
+          height: '100%',
+          background: isDarkMode
+            ? 'radial-gradient(circle, rgba(99, 102, 241, 0.1) 0%, transparent 70%)'
+            : 'radial-gradient(circle, rgba(255, 255, 255, 0.3) 0%, transparent 70%)',
+          animation: 'float 20s ease-in-out infinite',
+        },
+        '&::after': {
+          content: '""',
+          position: 'absolute',
+          bottom: '-50%',
+          left: '-50%',
+          width: '100%',
+          height: '100%',
+          background: isDarkMode
+            ? 'radial-gradient(circle, rgba(139, 92, 246, 0.1) 0%, transparent 70%)'
+            : 'radial-gradient(circle, rgba(255, 255, 255, 0.2) 0%, transparent 70%)',
+          animation: 'float 25s ease-in-out infinite reverse',
+        },
+        '@keyframes float': {
+          '0%, 100%': {
+            transform: 'translate(0, 0) scale(1)',
+          },
+          '33%': {
+            transform: 'translate(30px, -50px) scale(1.1)',
+          },
+          '66%': {
+            transform: 'translate(-20px, 20px) scale(0.9)',
+          },
+        },
+      }}
+    >
+      <Container maxWidth="sm" sx={{ position: 'relative', zIndex: 1 }}>
+        <Box
+          sx={{
+            minHeight: '100vh',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.5, ease: [0.4, 0.0, 0.2, 1] }}
           style={{ width: '100%' }}
         >
-          <Card sx={{ width: '100%' }}>
+          <Card
+            sx={{
+              width: '100%',
+              background: isDarkMode
+                ? 'rgba(255, 255, 255, 0.05)'
+                : 'rgba(255, 255, 255, 0.25)',
+              backdropFilter: 'blur(20px)',
+              border: isDarkMode
+                ? '1px solid rgba(255, 255, 255, 0.1)'
+                : '1px solid rgba(255, 255, 255, 0.3)',
+              boxShadow: isDarkMode
+                ? '0 8px 32px rgba(0, 0, 0, 0.5)'
+                : '0 8px 32px rgba(31, 38, 135, 0.37)',
+            }}
+          >
             <CardContent sx={{ textAlign: 'center', p: 4 }}>
               <motion.div
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.2 }}
               >
-                <Typography variant="h4" component="h1" gutterBottom fontWeight="bold">
+                <Typography
+                  variant="h4"
+                  component="h1"
+                  gutterBottom
+                  fontWeight="bold"
+                  sx={{
+                    color: isDarkMode ? '#fff' : '#fff',
+                    textShadow: isDarkMode
+                      ? '0 2px 10px rgba(0, 0, 0, 0.3)'
+                      : '0 2px 10px rgba(0, 0, 0, 0.1)',
+                  }}
+                >
                   {t('navigation.familyTree')}
                 </Typography>
-                <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
+                <Typography
+                  variant="body1"
+                  sx={{
+                    mb: 4,
+                    color: isDarkMode ? 'rgba(255, 255, 255, 0.8)' : 'rgba(255, 255, 255, 0.9)',
+                    textShadow: isDarkMode
+                      ? '0 1px 5px rgba(0, 0, 0, 0.2)'
+                      : '0 1px 5px rgba(0, 0, 0, 0.1)',
+                  }}
+                >
                   {t('auth.signInToAccess')}
                 </Typography>
               </motion.div>
@@ -127,51 +196,81 @@ const LoginPage: React.FC = () => {
                   <CircularProgress />
                 </Box>
               ) : (
-                <Stack spacing={2}>
+                <Box sx={{ display: 'flex', justifyContent: 'center', gap: 3, flexWrap: 'wrap' }}>
                   {providers.map((provider, index) => {
                     const config = providerConfig[provider] || {
-                      icon: <Language />,
+                      icon: <Language style={{ width: '1.8rem', height: '1.8rem' }} />,
                       name: provider.charAt(0).toUpperCase() + provider.slice(1),
                     };
 
                     return (
                       <motion.div
                         key={provider}
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
                         transition={{ duration: 0.4, delay: 0.3 + index * 0.1 }}
                       >
-                        <Button
-                          variant="contained"
-                          size="large"
-                          startIcon={config.icon}
+                        <Box
                           onClick={() => handleProviderLogin(provider)}
-                          fullWidth
                           sx={{
-                            py: 1.5,
-                            ...(config.color && {
-                              backgroundColor: config.color,
-                              '&:hover': {
-                                backgroundColor: config.color,
-                                filter: 'brightness(0.9)',
-                                transform: 'translateY(-2px)',
+                            position: 'relative',
+                            width: 64,
+                            height: 64,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            borderRadius: '50%',
+                            border: isDarkMode ? '2px solid rgba(255, 255, 255, 0.15)' : '2px solid rgba(255, 255, 255, 0.4)',
+                            backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.08)' : 'rgba(255, 255, 255, 0.5)',
+                            backdropFilter: 'blur(10px)',
+                            cursor: 'pointer',
+                            overflow: 'visible',
+                            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                            '&::before': {
+                              content: '""',
+                              position: 'absolute',
+                              bottom: -4,
+                              left: '50%',
+                              transform: 'translateX(-50%)',
+                              width: '0%',
+                              height: '3px',
+                              borderRadius: '2px',
+                              background: isDarkMode
+                                ? 'linear-gradient(90deg, transparent, #fff, transparent)'
+                                : 'linear-gradient(90deg, transparent, #4285F4, transparent)',
+                              transition: 'width 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+                              boxShadow: isDarkMode
+                                ? '0 0 20px rgba(255, 255, 255, 0.8)'
+                                : '0 0 20px rgba(66, 133, 244, 0.6)',
+                            },
+                            '&:hover': {
+                              borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.3)' : 'rgba(255, 255, 255, 0.6)',
+                              backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.12)' : 'rgba(255, 255, 255, 0.7)',
+                              boxShadow: isDarkMode
+                                ? '0 8px 24px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.1)'
+                                : '0 8px 24px rgba(0, 0, 0, 0.12)',
+                              '&::before': {
+                                width: '80%',
                               },
-                            }),
-                            transition: 'all 0.2s ease-in-out',
+                            },
+                            '&:active': {
+                              transform: 'scale(0.95)',
+                            },
                           }}
                         >
-                          {t('auth.loginWith', { provider: config.name })}
-                        </Button>
+                          {config.icon}
+                        </Box>
                       </motion.div>
                     );
                   })}
-                </Stack>
+                </Box>
               )}
             </CardContent>
           </Card>
         </motion.div>
-      </Box>
-    </Container>
+        </Box>
+      </Container>
+    </Box>
   );
 };
 

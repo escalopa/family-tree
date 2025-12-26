@@ -2,6 +2,7 @@ package validator
 
 import (
 	"context"
+	"time"
 
 	"github.com/escalopa/family-tree/internal/domain"
 	"github.com/escalopa/family-tree/internal/usecase"
@@ -12,7 +13,7 @@ type MarriageValidator struct {
 	spouseRepo usecase.SpouseRepository
 }
 
-func NewMarriageValidator(memberRepo usecase.MemberRepository, spouseRepo usecase.SpouseRepository) usecase.MarriageValidator {
+func NewMarriageValidator(memberRepo usecase.MemberRepository, spouseRepo usecase.SpouseRepository) *MarriageValidator {
 	return &MarriageValidator{
 		memberRepo: memberRepo,
 		spouseRepo: spouseRepo,
@@ -44,6 +45,43 @@ func (v *MarriageValidator) Create(ctx context.Context, memberAID, memberBID int
 	// 3. Marriage state - Temporary prohibition
 	if err := v.validateMarriageState(ctx, personA, personB); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (v *MarriageValidator) MarriageDate(ctx context.Context, fatherID, motherID int, marriageDate *time.Time) error {
+	if marriageDate == nil {
+		return nil
+	}
+
+	// 1. Marriage date must be after both parents' birth dates
+	father, err := v.memberRepo.Get(ctx, fatherID)
+	if err != nil {
+		return err
+	}
+	if father.DateOfBirth != nil && marriageDate.Before(*father.DateOfBirth) {
+		return domain.NewValidationError("error.spouse.marriage_before_father_birth")
+	}
+
+	mother, err := v.memberRepo.Get(ctx, motherID)
+	if err != nil {
+		return err
+	}
+	if mother.DateOfBirth != nil && marriageDate.Before(*mother.DateOfBirth) {
+		return domain.NewValidationError("error.spouse.marriage_before_mother_birth")
+	}
+
+	// 2. Marriage date must be before any children's birth dates
+	children, err := v.memberRepo.GetChildrenByParents(ctx, fatherID, motherID)
+	if err != nil {
+		return err
+	}
+
+	for _, child := range children {
+		if child.DateOfBirth != nil && marriageDate.After(*child.DateOfBirth) {
+			return domain.NewValidationError("error.spouse.marriage_after_child_birth")
+		}
 	}
 
 	return nil

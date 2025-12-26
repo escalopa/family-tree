@@ -18,7 +18,6 @@ import {
 } from '@mui/material';
 import {
   AccountTree,
-  Groups,
   AdminPanelSettings,
   Leaderboard,
   AccountCircle,
@@ -74,12 +73,6 @@ const Sidebar: React.FC<SidebarProps> = ({ open, onToggle }) => {
       icon: <Leaderboard />,
       path: '/leaderboard',
       show: user && isActive,
-    },
-    {
-      text: t('navigation.members'),
-      icon: <Groups />,
-      path: '/members',
-      show: user && isActive && hasRole(Roles.ADMIN),
     },
     {
       text: t('navigation.users'),

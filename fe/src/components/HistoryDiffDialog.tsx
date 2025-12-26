@@ -144,7 +144,7 @@ const HistoryDiffDialog: React.FC<HistoryDiffDialogProps> = ({ open, onClose, hi
             </Typography>
           </Box>
           <Typography variant="caption" color="text.secondary">
-            {formatDateTime(history.changed_at)} • {formatRelativeTime(history.changed_at, t)} • {t('history.version')} {history.member_version}
+            {formatDateTime(history.changed_at)} • {formatRelativeTime(history.changed_at, t)}
           </Typography>
         </Box>
       </DialogTitle>

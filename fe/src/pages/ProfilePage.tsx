@@ -19,11 +19,14 @@ import SettingsContent from '../components/SettingsContent';
 import { useAuth } from '../contexts/AuthContext';
 import { getRoleName } from '../utils/helpers';
 import DirectionalButton from '../components/DirectionalButton';
+import { useTheme } from '../contexts/ThemeContext';
 
 const ProfilePage: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { mode } = useTheme();
+  const isDarkMode = mode === 'dark';
 
   if (!user) {
     return (
@@ -42,7 +45,7 @@ const ProfilePage: React.FC = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
         >
-          <Paper sx={{ p: 4, mb: 3 }}>
+          <Paper sx={{ p: 4, mb: 3 }} className={isDarkMode ? 'organic-paper-dark' : 'organic-paper'}>
             <Grid container spacing={3}>
               <Grid item xs={12} md={4} sx={{ textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
                 <motion.div
@@ -52,7 +55,14 @@ const ProfilePage: React.FC = () => {
                 >
                   <Avatar
                     src={user.avatar || undefined}
-                    sx={{ width: 120, height: 120, mx: 'auto', mb: 2 }}
+                    className={isDarkMode ? 'enhanced-avatar-dark' : 'enhanced-avatar'}
+                    sx={{
+                      width: 120,
+                      height: 120,
+                      mx: 'auto',
+                      mb: 2,
+                      bgcolor: 'primary.main'
+                    }}
                   >
                     {user.full_name[0]}
                   </Avatar>
@@ -74,18 +84,21 @@ const ProfilePage: React.FC = () => {
                 <Chip
                   label={getRoleName(user.role_id, t)}
                   color="primary"
-                  variant="outlined"
+                  variant="filled"
+                  className="enhanced-chip"
                 />
                 <Chip
                   label={user.is_active ? t('user.active') : t('user.inactive')}
                   color={user.is_active ? 'success' : 'default'}
-                  variant="outlined"
+                  variant={user.is_active ? 'filled' : 'outlined'}
+                  className="enhanced-chip"
                 />
                 {user.total_score !== undefined && (
                   <Chip
                     label={`${user.total_score} ${t('user.points')}`}
                     color="secondary"
-                    variant="outlined"
+                    variant="filled"
+                    className="enhanced-chip"
                   />
                 )}
                   </Box>

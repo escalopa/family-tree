@@ -78,11 +78,13 @@ func (r *MemberRepository) GetMemberNamesByIDs(ctx context.Context, memberIDs []
 }
 
 func (r *MemberRepository) Create(ctx context.Context, member *domain.Member) error {
-	tx, err := r.db.Begin(ctx)
-	if err != nil {
-		return domain.NewDatabaseError(err)
-	}
-	defer tx.Rollback(ctx)
+	return doWithQuerier(ctx, r.db, func(txCtx context.Context) error {
+		return r.createTx(txCtx, member)
+	})
+}
+
+func (r *MemberRepository) createTx(ctx context.Context, member *domain.Member) error {
+	querier := getQuerier(ctx, r.db)
 
 	query := `
 		INSERT INTO members (gender, picture, date_of_birth, date_of_death,
@@ -90,7 +92,7 @@ func (r *MemberRepository) Create(ctx context.Context, member *domain.Member) er
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 1)
 		RETURNING member_id, version
 	`
-	err = tx.QueryRow(ctx, query,
+	err := querier.QueryRow(ctx, query,
 		member.Gender, member.Picture,
 		member.DateOfBirth, member.DateOfDeath, member.FatherID, member.MotherID,
 		member.Nicknames, member.Profession,
@@ -108,12 +110,8 @@ func (r *MemberRepository) Create(ctx context.Context, member *domain.Member) er
 		batch.Queue(nameQuery, member.MemberID, langCode, name)
 	}
 
-	br := tx.SendBatch(ctx, batch)
+	br := querier.SendBatch(ctx, batch)
 	if err := br.Close(); err != nil {
-		return domain.NewDatabaseError(err)
-	}
-
-	if err := tx.Commit(ctx); err != nil {
 		return domain.NewDatabaseError(err)
 	}
 
@@ -151,11 +149,13 @@ func (r *MemberRepository) Get(ctx context.Context, memberID int) (*domain.Membe
 }
 
 func (r *MemberRepository) Update(ctx context.Context, member *domain.Member, expectedVersion int) error {
-	tx, err := r.db.Begin(ctx)
-	if err != nil {
-		return domain.NewDatabaseError(err)
-	}
-	defer tx.Rollback(ctx)
+	return doWithQuerier(ctx, r.db, func(txCtx context.Context) error {
+		return r.updateTx(txCtx, member, expectedVersion)
+	})
+}
+
+func (r *MemberRepository) updateTx(ctx context.Context, member *domain.Member, expectedVersion int) error {
+	querier := getQuerier(ctx, r.db)
 
 	query := `
 		UPDATE members
@@ -165,7 +165,7 @@ func (r *MemberRepository) Update(ctx context.Context, member *domain.Member, ex
 		WHERE member_id = $9 AND version = $10 AND deleted_at IS NULL
 		RETURNING version
 	`
-	err = tx.QueryRow(ctx, query,
+	err := querier.QueryRow(ctx, query,
 		member.Gender, member.Picture,
 		member.DateOfBirth, member.DateOfDeath, member.FatherID, member.MotherID,
 		member.Nicknames, member.Profession, member.MemberID, expectedVersion,
@@ -191,12 +191,8 @@ func (r *MemberRepository) Update(ctx context.Context, member *domain.Member, ex
 		batch.Queue(nameQuery, member.MemberID, langCode, name)
 	}
 
-	br := tx.SendBatch(ctx, batch)
+	br := querier.SendBatch(ctx, batch)
 	if err := br.Close(); err != nil {
-		return domain.NewDatabaseError(err)
-	}
-
-	if err := tx.Commit(ctx); err != nil {
 		return domain.NewDatabaseError(err)
 	}
 
@@ -206,32 +202,35 @@ func (r *MemberRepository) Update(ctx context.Context, member *domain.Member, ex
 // Delete performs a soft delete and cleans up all member data
 // Returns the picture URL if one exists, for cleanup from storage
 func (r *MemberRepository) Delete(ctx context.Context, memberID int) (*string, error) {
-	tx, err := r.db.Begin(ctx)
-	if err != nil {
-		return nil, domain.NewDatabaseError(err)
-	}
-	defer tx.Rollback(ctx)
-
 	var pictureURL *string
+	err := doWithQuerier(ctx, r.db, func(txCtx context.Context) error {
+		return r.deleteTx(txCtx, memberID, &pictureURL)
+	})
+	return pictureURL, err
+}
+
+func (r *MemberRepository) deleteTx(ctx context.Context, memberID int, pictureURL **string) error {
+	querier := getQuerier(ctx, r.db)
+
 	deleteQuery := `
 		UPDATE members
 		SET deleted_at = NOW()
 		WHERE member_id = $1 AND deleted_at IS NULL
 		RETURNING picture
 	`
-	err = tx.QueryRow(ctx, deleteQuery, memberID).Scan(&pictureURL)
+	err := querier.QueryRow(ctx, deleteQuery, memberID).Scan(pictureURL)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			slog.Warn("MemberRepository.Delete: member not found or already deleted", "member_id", memberID)
-			return nil, domain.NewNotFoundError("member")
+			return domain.NewNotFoundError("member")
 		}
-		return nil, domain.NewDatabaseError(err)
+		return domain.NewDatabaseError(err)
 	}
 
 	namesQuery := `DELETE FROM member_names WHERE member_id = $1`
-	_, err = tx.Exec(ctx, namesQuery, memberID)
+	_, err = querier.Exec(ctx, namesQuery, memberID)
 	if err != nil {
-		return nil, domain.NewDatabaseError(err)
+		return domain.NewDatabaseError(err)
 	}
 
 	spouseQuery := `
@@ -240,22 +239,19 @@ func (r *MemberRepository) Delete(ctx context.Context, memberID int) (*string, e
 		WHERE (father_id = $1 OR mother_id = $1)
 		AND deleted_at IS NULL
 	`
-	_, err = tx.Exec(ctx, spouseQuery, memberID)
+	_, err = querier.Exec(ctx, spouseQuery, memberID)
 	if err != nil {
-		return nil, domain.NewDatabaseError(err)
+		return domain.NewDatabaseError(err)
 	}
 
-	if err := tx.Commit(ctx); err != nil {
-		return nil, domain.NewDatabaseError(err)
-	}
-
-	return pictureURL, nil
+	return nil
 }
 
 func (r *MemberRepository) UpdatePicture(ctx context.Context, memberID int, pictureURL string) error {
+	querier := getQuerier(ctx, r.db)
 	query := `UPDATE members SET picture = $1, version = version + 1 WHERE member_id = $2 AND deleted_at IS NULL RETURNING version`
 	var version int
-	err := r.db.QueryRow(ctx, query, pictureURL, memberID).Scan(&version)
+	err := querier.QueryRow(ctx, query, pictureURL, memberID).Scan(&version)
 	if errors.Is(err, pgx.ErrNoRows) {
 		slog.Warn("MemberRepository.UpdatePicture: member not found", "member_id", memberID)
 		return domain.NewNotFoundError("member")

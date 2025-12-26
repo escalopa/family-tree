@@ -1,0 +1,548 @@
+/* =====================================================
+   COLORFUL & ENGAGING UI ENHANCEMENTS
+   Making the Family Tree app vibrant and memorable
+   ===================================================== */
+
+/* =====================================================
+   COLORFUL STAT CARDS
+   ===================================================== */
+
+/* Gradient stat cards for dashboard/profile */
+.stat-card-purple {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 16px;
+  padding: 24px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3);
+}
+
+.stat-card-purple:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 30px rgba(102, 126, 234, 0.4);
+}
+
+.stat-card-blue {
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  color: white;
+  border-radius: 16px;
+  padding: 24px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 20px rgba(79, 172, 254, 0.3);
+}
+
+.stat-card-blue:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 30px rgba(79, 172, 254, 0.4);
+}
+
+.stat-card-green {
+  background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+  color: white;
+  border-radius: 16px;
+  padding: 24px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 20px rgba(67, 233, 123, 0.3);
+}
+
+.stat-card-green:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 30px rgba(67, 233, 123, 0.4);
+}
+
+.stat-card-orange {
+  background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+  color: white;
+  border-radius: 16px;
+  padding: 24px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 20px rgba(250, 112, 154, 0.3);
+}
+
+.stat-card-orange:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 30px rgba(250, 112, 154, 0.4);
+}
+
+.stat-card-pink {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  color: white;
+  border-radius: 16px;
+  padding: 24px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 20px rgba(240, 147, 251, 0.3);
+}
+
+.stat-card-pink:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 30px rgba(240, 147, 251, 0.4);
+}
+
+.stat-card-teal {
+  background: linear-gradient(135deg, #4fd1c5 0%, #63b3ed 100%);
+  color: white;
+  border-radius: 16px;
+  padding: 24px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 20px rgba(79, 209, 197, 0.3);
+}
+
+.stat-card-teal:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 30px rgba(79, 209, 197, 0.4);
+}
+
+/* Dark mode gradient cards */
+.stat-card-purple-dark {
+  background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
+  box-shadow: 0 4px 20px rgba(90, 103, 216, 0.4);
+}
+
+.stat-card-blue-dark {
+  background: linear-gradient(135deg, #4299e1 0%, #0bc5ea 100%);
+  box-shadow: 0 4px 20px rgba(66, 153, 225, 0.4);
+}
+
+.stat-card-green-dark {
+  background: linear-gradient(135deg, #48bb78 0%, #38b2ac 100%);
+  box-shadow: 0 4px 20px rgba(72, 187, 120, 0.4);
+}
+
+.stat-card-orange-dark {
+  background: linear-gradient(135deg, #ed8936 0%, #ecc94b 100%);
+  box-shadow: 0 4px 20px rgba(237, 137, 54, 0.4);
+}
+
+.stat-card-pink-dark {
+  background: linear-gradient(135deg, #d53f8c 0%, #ed64a6 100%);
+  box-shadow: 0 4px 20px rgba(213, 63, 140, 0.4);
+}
+
+.stat-card-teal-dark {
+  background: linear-gradient(135deg, #319795 0%, #3182ce 100%);
+  box-shadow: 0 4px 20px rgba(49, 151, 149, 0.4);
+}
+
+/* =====================================================
+   COLORFUL MEMBER CARDS
+   ===================================================== */
+
+/* Member card with gender-based colors */
+.member-card-male {
+  border-left: 4px solid #4299e1;
+  background: linear-gradient(135deg, rgba(66, 153, 225, 0.05) 0%, transparent 100%);
+  transition: all 0.3s ease;
+}
+
+.member-card-male:hover {
+  border-left-width: 6px;
+  background: linear-gradient(135deg, rgba(66, 153, 225, 0.1) 0%, transparent 100%);
+  transform: translateX(4px);
+}
+
+.member-card-female {
+  border-left: 4px solid #ed64a6;
+  background: linear-gradient(135deg, rgba(237, 100, 166, 0.05) 0%, transparent 100%);
+  transition: all 0.3s ease;
+}
+
+.member-card-female:hover {
+  border-left-width: 6px;
+  background: linear-gradient(135deg, rgba(237, 100, 166, 0.1) 0%, transparent 100%);
+  transform: translateX(4px);
+}
+
+/* =====================================================
+   COLORFUL BADGES & CHIPS
+   ===================================================== */
+
+/* Role badges with colors */
+.role-badge-admin {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.role-badge-super-admin {
+  background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+  color: white;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(250, 112, 154, 0.3);
+}
+
+.role-badge-guest {
+  background: linear-gradient(135deg, #cbd5e0 0%, #a0aec0 100%);
+  color: white;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(203, 213, 224, 0.3);
+}
+
+/* Status badges */
+.status-badge-active {
+  background: linear-gradient(135deg, #48bb78 0%, #38b2ac 100%);
+  color: white;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(72, 187, 120, 0.3);
+}
+
+.status-badge-inactive {
+  background: linear-gradient(135deg, #fc8181 0%, #f56565 100%);
+  color: white;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(252, 129, 129, 0.3);
+}
+
+/* =====================================================
+   COLORFUL AVATARS
+   ===================================================== */
+
+/* Avatar with gender-based ring */
+.avatar-ring-male {
+  border: 3px solid #4299e1;
+  box-shadow: 0 0 0 4px rgba(66, 153, 225, 0.2), 0 4px 12px rgba(66, 153, 225, 0.3);
+}
+
+.avatar-ring-female {
+  border: 3px solid #ed64a6;
+  box-shadow: 0 0 0 4px rgba(237, 100, 166, 0.2), 0 4px 12px rgba(237, 100, 166, 0.3);
+}
+
+.avatar-ring-admin {
+  border: 3px solid #667eea;
+  box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.2), 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+/* =====================================================
+   COLORFUL SECTIONS
+   ===================================================== */
+
+/* Profile header with gradient */
+.profile-header-gradient {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 48px 24px;
+  border-radius: 16px;
+  margin-bottom: 24px;
+  box-shadow: 0 8px 32px rgba(102, 126, 234, 0.3);
+}
+
+/* Member info section with color accent */
+.info-section-personal {
+  border-left: 4px solid #4299e1;
+  background: linear-gradient(135deg, rgba(66, 153, 225, 0.05) 0%, transparent 100%);
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.info-section-family {
+  border-left: 4px solid #ed64a6;
+  background: linear-gradient(135deg, rgba(237, 100, 166, 0.05) 0%, transparent 100%);
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.info-section-dates {
+  border-left: 4px solid #48bb78;
+  background: linear-gradient(135deg, rgba(72, 187, 120, 0.05) 0%, transparent 100%);
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.info-section-other {
+  border-left: 4px solid #ed8936;
+  background: linear-gradient(135deg, rgba(237, 137, 54, 0.05) 0%, transparent 100%);
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+/* =====================================================
+   COLORFUL TABS
+   ===================================================== */
+
+.colorful-tab {
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.colorful-tab::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+  transform: scaleX(0);
+  transition: transform 0.3s ease;
+}
+
+.colorful-tab.Mui-selected::after {
+  transform: scaleX(1);
+}
+
+/* =====================================================
+   COLORFUL DIALOGS
+   ===================================================== */
+
+.colorful-dialog-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 24px;
+  margin: -8px -8px 16px -8px;
+  border-radius: 12px 12px 0 0;
+}
+
+.colorful-dialog-header-dark {
+  background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
+}
+
+/* =====================================================
+   COLORFUL ACTION BUTTONS
+   ===================================================== */
+
+.action-button-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  transition: all 0.3s ease;
+}
+
+.action-button-primary:hover {
+  background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+  transform: translateY(-2px);
+}
+
+.action-button-success {
+  background: linear-gradient(135deg, #48bb78 0%, #38b2ac 100%);
+  color: white;
+  border: none;
+  box-shadow: 0 4px 12px rgba(72, 187, 120, 0.3);
+  transition: all 0.3s ease;
+}
+
+.action-button-success:hover {
+  background: linear-gradient(135deg, #38a169 0%, #319795 100%);
+  box-shadow: 0 6px 20px rgba(72, 187, 120, 0.4);
+  transform: translateY(-2px);
+}
+
+.action-button-danger {
+  background: linear-gradient(135deg, #fc8181 0%, #f56565 100%);
+  color: white;
+  border: none;
+  box-shadow: 0 4px 12px rgba(252, 129, 129, 0.3);
+  transition: all 0.3s ease;
+}
+
+.action-button-danger:hover {
+  background: linear-gradient(135deg, #f56565 0%, #e53e3e 100%);
+  box-shadow: 0 6px 20px rgba(252, 129, 129, 0.4);
+  transform: translateY(-2px);
+}
+
+/* =====================================================
+   COLORFUL TABLE ROWS
+   ===================================================== */
+
+.table-row-male {
+  border-left: 3px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.table-row-male:hover {
+  border-left-color: #4299e1;
+  background: linear-gradient(90deg, rgba(66, 153, 225, 0.05) 0%, transparent 100%);
+}
+
+.table-row-female {
+  border-left: 3px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.table-row-female:hover {
+  border-left-color: #ed64a6;
+  background: linear-gradient(90deg, rgba(237, 100, 166, 0.05) 0%, transparent 100%);
+}
+
+/* =====================================================
+   COLORFUL ICONS
+   ===================================================== */
+
+.icon-gradient-purple {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.icon-gradient-blue {
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.icon-gradient-green {
+  background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.icon-gradient-orange {
+  background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* =====================================================
+   COLORFUL HOVER EFFECTS
+   ===================================================== */
+
+.hover-lift-colorful {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.hover-lift-colorful:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(102, 126, 234, 0.2);
+}
+
+/* =====================================================
+   GENDER COLOR UTILITIES
+   ===================================================== */
+
+.gender-male-text {
+  color: #4299e1;
+  font-weight: 600;
+}
+
+.gender-female-text {
+  color: #ed64a6;
+  font-weight: 600;
+}
+
+.gender-male-bg {
+  background-color: rgba(66, 153, 225, 0.1);
+  color: #2c5282;
+}
+
+.gender-female-bg {
+  background-color: rgba(237, 100, 166, 0.1);
+  color: #97266d;
+}
+
+/* =====================================================
+   COLORFUL DIVIDERS
+   ===================================================== */
+
+.divider-gradient-horizontal {
+  height: 3px;
+  background: linear-gradient(90deg, transparent 0%, #667eea 20%, #764ba2 50%, #667eea 80%, transparent 100%);
+  border: none;
+  margin: 24px 0;
+}
+
+.divider-gradient-vertical {
+  width: 3px;
+  background: linear-gradient(180deg, transparent 0%, #667eea 20%, #764ba2 50%, #667eea 80%, transparent 100%);
+  border: none;
+  margin: 0 16px;
+}
+
+/* =====================================================
+   SCORE & POINTS DISPLAYS
+   ===================================================== */
+
+.score-display {
+  background: linear-gradient(135deg, #ffd89b 0%, #19547b 100%);
+  color: white;
+  font-weight: 700;
+  font-size: 24px;
+  padding: 12px 24px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(255, 216, 155, 0.4);
+  display: inline-block;
+}
+
+.points-badge {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  color: white;
+  font-weight: 600;
+  padding: 6px 16px;
+  border-radius: 20px;
+  box-shadow: 0 2px 8px rgba(240, 147, 251, 0.3);
+  display: inline-block;
+}
+
+/* =====================================================
+   EMPTY STATE WITH COLOR
+   ===================================================== */
+
+.empty-state-colorful {
+  text-align: center;
+  padding: 60px 20px;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
+  border-radius: 16px;
+  border: 2px dashed rgba(102, 126, 234, 0.3);
+}
+
+.empty-state-icon {
+  font-size: 64px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 16px;
+}
+
+/* =====================================================
+   LOADING STATE WITH COLOR
+   ===================================================== */
+
+.loading-colorful {
+  text-align: center;
+  padding: 40px;
+}
+
+.loading-spinner-colorful {
+  color: #667eea !important;
+}
+
+/* =====================================================
+   RESPONSIVE ADJUSTMENTS
+   ===================================================== */
+
+@media (max-width: 768px) {
+  .stat-card-purple,
+  .stat-card-blue,
+  .stat-card-green,
+  .stat-card-orange,
+  .stat-card-pink,
+  .stat-card-teal {
+    padding: 16px;
+  }
+
+  .profile-header-gradient {
+    padding: 32px 16px;
+  }
+}
+

@@ -108,6 +108,7 @@ type UserLanguagePreferenceRepository interface {
 
 type MarriageValidator interface {
 	Create(ctx context.Context, memberAID, memberBID int) error
+	MarriageDate(ctx context.Context, fatherID, motherID int, marriageDate *time.Time) error
 }
 
 type BirthDateValidator interface {
@@ -117,4 +118,8 @@ type BirthDateValidator interface {
 
 type RelationshipValidator interface {
 	CheckParents(ctx context.Context, memberID int, fatherID, motherID *int) error
+}
+
+type TransactionManager interface {
+	Do(ctx context.Context, fn func(ctx context.Context) error) error
 }
