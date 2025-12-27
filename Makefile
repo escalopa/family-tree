@@ -99,6 +99,28 @@ docker-recreate: ## Recreate all containers
 	docker-compose down -v
 	docker-compose up -d
 
+# Testing commands (production builds with local ports)
+testing-up: ## Start testing services (production builds with local ports)
+	docker compose -f docker-compose.testing.yml up -d
+
+testing-down: ## Stop testing services
+	docker compose -f docker-compose.testing.yml down
+
+testing-logs: ## View testing logs
+	docker compose -f docker-compose.testing.yml logs -f
+
+testing-status: ## Check testing services status
+	docker compose -f docker-compose.testing.yml ps
+
+testing-restart: ## Restart testing services
+	docker compose -f docker-compose.testing.yml restart
+
+testing-build: ## Rebuild testing images
+	docker compose -f docker-compose.testing.yml build --no-cache
+
+testing-clean: ## Stop and remove testing services and volumes
+	docker compose -f docker-compose.testing.yml down -v
+
 # Development commands
 dev-backend: ## Run backend in development mode
 	cd be && go run cmd/main.go
