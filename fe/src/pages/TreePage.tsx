@@ -68,6 +68,16 @@ import { Roles } from '../types';
 
 type ViewMode = 'tree' | 'list' | 'relation';
 
+const hasActiveMemberFilters = (query: MemberSearchQuery) =>
+  Boolean(query.arabic_name || query.english_name || query.gender || query.married !== undefined);
+
+const getMemberNamesForDisplay = (member: MemberListItem) => {
+  const names = member.names || {};
+  const primary = names.en || member.name;
+  const secondary = names.ar && names.ar !== primary ? names.ar : undefined;
+  return { primary, secondary };
+};
+
 const TreePage: React.FC = () => {
   const { t, i18n } = useTranslation();
   const { hasRole } = useAuth();
@@ -94,11 +104,13 @@ const TreePage: React.FC = () => {
   // Search/filter state for list view - Initialize from URL params
   const [searchQuery, setSearchQuery] = useState<MemberSearchQuery>(() => {
     const params: MemberSearchQuery = {};
-    const name = searchParams.get('name');
+    const englishName = searchParams.get('english_name') || searchParams.get('name');
+    const arabicName = searchParams.get('arabic_name');
     const gender = searchParams.get('gender');
     const married = searchParams.get('married');
 
-    if (name) params.name = name;
+    if (englishName) params.english_name = englishName;
+    if (arabicName) params.arabic_name = arabicName;
     if (gender && (gender === 'M' || gender === 'F')) params.gender = gender;
     if (married !== null) params.married = married === '1';
 
@@ -143,7 +155,8 @@ const TreePage: React.FC = () => {
     }
     // Add search query params for list view
     if (viewMode === 'list') {
-      if (searchQuery.name) params.set('name', searchQuery.name);
+      if (searchQuery.arabic_name) params.set('arabic_name', searchQuery.arabic_name);
+      if (searchQuery.english_name) params.set('english_name', searchQuery.english_name);
       if (searchQuery.gender) params.set('gender', searchQuery.gender);
       if (searchQuery.married !== undefined) params.set('married', searchQuery.married ? '1' : '0');
     }
@@ -184,15 +197,16 @@ const TreePage: React.FC = () => {
     }
     setError(null);
     try {
-      // Use the members search API with cursor-based pagination
       const params: MemberSearchQuery = {
         ...searchQuery,
-        limit: 10
+        limit: 1000
       };
-      if (loadMore && nextCursor) {
+      if (loadMore && nextCursor && !hasActiveMemberFilters(searchQuery)) {
         params.cursor = nextCursor;
       }
-      const response = await membersApi.searchMembers(params);
+      const response = hasActiveMemberFilters(searchQuery)
+        ? await membersApi.filterMembers(params)
+        : await membersApi.searchMembers(params);
 
       if (loadMore) {
         setListMembers(prev => [...prev, ...(response.members || [])]);
@@ -201,7 +215,7 @@ const TreePage: React.FC = () => {
       }
 
       // Only set cursor if it exists and is not empty
-      const validCursor = response.next_cursor && response.next_cursor.trim() !== '' ? response.next_cursor : null;
+      const validCursor = response.next_cursor && response.next_cursor.trim() !== '' && !hasActiveMemberFilters(searchQuery) ? response.next_cursor : null;
       setNextCursor(validCursor);
       setHasMore(!!validCursor);
 
@@ -669,10 +683,10 @@ const TreePage: React.FC = () => {
                     <Box sx={{ display: 'flex', alignItems: 'center', flexGrow: 1 }}>
                       <FilterAlt sx={{ marginInlineEnd: 1, color: 'text.secondary' }} />
                       <Typography variant="h6">
-                        {t('tree.searchFilters')} {!searchQuery.name && !searchQuery.gender && searchQuery.married === undefined && t('tree.showingAllMembers')}
+                        {t('tree.searchFilters')} {!hasActiveMemberFilters(searchQuery) && t('tree.showingAllMembers')}
                       </Typography>
                     </Box>
-                    {(searchQuery.name || searchQuery.gender || searchQuery.married !== undefined) && (
+                    {hasActiveMemberFilters(searchQuery) && (
                       <Button
                         size="small"
                         startIcon={<Clear />}
@@ -684,21 +698,21 @@ const TreePage: React.FC = () => {
                     )}
                   </Box>
                   <Grid container spacing={2}>
-                    <Grid item xs={12} sm={6} md={4}>
+                    <Grid item xs={12} sm={6} md={3}>
                       <TextField
                         fullWidth
-                        label={t('member.name')}
-                        placeholder={t('member.searchPlaceholder')}
-                        value={searchQuery.name || ''}
+                        label={t('member.arabicName')}
+                        placeholder={t('member.arabicNamePlaceholder')}
+                        value={searchQuery.arabic_name || ''}
                         onChange={(e) =>
-                          setSearchQuery({ ...searchQuery, name: e.target.value || undefined })
+                          setSearchQuery({ ...searchQuery, arabic_name: e.target.value || undefined })
                         }
                         InputProps={{
-                          endAdornment: searchQuery.name && (
+                          endAdornment: searchQuery.arabic_name && (
                             <InputAdornment position="end">
                               <IconButton
                                 size="small"
-                                onClick={() => handleClearFilter('name')}
+                                onClick={() => handleClearFilter('arabic_name')}
                                 edge="end"
                               >
                                 <Close fontSize="small" />
@@ -708,7 +722,31 @@ const TreePage: React.FC = () => {
                         }}
                       />
                     </Grid>
-                    <Grid item xs={12} sm={6} md={4}>
+                    <Grid item xs={12} sm={6} md={3}>
+                      <TextField
+                        fullWidth
+                        label={t('member.englishName')}
+                        placeholder={t('member.englishNamePlaceholder')}
+                        value={searchQuery.english_name || ''}
+                        onChange={(e) =>
+                          setSearchQuery({ ...searchQuery, english_name: e.target.value || undefined })
+                        }
+                        InputProps={{
+                          endAdornment: searchQuery.english_name && (
+                            <InputAdornment position="end">
+                              <IconButton
+                                size="small"
+                                onClick={() => handleClearFilter('english_name')}
+                                edge="end"
+                              >
+                                <Close fontSize="small" />
+                              </IconButton>
+                            </InputAdornment>
+                          ),
+                        }}
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={6} md={3}>
                       <FormControl fullWidth>
                         <InputLabel>{t('member.gender')}</InputLabel>
                         <Select
@@ -741,7 +779,7 @@ const TreePage: React.FC = () => {
                         </Select>
                       </FormControl>
                     </Grid>
-                    <Grid item xs={12} sm={6} md={4}>
+                    <Grid item xs={12} sm={6} md={3}>
                       <FormControl fullWidth>
                         <InputLabel>{t('member.married')}</InputLabel>
                         <Select
@@ -823,7 +861,7 @@ const TreePage: React.FC = () => {
                       {(!listMembers || listMembers.length === 0) && !loading && (
                         <TableRow>
                           <TableCell colSpan={5} align="center" sx={{ py: 4, color: 'text.secondary' }}>
-                            {searchQuery.name || searchQuery.gender || searchQuery.married !== undefined
+                            {hasActiveMemberFilters(searchQuery)
                               ? t('tree.noMembersMatchingFilters')
                               : t('member.noMembers')}
                           </TableCell>
@@ -839,45 +877,57 @@ const TreePage: React.FC = () => {
                           </TableCell>
                         </TableRow>
                       )}
-                      {listMembers && listMembers.map((member) => (
-                        <TableRow
-                          key={member.member_id}
-                          hover
-                          className={member.gender === 'M' ? 'table-row-male' : 'table-row-female'}
-                          sx={{ cursor: 'pointer' }}
-                          onClick={() => handleMemberClick(member)}
-                        >
-                          <TableCell>
-                            <Avatar
-                              src={getMemberPictureUrl(member.member_id, member.picture) || undefined}
-                              className={member.gender === 'M' ? 'avatar-ring-male' : 'avatar-ring-female'}
-                              sx={{
-                                width: 50,
-                                height: 50,
-                                bgcolor: member.gender === 'M' ? '#4299e1' : member.gender === 'F' ? '#ed64a6' : '#9E9E9E'
-                              }}
-                            >
-                              {member.name?.[0] || '?'}
-                            </Avatar>
-                          </TableCell>
-                          <TableCell className="mixed-content-cell">{member.name}</TableCell>
-                          <TableCell>
-                            <Chip
-                              label={member.gender === 'M' ? t('member.male') : t('member.female')}
-                              size="small"
-                              className={member.gender === 'M' ? 'gender-male-bg' : 'gender-female-bg'}
-                            />
-                          </TableCell>
-                          <TableCell className="numeric-cell">{formatDateOfBirth(member.date_of_birth, isSuperAdmin)}</TableCell>
-                          <TableCell>
-                            {member.is_married ? (
-                              <Chip label={t('common.yes')} size="small" color="secondary" variant="filled" className="enhanced-chip" />
-                            ) : (
-                              <Chip label={t('common.no')} size="small" variant="outlined" className="enhanced-chip" />
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                      {listMembers && listMembers.map((member) => {
+                        const displayNames = getMemberNamesForDisplay(member);
+                        return (
+                          <TableRow
+                            key={member.member_id}
+                            hover
+                            className={member.gender === 'M' ? 'table-row-male' : 'table-row-female'}
+                            sx={{ cursor: 'pointer' }}
+                            onClick={() => handleMemberClick(member)}
+                          >
+                            <TableCell>
+                              <Avatar
+                                src={getMemberPictureUrl(member.member_id, member.picture) || undefined}
+                                className={member.gender === 'M' ? 'avatar-ring-male' : 'avatar-ring-female'}
+                                sx={{
+                                  width: 50,
+                                  height: 50,
+                                  bgcolor: member.gender === 'M' ? '#4299e1' : member.gender === 'F' ? '#ed64a6' : '#9E9E9E'
+                                }}
+                              >
+                                {displayNames.primary?.[0] || '?'}
+                              </Avatar>
+                            </TableCell>
+                            <TableCell className="mixed-content-cell">
+                              <Typography variant="body1" fontWeight={600}>
+                                {displayNames.primary}
+                              </Typography>
+                              {displayNames.secondary && (
+                                <Typography variant="body2" color="text.secondary" dir="rtl">
+                                  {displayNames.secondary}
+                                </Typography>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <Chip
+                                label={member.gender === 'M' ? t('member.male') : t('member.female')}
+                                size="small"
+                                className={member.gender === 'M' ? 'gender-male-bg' : 'gender-female-bg'}
+                              />
+                            </TableCell>
+                            <TableCell className="numeric-cell">{formatDateOfBirth(member.date_of_birth, isSuperAdmin)}</TableCell>
+                            <TableCell>
+                              {member.is_married ? (
+                                <Chip label={t('common.yes')} size="small" color="secondary" variant="filled" className="enhanced-chip" />
+                              ) : (
+                                <Chip label={t('common.no')} size="small" variant="outlined" className="enhanced-chip" />
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 </TableContainer>

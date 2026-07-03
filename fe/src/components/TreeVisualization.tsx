@@ -273,32 +273,35 @@ const TreeVisualization: React.FC<TreeVisualizationProps> = ({ data, onNodeClick
           .attr('clip-path', `url(#${clipId})`)
           .style('pointer-events', 'none');
       } else {
-        const initials = member.name ? member.name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase() : '?';
-        nodeG.append('text')
-          .text(initials)
-          .attr('text-anchor', 'middle')
-          .attr('dy', '0.35em')
-          .attr('font-size', nodeRadius * 0.5)
-          .attr('font-weight', 'bold')
-          .attr('fill', getGenderColor(member.gender))
-          .style('pointer-events', 'none')
-          .style('text-shadow', isDarkMode
-            ? '0 1px 2px rgba(0, 0, 0, 0.8)'
-            : '0 1px 2px rgba(255, 255, 255, 0.8)');
+        const avatarColor = getGenderColor(member.gender);
+        nodeG.append('circle')
+          .attr('cy', -8)
+          .attr('r', 11)
+          .attr('fill', avatarColor)
+          .attr('opacity', 0.95)
+          .style('pointer-events', 'none');
+
+        nodeG.append('path')
+          .attr('d', 'M -20 22 C -18 5 18 5 20 22 Z')
+          .attr('fill', avatarColor)
+          .attr('opacity', 0.95)
+          .style('pointer-events', 'none');
       }
 
-      // Name label
-      const name = member.name || 'Unknown';
-      nodeG
-        .append('text')
-        .attr('y', nodeRadius + 18)
-        .attr('text-anchor', 'middle')
-        .attr('font-size', '13px')
-        .attr('font-weight', '600')
-        .attr('fill', isDarkMode ? '#F1F5F9' : '#000')
-        .attr('class', isDarkMode ? 'tree-label-dark' : 'tree-label')
-        .text(truncateText(name, 15))
-        .style('pointer-events', 'none');
+      // Name labels
+      const nameLines = getNodeNameLines(member);
+      nameLines.forEach((name, index) => {
+        nodeG
+          .append('text')
+          .attr('y', nodeRadius + 16 + index * 15)
+          .attr('text-anchor', 'middle')
+          .attr('font-size', index === 0 ? '12px' : '11px')
+          .attr('font-weight', index === 0 ? '600' : '500')
+          .attr('fill', isDarkMode ? '#F1F5F9' : '#000')
+          .attr('class', isDarkMode ? 'tree-label-dark' : 'tree-label')
+          .text(truncateText(name, 16))
+          .style('pointer-events', 'none');
+      });
 
       // Generation badge
       if (member.generation_level !== undefined) {
@@ -435,6 +438,17 @@ const TreeVisualization: React.FC<TreeVisualizationProps> = ({ data, onNodeClick
 function truncateText(text: string, maxLength: number): string {
   if (text.length <= maxLength) return text;
   return text.substring(0, maxLength) + '...';
+}
+
+function getNodeNameLines(member: Member): string[] {
+  const names = member.names || {};
+  const lines = [names.ar, names.en].filter((name): name is string => Boolean(name));
+
+  if (lines.length === 0 && member.name) {
+    lines.push(member.name);
+  }
+
+  return Array.from(new Set(lines)).slice(0, 2);
 }
 
 export default TreeVisualization;

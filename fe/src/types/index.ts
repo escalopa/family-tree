@@ -48,6 +48,7 @@ export interface MemberInfo {
 export interface MemberListItem {
   member_id: number;
   name: string; // Name in user's preferred language
+  names?: Record<string, string>; // All returned translations
   gender: 'M' | 'F';
   picture: string | null;
   date_of_birth: string | null;
@@ -157,6 +158,8 @@ export interface UpdateUserRequest {
 
 export interface MemberSearchQuery {
   name?: string; // Searches both Arabic and English names
+  arabic_name?: string; // Prefix search in Arabic names
+  english_name?: string; // Prefix search in English names
   gender?: 'M' | 'F';
   married?: boolean;
   cursor?: string;

@@ -15,12 +15,26 @@ export const membersApi = {
 
   searchMembers: async (params: {
     name?: string;
+    arabic_name?: string;
+    english_name?: string;
     gender?: 'M' | 'F';
     married?: boolean;
     cursor?: string;
     limit?: number;
   }): Promise<{ members: MemberListItem[]; next_cursor?: string }> => {
     const response = await apiClient.get('/api/members', { params });
+    return response.data.data;
+  },
+
+  filterMembers: async (params: {
+    name?: string;
+    arabic_name?: string;
+    english_name?: string;
+    gender?: 'M' | 'F';
+    married?: boolean;
+    limit?: number;
+  }): Promise<{ members: MemberListItem[]; next_cursor?: string }> => {
+    const response = await apiClient.get('/api/members/search', { params });
     return response.data.data;
   },
 

@@ -108,6 +108,7 @@ func (r *Router) Setup(engine *gin.Engine) {
 		memberGroup.Use(middleware.RequireActive())
 		{
 			memberGroup.GET("", r.memberHandler.List)
+			memberGroup.GET("/search", r.memberHandler.List)
 			memberGroup.GET("/history", middleware.RequireRole(domain.RoleSuperAdmin), r.memberHandler.ListHistory)
 			memberGroup.GET("/:member_id", r.memberHandler.Get)
 			memberGroup.GET("/:member_id/picture", middleware.RequireRole(domain.RoleAdmin), r.memberHandler.GetPicture)

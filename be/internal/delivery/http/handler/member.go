@@ -314,9 +314,23 @@ func (h *memberHandler) List(c *gin.Context) {
 	}
 
 	filter := domain.MemberFilter{
-		Name:      query.Name,
-		Gender:    query.Gender,
-		IsMarried: query.Married,
+		Name:        query.Name,
+		ArabicName:  query.ArabicName,
+		EnglishName: query.EnglishName,
+		Gender:      query.Gender,
+		IsMarried:   query.Married,
+	}
+
+	isSearchEndpoint := c.FullPath() == "/api/members/search"
+	if isSearchEndpoint {
+		if query.Name == nil && query.ArabicName == nil && query.EnglishName == nil && query.Gender == nil && query.Married == nil {
+			delivery.Error(c, domain.NewValidationError("error.validation.at_least_one_filter_required"))
+			return
+		}
+		query.Cursor = nil
+		if query.Limit == 0 || query.Limit < 1000 {
+			query.Limit = 1000
+		}
 	}
 
 	members, nextCursor, err := h.memberUseCase.List(c.Request.Context(), filter, query.Cursor, query.Limit)
@@ -332,6 +346,7 @@ func (h *memberHandler) List(c *gin.Context) {
 		membersResponse = append(membersResponse, dto.MemberListItem{
 			MemberID:    m.MemberID,
 			Name:        extractName(m.Names, preferredLang),
+			Names:       m.Names,
 			Gender:      m.Gender,
 			Picture:     m.Picture,
 			DateOfBirth: dto.FromTimePtr(m.DateOfBirth),

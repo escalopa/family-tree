@@ -282,17 +282,29 @@ func (r *MemberRepository) List(ctx context.Context, filter domain.MemberFilter,
 		WHERE m.deleted_at IS NULL
 		  AND (($1::text IS NULL) OR m.member_id > $1::int)
 		  AND (($2::text IS NULL) OR (mn.name ILIKE '%' || $2 || '%'))
-		  AND (($3::text IS NULL) OR m.gender = $3)
-		  AND (($4::boolean IS NULL) OR (
+		  AND (($3::text IS NULL) OR EXISTS (
+		    SELECT 1 FROM member_names ar_name
+		    WHERE ar_name.member_id = m.member_id
+		      AND ar_name.language_code = 'ar'
+		      AND ar_name.name ILIKE $3 || '%'
+		  ))
+		  AND (($4::text IS NULL) OR EXISTS (
+		    SELECT 1 FROM member_names en_name
+		    WHERE en_name.member_id = m.member_id
+		      AND en_name.language_code = 'en'
+		      AND en_name.name ILIKE $4 || '%'
+		  ))
+		  AND (($5::text IS NULL) OR m.gender = $5)
+		  AND (($6::boolean IS NULL) OR (
 		    CASE
-		      WHEN $4 = true THEN (ms.father_id IS NOT NULL OR ms.mother_id IS NOT NULL)
+		      WHEN $6 = true THEN (ms.father_id IS NOT NULL OR ms.mother_id IS NOT NULL)
 		      ELSE (ms.father_id IS NULL AND ms.mother_id IS NULL)
 		    END
 		  ))
 		GROUP BY m.member_id, m.gender, m.picture, m.date_of_birth,
 		         m.date_of_death, m.father_id, m.mother_id, m.nicknames, m.profession, m.version, m.deleted_at
 		ORDER BY m.member_id
-		LIMIT $5
+		LIMIT $7
 	`
 
 	var cursorValue *string
@@ -303,6 +315,8 @@ func (r *MemberRepository) List(ctx context.Context, filter domain.MemberFilter,
 	rows, err := r.db.Query(ctx, query,
 		cursorValue,
 		filter.Name,
+		filter.ArabicName,
+		filter.EnglishName,
 		filter.Gender,
 		filter.IsMarried,
 		limit,

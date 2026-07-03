@@ -1,5 +1,7 @@
 INSERT INTO languages (language_code, is_active, display_order)
-VALUES ('en', true, 1)
+VALUES
+  ('en', true, 1),
+  ('ar', true, 2)
 ON CONFLICT (language_code) DO UPDATE SET
   is_active = EXCLUDED.is_active,
   display_order = EXCLUDED.display_order;
@@ -133,13 +135,21 @@ BEGIN
     VALUES (person.seq, new_member_id);
 
     INSERT INTO member_names (member_id, language_code, name, created_at, updated_at)
-    VALUES (
-      new_member_id,
-      'en',
-      'Test Family Member ' || lpad(person.seq::text, 3, '0'),
-      CURRENT_TIMESTAMP,
-      CURRENT_TIMESTAMP
-    );
+    VALUES
+      (
+        new_member_id,
+        'en',
+        'Test Family Member ' || lpad(person.seq::text, 3, '0'),
+        CURRENT_TIMESTAMP,
+        CURRENT_TIMESTAMP
+      ),
+      (
+        new_member_id,
+        'ar',
+        'عضو عائلة تجريبي ' || lpad(person.seq::text, 3, '0'),
+        CURRENT_TIMESTAMP,
+        CURRENT_TIMESTAMP
+      );
 
     SELECT user_id INTO actor_user_id
     FROM users
@@ -169,7 +179,10 @@ BEGIN
       'INSERT',
       NULL,
       jsonb_build_object(
-        'names', jsonb_build_object('en', 'Test Family Member ' || lpad(person.seq::text, 3, '0')),
+        'names', jsonb_build_object(
+          'en', 'Test Family Member ' || lpad(person.seq::text, 3, '0'),
+          'ar', 'عضو عائلة تجريبي ' || lpad(person.seq::text, 3, '0')
+        ),
         'gender', person.gender
       ),
       1
