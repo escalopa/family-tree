@@ -59,6 +59,28 @@ services:
       timeout: 5s
       retries: 5
 
+  mock-sso:
+    build:
+      context: ./be
+      dockerfile: Dockerfile
+      target: mock-sso
+    container_name: mock-sso-testing
+    ports:
+      - "8090:8090"
+    environment:
+      MOCK_SSO_PORT: "8090"
+      MOCK_SSO_USERS: >
+        [
+          {"id":"mock-superadmin","email":"superadmin.mock@example.test","name":"Mock Super Admin","picture":""},
+          {"id":"mock-admin","email":"admin.mock@example.test","name":"Mock Admin","picture":""},
+          {"id":"mock-guest","email":"guest.mock@example.test","name":"Mock Guest","picture":""}
+        ]
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8090/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   # Create bucket on startup
   createbuckets:
     image: minio/mc:latest
@@ -72,6 +94,32 @@ services:
       mc mb myminio/family-tree-images --ignore-existing;
       mc anonymous set public myminio/family-tree-images;
       echo 'Bucket created successfully';
+      "
+
+  seed-test-users:
+    image: postgres:15-alpine
+    container_name: seed-test-users-testing
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      PGPASSWORD: secret
+    command: >
+      sh -c "
+      psql -h postgres -U familytree -d familytree -v ON_ERROR_STOP=1 -c \"
+      INSERT INTO users (full_name, email, avatar, role_id, is_active)
+      VALUES
+        ('Mock Super Admin', 'superadmin.mock@example.test', NULL, 400, true),
+        ('Mock Admin', 'admin.mock@example.test', NULL, 300, true),
+        ('Mock Guest', 'guest.mock@example.test', NULL, 200, true)
+      ON CONFLICT (email) DO UPDATE SET
+        full_name = EXCLUDED.full_name,
+        avatar = EXCLUDED.avatar,
+        role_id = EXCLUDED.role_id,
+        is_active = EXCLUDED.is_active;
+      \";
       "
 
   backend:
@@ -93,8 +141,12 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
+      mock-sso:
+        condition: service_healthy
+      seed-test-users:
+        condition: service_completed_successfully
     volumes:
-      - ./be/config.yaml:/root/config.yaml:ro
+      - ./be/config.testing.yaml:/root/config.yaml:ro
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
       interval: 10s

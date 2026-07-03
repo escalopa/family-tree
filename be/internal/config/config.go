@@ -63,6 +63,8 @@ type OAuthProviderConfig struct {
 	Order        int      `mapstructure:"order" json:"order"`
 	ClientID     string   `mapstructure:"client_id" env:"CLIENT_ID" json:"client_id"`
 	ClientSecret string   `mapstructure:"client_secret" env:"CLIENT_SECRET" json:"client_secret"`
+	AuthURL      string   `mapstructure:"auth_url" env:"AUTH_URL" json:"auth_url"`
+	TokenURL     string   `mapstructure:"token_url" env:"TOKEN_URL" json:"token_url"`
 	Scopes       []string `mapstructure:"scopes" json:"scopes"`
 	UserInfoURL  string   `mapstructure:"user_info_url" env:"USER_INFO_URL" json:"user_info_url"`
 }

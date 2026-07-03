@@ -12,6 +12,7 @@ const (
 	ProviderYandex = "yandex"
 	ProviderGitHub = "github"
 	ProviderGitLab = "gitlab"
+	ProviderMock   = "mock"
 )
 
 type OAuthProvider interface {
@@ -21,11 +22,12 @@ type OAuthProvider interface {
 	GetProviderName() string
 }
 
-type ProviderFactory func(clientID, clientSecret, redirectURL, userInfoURL string, scopes []string) OAuthProvider
+type ProviderFactory func(clientID, clientSecret, redirectURL, authURL, tokenURL, userInfoURL string, scopes []string) OAuthProvider
 
 var ProviderFactories = map[string]ProviderFactory{
 	ProviderGoogle: NewGoogleProvider,
 	ProviderYandex: NewYandexProvider,
 	ProviderGitHub: NewGitHubProvider,
 	ProviderGitLab: NewGitLabProvider,
+	ProviderMock:   NewMockProvider,
 }

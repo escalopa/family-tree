@@ -2,6 +2,70 @@
 
 A full-stack family tree management system with OAuth authentication, multi-language support, and interactive visualizations.
 
+## Project overview
+
+| Layer | Stack |
+|-------|--------|
+| Backend | Go, Gin, PostgreSQL, Redis, MinIO |
+| Frontend | React, Vite, MUI, D3, i18next |
+| Auth | OAuth (Google, etc.), JWT + refresh rotation |
+
+## Repository layout
+
+| Path | Purpose |
+|------|---------|
+| `be/` | Go API, migrations, seed CLI |
+| `fe/` | React SPA (`fe/src/features/tree/` — tree UI module) |
+| `_docs/req.md` | Product requirements |
+| `.claude/` | Claude Code rules, skills, hooks |
+| `scripts/` | `dev-cycle.sh`, `seed-and-test.sh` |
+
+## Development workflow
+
+```bash
+make testing-up          # Docker stack (API, FE, Postgres, Redis, MinIO)
+make check               # Backend + frontend validation
+make check-be            # go build, vet, test ./...
+make check-fe            # eslint, vitest, production build
+make seed-testdata       # Seed + integration tests (SCALE=medium)
+make seed-only SCALE=large CLEAN=1   # Seed only
+make test-integration    # BE integration tests (INTEGRATION_TEST=1)
+make dev-cycle PHASE=fe  # Focused dev loop script
+```
+
+Copy `CLAUDE.local.md.example` → `CLAUDE.local.md` for machine-specific paths. See `CLAUDE.md` for architecture, skills (`/dev-cycle`, `/seed-and-verify`), and MCP setup.
+
+The testing stack enables a local-only Mock SSO provider at
+`http://localhost:8090`. Use it from the login page to sign in as one of the
+pre-seeded active test users:
+
+| User | Email | Role |
+|------|-------|------|
+| Mock Super Admin | `superadmin.mock@example.test` | Super Admin |
+| Mock Admin | `admin.mock@example.test` | Admin |
+| Mock Guest | `guest.mock@example.test` | Guest |
+
+### Frontend development
+
+```bash
+cd fe
+cp .env.example .env    # if present
+npm install
+npm run dev             # http://localhost:3000
+npm run lint
+npm run test            # Vitest (table-driven unit/component tests)
+npm run build
+```
+
+Environment: `VITE_API_URL` points at the backend (empty = same origin in production).
+
+### Testing
+
+- **Backend unit:** `cd be && go test ./...`
+- **Backend integration:** `make test-integration` (requires `INTEGRATION_TEST=1`, running Postgres)
+- **Frontend:** `cd fe && npm run test`
+- **Full gate:** `make check`
+
 ## Quick Start (Local Development)
 
 ### Prerequisites
