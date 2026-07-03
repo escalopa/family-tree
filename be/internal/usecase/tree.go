@@ -165,7 +165,7 @@ func (uc *treeUseCase) GetRelation(ctx context.Context, member1ID, member2ID int
 
 	// Build tree with path highlighting - generation starts at 1
 	visited := make(map[int]bool)
-	tree := uc.buildTree(memberMap, spouseMap, root.MemberID, userRole, visited, pathMembers, 1)
+	tree := uc.buildRelationTree(memberMap, spouseMap, root.MemberID, userRole, visited, pathMembers, 1)
 	return tree, nil
 }
 
@@ -358,6 +358,79 @@ func (uc *treeUseCase) buildTree(memberMap map[int]*domain.Member, spouseMap map
 	// Recursively build child nodes
 	for _, childMember := range allChildren {
 		child := uc.buildTree(memberMap, spouseMap, childMember.MemberID, userRole, visited, pathMembers, generationLevel+1)
+		if child != nil {
+			node.Children = append(node.Children, child)
+		}
+	}
+
+	return node
+}
+
+func (uc *treeUseCase) buildRelationTree(memberMap map[int]*domain.Member, spouseMap map[int][]int, rootID int, userRole int, visited map[int]bool, pathMembers map[int]bool, generationLevel int) *domain.MemberTreeNode {
+	if !pathMembers[rootID] || visited[rootID] {
+		return nil
+	}
+	visited[rootID] = true
+
+	root := memberMap[rootID]
+	if root == nil {
+		return nil
+	}
+
+	spouseIDs := spouseMap[rootID]
+	spouses := uc.convertSpouseIDsToInfo(spouseIDs, memberMap)
+
+	node := &domain.MemberTreeNode{
+		MemberWithComputed: domain.MemberWithComputed{
+			Member:          *root,
+			IsMarried:       len(spouseIDs) > 0,
+			Spouses:         spouses,
+			GenerationLevel: generationLevel,
+		},
+		Children: []*domain.MemberTreeNode{},
+		IsInPath: true,
+	}
+
+	if root.Gender == "F" && userRole < domain.RoleSuperAdmin {
+		node.DateOfBirth = nil
+		node.DateOfDeath = nil
+	}
+	if root.Gender == "F" && userRole < domain.RoleAdmin {
+		node.Picture = nil
+	}
+
+	var pathChildren []*domain.Member
+	for _, m := range memberMap {
+		if !pathMembers[m.MemberID] {
+			continue
+		}
+		if (m.FatherID != nil && *m.FatherID == rootID) || (m.MotherID != nil && *m.MotherID == rootID) {
+			pathChildren = append(pathChildren, m)
+		}
+	}
+
+	sort.Slice(pathChildren, func(i, j int) bool {
+		dateI := pathChildren[i].DateOfBirth
+		dateJ := pathChildren[j].DateOfBirth
+
+		if dateI == nil && dateJ == nil {
+			return pathChildren[i].MemberID < pathChildren[j].MemberID
+		}
+		if dateI == nil {
+			return false
+		}
+		if dateJ == nil {
+			return true
+		}
+
+		if dateI.Equal(*dateJ) {
+			return pathChildren[i].MemberID < pathChildren[j].MemberID
+		}
+		return dateI.Before(*dateJ)
+	})
+
+	for _, childMember := range pathChildren {
+		child := uc.buildRelationTree(memberMap, spouseMap, childMember.MemberID, userRole, visited, pathMembers, generationLevel+1)
 		if child != nil {
 			node.Children = append(node.Children, child)
 		}

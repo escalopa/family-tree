@@ -257,13 +257,15 @@ const TreePage: React.FC = () => {
   const handleFindRelation = async (member1Id: number, member2Id: number) => {
     setRelationLoading(true);
     setError(null);
+    setRelationTree(null);
     try {
       const data = await treeApi.getRelation({ member1: member1Id, member2: member2Id });
       setRelationTree(data);
       setViewMode('relation');
     } catch (error) {
-
+      setRelationTree(null);
       setError(t('apiErrors.noRelationFound'));
+      throw error;
     } finally {
       setRelationLoading(false);
     }

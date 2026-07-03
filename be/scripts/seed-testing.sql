@@ -17,23 +17,45 @@ ON CONFLICT (email) DO UPDATE SET
 
 DO $$
 DECLARE
-  seed_exists boolean;
   person record;
   new_member_id int;
   actor_user_id int;
   field_points int;
   history_version int;
 BEGIN
-  SELECT EXISTS (
-    SELECT 1
-    FROM member_names
-    WHERE language_code = 'en'
-      AND name LIKE 'Test Family Member %'
-  ) INTO seed_exists;
+  CREATE TEMP TABLE seed_existing_members (
+    member_id int PRIMARY KEY
+  ) ON COMMIT DROP;
 
-  IF seed_exists THEN
-    RETURN;
-  END IF;
+  INSERT INTO seed_existing_members (member_id)
+  SELECT member_id
+  FROM member_names
+  WHERE language_code = 'en'
+    AND name LIKE 'Test Family Member %';
+
+  DELETE FROM user_scores
+  WHERE member_id IN (SELECT member_id FROM seed_existing_members);
+
+  DELETE FROM members_history
+  WHERE member_id IN (SELECT member_id FROM seed_existing_members);
+
+  DELETE FROM members_spouse
+  WHERE father_id IN (SELECT member_id FROM seed_existing_members)
+     OR mother_id IN (SELECT member_id FROM seed_existing_members);
+
+  DELETE FROM member_names
+  WHERE member_id IN (SELECT member_id FROM seed_existing_members);
+
+  UPDATE members
+  SET father_id = NULL
+  WHERE father_id IN (SELECT member_id FROM seed_existing_members);
+
+  UPDATE members
+  SET mother_id = NULL
+  WHERE mother_id IN (SELECT member_id FROM seed_existing_members);
+
+  DELETE FROM members
+  WHERE member_id IN (SELECT member_id FROM seed_existing_members);
 
   CREATE TEMP TABLE seed_people (
     seq int PRIMARY KEY,
@@ -49,36 +71,33 @@ BEGIN
   ) ON COMMIT DROP;
 
   INSERT INTO seed_people (seq, gender, father_seq, mother_seq, born_year)
-  SELECT gs,
-         CASE WHEN gs % 2 = 1 THEN 'M' ELSE 'F' END,
-         NULL,
-         NULL,
-         1938 + gs
-  FROM generate_series(1, 8) AS gs;
+  VALUES
+    (1, 'M', NULL, NULL, 1938),
+    (2, 'F', NULL, NULL, 1940);
 
   INSERT INTO seed_people (seq, gender, father_seq, mother_seq, born_year)
   SELECT gs,
          CASE WHEN gs % 2 = 1 THEN 'M' ELSE 'F' END,
-         1 + (((gs - 9) / 6) * 2),
-         2 + (((gs - 9) / 6) * 2),
-         1960 + ((gs - 9) % 24)
-  FROM generate_series(9, 32) AS gs;
+         1,
+         2,
+         1962 + ((gs - 3) % 18)
+  FROM generate_series(3, 20) AS gs;
 
   INSERT INTO seed_people (seq, gender, father_seq, mother_seq, born_year)
   SELECT gs,
          CASE WHEN gs % 2 = 1 THEN 'M' ELSE 'F' END,
-         9 + (((gs - 33) / 4) * 2),
-         10 + (((gs - 33) / 4) * 2),
-         1988 + ((gs - 33) % 24)
-  FROM generate_series(33, 80) AS gs;
+         3 + (((gs - 21) / 5) % 9) * 2,
+         4 + (((gs - 21) / 5) % 9) * 2,
+         1988 + ((gs - 21) % 22)
+  FROM generate_series(21, 70) AS gs;
 
   INSERT INTO seed_people (seq, gender, father_seq, mother_seq, born_year)
   SELECT gs,
          CASE WHEN gs % 2 = 1 THEN 'M' ELSE 'F' END,
-         33 + (((gs - 81) / 2) * 2),
-         34 + (((gs - 81) / 2) * 2),
-         2013 + ((gs - 81) % 10)
-  FROM generate_series(81, 100) AS gs;
+         21 + (((gs - 71) / 3) % 25) * 2,
+         22 + (((gs - 71) / 3) % 25) * 2,
+         2012 + ((gs - 71) % 10)
+  FROM generate_series(71, 100) AS gs;
 
   FOR person IN
     SELECT *
@@ -101,9 +120,9 @@ BEGIN
       (SELECT member_id FROM seed_member_map WHERE seq = person.mother_seq),
       ARRAY['seed-' || lpad(person.seq::text, 3, '0')],
       CASE
-        WHEN person.seq <= 8 THEN 'Family elder'
-        WHEN person.seq <= 32 THEN 'Family organizer'
-        WHEN person.seq <= 80 THEN 'Family contributor'
+        WHEN person.seq <= 2 THEN 'Family founder'
+        WHEN person.seq <= 20 THEN 'Family elder'
+        WHEN person.seq <= 70 THEN 'Family contributor'
         ELSE 'Young family member'
       END,
       1
