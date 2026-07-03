@@ -96,9 +96,9 @@ services:
       echo 'Bucket created successfully';
       "
 
-  seed-test-users:
+  seed-test-data:
     image: postgres:15-alpine
-    container_name: seed-test-users-testing
+    container_name: seed-test-data-testing
     depends_on:
       postgres:
         condition: service_healthy
@@ -106,20 +106,11 @@ services:
         condition: service_completed_successfully
     environment:
       PGPASSWORD: secret
+    volumes:
+      - ./be/scripts/seed-testing.sql:/seed-testing.sql:ro
     command: >
       sh -c "
-      psql -h postgres -U familytree -d familytree -v ON_ERROR_STOP=1 -c \"
-      INSERT INTO users (full_name, email, avatar, role_id, is_active)
-      VALUES
-        ('Mock Super Admin', 'superadmin.mock@example.test', NULL, 400, true),
-        ('Mock Admin', 'admin.mock@example.test', NULL, 300, true),
-        ('Mock Guest', 'guest.mock@example.test', NULL, 200, true)
-      ON CONFLICT (email) DO UPDATE SET
-        full_name = EXCLUDED.full_name,
-        avatar = EXCLUDED.avatar,
-        role_id = EXCLUDED.role_id,
-        is_active = EXCLUDED.is_active;
-      \";
+      psql -h postgres -U familytree -d familytree -v ON_ERROR_STOP=1 -f /seed-testing.sql;
       "
 
   backend:
@@ -143,7 +134,7 @@ services:
         condition: service_healthy
       mock-sso:
         condition: service_healthy
-      seed-test-users:
+      seed-test-data:
         condition: service_completed_successfully
     volumes:
       - ./be/config.testing.yaml:/root/config.yaml:ro
