@@ -19,6 +19,7 @@ export interface SpouseInfo {
   spouse_id: number;
   member_id: number;
   name: string; // Name in user's preferred language
+  names?: Record<string, string>;
   gender: 'M' | 'F';
   picture: string | null;
   marriage_date: string | null;

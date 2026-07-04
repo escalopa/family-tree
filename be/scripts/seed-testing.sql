@@ -72,6 +72,13 @@ BEGIN
     member_id int NOT NULL
   ) ON COMMIT DROP;
 
+  CREATE TEMP TABLE seed_spouses (
+    father_seq int NOT NULL,
+    mother_seq int NOT NULL,
+    marriage_date date,
+    divorce_date date
+  ) ON COMMIT DROP;
+
   INSERT INTO seed_people (seq, gender, father_seq, mother_seq, born_year)
   VALUES
     (1, 'M', NULL, NULL, 1938),
@@ -88,8 +95,8 @@ BEGIN
   INSERT INTO seed_people (seq, gender, father_seq, mother_seq, born_year)
   SELECT gs,
          CASE WHEN gs % 2 = 1 THEN 'M' ELSE 'F' END,
-         3 + (((gs - 21) / 5) % 9) * 2,
-         4 + (((gs - 21) / 5) % 9) * 2,
+         CASE WHEN gs BETWEEN 66 AND 70 THEN 3 ELSE 3 + (((gs - 21) / 5) % 9) * 2 END,
+         CASE WHEN gs BETWEEN 66 AND 70 THEN 6 ELSE 4 + (((gs - 21) / 5) % 9) * 2 END,
          1988 + ((gs - 21) % 22)
   FROM generate_series(21, 70) AS gs;
 
@@ -204,4 +211,38 @@ BEGIN
       history_version
     );
   END LOOP;
+
+  INSERT INTO seed_spouses (father_seq, mother_seq, marriage_date, divorce_date)
+  VALUES
+    (1, 2, DATE '1960-06-01', NULL),
+    (3, 4, DATE '1985-04-12', DATE '2001-09-15'),
+    (3, 6, DATE '2003-03-10', NULL),
+    (5, 6, DATE '1986-05-20', DATE '2002-11-01');
+
+  INSERT INTO seed_spouses (father_seq, mother_seq, marriage_date, divorce_date)
+  SELECT father_seq,
+         father_seq + 1,
+         make_date(1984 + ((father_seq - 3) / 2), 6, 15),
+         NULL
+  FROM generate_series(7, 19, 2) AS gs(father_seq);
+
+  INSERT INTO seed_spouses (father_seq, mother_seq, marriage_date, divorce_date)
+  SELECT father_seq,
+         father_seq + 1,
+         make_date(2010 + ((father_seq - 21) / 2), 5, 18),
+         CASE WHEN father_seq IN (21, 25, 29) THEN make_date(2018 + ((father_seq - 21) / 2), 8, 20) ELSE NULL END
+  FROM generate_series(21, 69, 2) AS gs(father_seq);
+
+  INSERT INTO members_spouse (father_id, mother_id, marriage_date, divorce_date)
+  SELECT father_map.member_id,
+         mother_map.member_id,
+         seed_spouses.marriage_date,
+         seed_spouses.divorce_date
+  FROM seed_spouses
+  JOIN seed_member_map father_map ON father_map.seq = seed_spouses.father_seq
+  JOIN seed_member_map mother_map ON mother_map.seq = seed_spouses.mother_seq
+  ON CONFLICT (father_id, mother_id) DO UPDATE SET
+    marriage_date = EXCLUDED.marriage_date,
+    divorce_date = EXCLUDED.divorce_date,
+    deleted_at = NULL;
 END $$;

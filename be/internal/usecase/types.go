@@ -46,7 +46,7 @@ type SpouseRepository interface {
 	GetByParents(ctx context.Context, fatherID, motherID int) (*domain.Spouse, error)
 	Update(ctx context.Context, spouse *domain.Spouse) error
 	Delete(ctx context.Context, spouseID int) error
-	GetAllSpouses(ctx context.Context) (map[int][]int, error)
+	GetAllSpouses(ctx context.Context) (map[int][]domain.SpouseWithMemberInfo, error)
 	GetByMemberID(ctx context.Context, memberID int) ([]domain.SpouseWithMemberInfo, error)
 }
 

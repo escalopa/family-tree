@@ -36,12 +36,13 @@ type DeleteSpouseRequest struct {
 }
 
 type SpouseInfo struct {
-	SpouseID     int     `json:"spouse_id"`
-	MemberID     int     `json:"member_id"`
-	Name         string  `json:"name"`
-	Gender       string  `json:"gender"`
-	Picture      *string `json:"picture"`
-	MarriageDate *Date   `json:"marriage_date"`
-	DivorceDate  *Date   `json:"divorce_date"`
-	MarriedYears *int    `json:"married_years"`
+	SpouseID     int               `json:"spouse_id"`
+	MemberID     int               `json:"member_id"`
+	Name         string            `json:"name"`
+	Names        map[string]string `json:"names,omitempty"`
+	Gender       string            `json:"gender"`
+	Picture      *string           `json:"picture"`
+	MarriageDate *Date             `json:"marriage_date"`
+	DivorceDate  *Date             `json:"divorce_date"`
+	MarriedYears *int              `json:"married_years"`
 }

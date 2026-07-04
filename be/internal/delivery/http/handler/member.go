@@ -206,6 +206,7 @@ func (h *memberHandler) Get(c *gin.Context) {
 			SpouseID:     spouse.SpouseID,
 			MemberID:     spouse.MemberID,
 			Name:         extractName(spouse.Names, preferredLang),
+			Names:        spouse.Names,
 			Gender:       spouse.Gender,
 			Picture:      spouse.Picture,
 			MarriageDate: dto.FromTimePtr(spouse.MarriageDate),

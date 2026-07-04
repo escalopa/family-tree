@@ -91,12 +91,12 @@ func (uc *treeUseCase) List(ctx context.Context, rootID *int, userRole int) ([]*
 
 	var result []*domain.MemberWithComputed
 	for _, m := range members {
-		spouseIDs := spouseMap[m.MemberID]
-		spouses := uc.convertSpouseIDsToInfo(spouseIDs, memberMap)
+		spouseInfos := spouseMap[m.MemberID]
+		spouses := uc.hydrateSpouseInfo(spouseInfos, memberMap)
 
 		computed := &domain.MemberWithComputed{
 			Member:    *m,
-			IsMarried: len(spouseIDs) > 0,
+			IsMarried: len(spouseInfos) > 0,
 			Spouses:   spouses,
 		}
 
@@ -146,7 +146,7 @@ func (uc *treeUseCase) GetRelation(ctx context.Context, member1ID, member2ID int
 	}
 
 	// Find path between members
-	pathMemberIDs := uc.findPath(memberMap, member1ID, member2ID)
+	pathMemberIDs := uc.findPath(memberMap, spouseMap, member1ID, member2ID)
 	if pathMemberIDs == nil {
 		return nil, domain.NewValidationError("error.member.no_relation")
 	}
@@ -261,7 +261,7 @@ func (uc *treeUseCase) findOldestRoot(members []*domain.Member) *domain.Member {
 	return members[0]
 }
 
-func (uc *treeUseCase) buildTree(memberMap map[int]*domain.Member, spouseMap map[int][]int, rootID int, userRole int, visited map[int]bool, pathMembers map[int]bool, generationLevel int) *domain.MemberTreeNode {
+func (uc *treeUseCase) buildTree(memberMap map[int]*domain.Member, spouseMap map[int][]domain.SpouseWithMemberInfo, rootID int, userRole int, visited map[int]bool, pathMembers map[int]bool, generationLevel int) *domain.MemberTreeNode {
 	// Avoid circular references
 	if visited[rootID] {
 		return nil
@@ -273,13 +273,13 @@ func (uc *treeUseCase) buildTree(memberMap map[int]*domain.Member, spouseMap map
 		return nil
 	}
 
-	spouseIDs := spouseMap[rootID]
-	spouses := uc.convertSpouseIDsToInfo(spouseIDs, memberMap)
+	spouseInfos := spouseMap[rootID]
+	spouses := uc.hydrateSpouseInfo(spouseInfos, memberMap)
 
 	node := &domain.MemberTreeNode{
 		MemberWithComputed: domain.MemberWithComputed{
 			Member:          *root,
-			IsMarried:       len(spouseIDs) > 0,
+			IsMarried:       len(spouseInfos) > 0,
 			Spouses:         spouses,
 			GenerationLevel: generationLevel,
 		},
@@ -366,7 +366,7 @@ func (uc *treeUseCase) buildTree(memberMap map[int]*domain.Member, spouseMap map
 	return node
 }
 
-func (uc *treeUseCase) buildRelationTree(memberMap map[int]*domain.Member, spouseMap map[int][]int, rootID int, userRole int, visited map[int]bool, pathMembers map[int]bool, generationLevel int) *domain.MemberTreeNode {
+func (uc *treeUseCase) buildRelationTree(memberMap map[int]*domain.Member, spouseMap map[int][]domain.SpouseWithMemberInfo, rootID int, userRole int, visited map[int]bool, pathMembers map[int]bool, generationLevel int) *domain.MemberTreeNode {
 	if !pathMembers[rootID] || visited[rootID] {
 		return nil
 	}
@@ -377,13 +377,13 @@ func (uc *treeUseCase) buildRelationTree(memberMap map[int]*domain.Member, spous
 		return nil
 	}
 
-	spouseIDs := spouseMap[rootID]
-	spouses := uc.convertSpouseIDsToInfo(spouseIDs, memberMap)
+	spouseInfos := spouseMap[rootID]
+	spouses := uc.hydrateSpouseInfo(spouseInfos, memberMap)
 
 	node := &domain.MemberTreeNode{
 		MemberWithComputed: domain.MemberWithComputed{
 			Member:          *root,
-			IsMarried:       len(spouseIDs) > 0,
+			IsMarried:       len(spouseInfos) > 0,
 			Spouses:         spouses,
 			GenerationLevel: generationLevel,
 		},
@@ -439,7 +439,7 @@ func (uc *treeUseCase) buildRelationTree(memberMap map[int]*domain.Member, spous
 	return node
 }
 
-func (uc *treeUseCase) findPath(memberMap map[int]*domain.Member, startID, endID int) []int {
+func (uc *treeUseCase) findPath(memberMap map[int]*domain.Member, spouseMap map[int][]domain.SpouseWithMemberInfo, startID, endID int) []int {
 	// Simple BFS to find path
 	if startID == endID {
 		return []int{startID}
@@ -466,6 +466,9 @@ func (uc *treeUseCase) findPath(memberMap map[int]*domain.Member, startID, endID
 		}
 		if member.MotherID != nil {
 			neighbors = append(neighbors, *member.MotherID)
+		}
+		for _, spouse := range spouseMap[current] {
+			neighbors = append(neighbors, spouse.MemberID)
 		}
 		// Find children
 		for _, m := range memberMap {
@@ -496,22 +499,18 @@ func (uc *treeUseCase) findPath(memberMap map[int]*domain.Member, startID, endID
 	return nil
 }
 
-func (uc *treeUseCase) convertSpouseIDsToInfo(spouseIDs []int, memberMap map[int]*domain.Member) []domain.SpouseWithMemberInfo {
-	if len(spouseIDs) == 0 {
+func (uc *treeUseCase) hydrateSpouseInfo(spouseInfos []domain.SpouseWithMemberInfo, memberMap map[int]*domain.Member) []domain.SpouseWithMemberInfo {
+	if len(spouseInfos) == 0 {
 		return nil
 	}
 
-	spouses := make([]domain.SpouseWithMemberInfo, 0, len(spouseIDs))
-	for _, spouseID := range spouseIDs {
-		if spouse, exists := memberMap[spouseID]; exists {
-			spouses = append(spouses, domain.SpouseWithMemberInfo{
-				MemberID:     spouse.MemberID,
-				Names:        spouse.Names,
-				Gender:       spouse.Gender,
-				Picture:      spouse.Picture,
-				MarriageDate: nil, // Will be populated from spouse relationship if needed
-				DivorceDate:  nil, // Will be populated from spouse relationship if needed
-			})
+	spouses := make([]domain.SpouseWithMemberInfo, 0, len(spouseInfos))
+	for _, spouseInfo := range spouseInfos {
+		if spouse, exists := memberMap[spouseInfo.MemberID]; exists {
+			spouseInfo.Names = spouse.Names
+			spouseInfo.Gender = spouse.Gender
+			spouseInfo.Picture = spouse.Picture
+			spouses = append(spouses, spouseInfo)
 		}
 	}
 	return spouses

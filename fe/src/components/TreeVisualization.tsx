@@ -25,6 +25,14 @@ interface NodePosition {
   isInPath: boolean;
 }
 
+interface TreeLink {
+  sourceId: number;
+  targetId: number;
+  type: 'parent' | 'spouse';
+  divorced?: boolean;
+  childMember?: Member;
+}
+
 const TreeVisualization: React.FC<TreeVisualizationProps> = ({ data, onNodeClick, onSetRoot, currentRootId }) => {
   const { mode } = useTheme();
   const isDarkMode = mode === 'dark';
@@ -78,7 +86,8 @@ const TreeVisualization: React.FC<TreeVisualizationProps> = ({ data, onNodeClick
     // Build node positions map including spouses
     const nodePositions: NodePosition[] = [];
     const nodePositionMap = new Map<number, NodePosition>();
-    const links: Array<{ sourceId: number; targetId: number; type: 'parent' | 'spouse' }> = [];
+    const links: TreeLink[] = [];
+    const spouseLinkKeys = new Set<string>();
 
     treeNodes.forEach((node) => {
       const member = node.data.member;
@@ -108,7 +117,7 @@ const TreeVisualization: React.FC<TreeVisualizationProps> = ({ data, onNodeClick
               member: {
                 member_id: spouse.member_id,
                 name: spouse.name,
-                names: {},
+                names: spouse.names || {},
                 gender: spouse.gender,
                 picture: spouse.picture,
                 date_of_birth: null,
@@ -125,12 +134,18 @@ const TreeVisualization: React.FC<TreeVisualizationProps> = ({ data, onNodeClick
             };
             nodePositions.push(spousePosition);
             nodePositionMap.set(spouse.member_id, spousePosition);
+          }
 
-            // Add spouse link
+          const spouseLinkKey = spouse.spouse_id
+            ? `spouse-${spouse.spouse_id}`
+            : `spouse-${Math.min(memberId, spouse.member_id)}-${Math.max(memberId, spouse.member_id)}`;
+          if (!spouseLinkKeys.has(spouseLinkKey)) {
+            spouseLinkKeys.add(spouseLinkKey);
             links.push({
               sourceId: memberId,
               targetId: spouse.member_id,
-              type: 'spouse'
+              type: 'spouse',
+              divorced: Boolean(spouse.divorce_date)
             });
           }
         });
@@ -140,12 +155,17 @@ const TreeVisualization: React.FC<TreeVisualizationProps> = ({ data, onNodeClick
     // Add parent-child links
     treeLinks.forEach((link) => {
       const sourceId = (link.source as D3Node).data.member.member_id;
-      const targetId = (link.target as D3Node).data.member.member_id;
+      const targetMember = (link.target as D3Node).data.member;
+      const targetId = targetMember.member_id;
+      const visibleFatherID = targetMember.father_id && nodePositionMap.has(targetMember.father_id)
+        ? targetMember.father_id
+        : undefined;
 
       links.push({
-        sourceId,
+        sourceId: visibleFatherID || sourceId,
         targetId,
-        type: 'parent'
+        type: 'parent',
+        childMember: targetMember
       });
     });
 
@@ -169,21 +189,29 @@ const TreeVisualization: React.FC<TreeVisualizationProps> = ({ data, onNodeClick
             return `M ${sourcePos.x},${sourcePos.y}
                     Q ${midX},${sourcePos.y - curveOffset} ${targetPos.x},${targetPos.y}`;
           } else {
-            // Vertical curved line from parent to child
+            // Black child line. When both parents are visible, route through
+            // the couple midpoint so children from different couples separate.
             const sourceX = sourcePos.x;
             const sourceY = sourcePos.y + nodeRadius;
             const targetX = targetPos.x;
             const targetY = targetPos.y - nodeRadius;
             const midY = (sourceY + targetY) / 2;
-            const curveOffset = Math.abs(targetX - sourceX) * 0.15;
+            const fatherPos = link.childMember?.father_id
+              ? nodePositionMap.get(link.childMember.father_id)
+              : undefined;
+            const motherPos = link.childMember?.mother_id
+              ? nodePositionMap.get(link.childMember.mother_id)
+              : undefined;
+            const coupleMidX = fatherPos && motherPos ? (fatherPos.x + motherPos.x) / 2 : sourceX;
+            const firstTurnY = sourceY + Math.max(28, Math.min(60, (targetY - sourceY) * 0.3));
 
             return `M ${sourceX},${sourceY}
-                    C ${sourceX},${midY - curveOffset}
-                      ${sourceX},${midY + curveOffset}
-                      ${sourceX},${midY}
+                    C ${sourceX},${firstTurnY}
+                      ${coupleMidX},${firstTurnY}
+                      ${coupleMidX},${midY}
                     L ${targetX},${midY}
-                    C ${targetX},${midY + curveOffset}
-                      ${targetX},${midY + curveOffset * 2}
+                    C ${targetX},${midY}
+                      ${targetX},${midY + 24}
                       ${targetX},${targetY}`;
           }
         })
@@ -195,8 +223,12 @@ const TreeVisualization: React.FC<TreeVisualizationProps> = ({ data, onNodeClick
         .attr('stroke-width', link.type === 'spouse' ? 3 : 2.5)
         .attr('opacity', isDarkMode ? 0.7 : 0.6);
 
+      if (link.type === 'spouse' && link.divorced) {
+        path.attr('stroke-dasharray', '8 5');
+      }
+
       // Highlight path links
-      if (sourcePos.isInPath && targetPos.isInPath && link.type === 'parent') {
+      if (sourcePos.isInPath && targetPos.isInPath) {
         path
           .attr('stroke', isDarkMode ? '#FFA726' : '#FF9800')
           .attr('stroke-width', 4)
