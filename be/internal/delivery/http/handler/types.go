@@ -52,6 +52,7 @@ type MemberUseCase interface {
 	ListSiblings(ctx context.Context, memberID int) ([]*domain.Member, error)
 	List(ctx context.Context, filter domain.MemberFilter, cursor *string, limit int) ([]*domain.Member, *string, error)
 	ListHistory(ctx context.Context, memberID int, cursor *string, limit int) ([]*domain.HistoryWithUser, *string, error)
+	Rollback(ctx context.Context, memberID, historyID, userID int) error
 	UploadPicture(ctx context.Context, memberID int, data []byte, filename string, userID int) (string, error)
 	DeletePicture(ctx context.Context, memberID int, userID int) error
 	GetPicture(ctx context.Context, memberID int) ([]byte, string, error)

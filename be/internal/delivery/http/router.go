@@ -114,6 +114,7 @@ func (r *Router) Setup(engine *gin.Engine) {
 			memberGroup.GET("/:member_id/picture", middleware.RequireRole(domain.RoleAdmin), r.memberHandler.GetPicture)
 
 			memberGroup.POST("", middleware.RequireRole(domain.RoleAdmin), r.memberHandler.Create)
+			memberGroup.POST("/:member_id/rollback", middleware.RequireRole(domain.RoleSuperAdmin), r.memberHandler.Rollback)
 			memberGroup.PUT("/:member_id", middleware.RequireRole(domain.RoleAdmin), r.memberHandler.Update)
 			memberGroup.DELETE("/:member_id", middleware.RequireRole(domain.RoleSuperAdmin), r.memberHandler.Delete)
 

@@ -404,6 +404,28 @@ func (h *memberHandler) ListHistory(c *gin.Context) {
 	delivery.SuccessWithData(c, response)
 }
 
+func (h *memberHandler) Rollback(c *gin.Context) {
+	var uri dto.MemberIDUri
+	if err := c.ShouldBindUri(&uri); err != nil {
+		delivery.Error(c, err)
+		return
+	}
+
+	var req dto.RollbackMemberRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		delivery.Error(c, err)
+		return
+	}
+
+	userID := middleware.GetUserID(c)
+	if err := h.memberUseCase.Rollback(c.Request.Context(), uri.MemberID, req.HistoryID, userID); err != nil {
+		delivery.Error(c, err)
+		return
+	}
+
+	delivery.Success(c, "success.member.rollback", nil)
+}
+
 func (h *memberHandler) UploadPicture(c *gin.Context) {
 	var uri dto.MemberIDUri
 	if err := c.ShouldBindUri(&uri); err != nil {

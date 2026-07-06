@@ -45,6 +45,7 @@ import {
   Clear,
   Add,
   Delete,
+  Restore,
 } from '@mui/icons-material';
 // Animations removed for stability
 import { useTranslation } from 'react-i18next';
@@ -77,6 +78,16 @@ const getMemberNamesForDisplay = (member: MemberListItem) => {
   const secondary = names.ar && names.ar !== primary ? names.ar : undefined;
   return { primary, secondary };
 };
+
+const sortMembersByBirthDate = (members: MemberListItem[]) =>
+  [...members].sort((a, b) => {
+    if (!a.date_of_birth && !b.date_of_birth) return a.member_id - b.member_id;
+    if (!a.date_of_birth) return 1;
+    if (!b.date_of_birth) return -1;
+
+    const dateCompare = a.date_of_birth.localeCompare(b.date_of_birth);
+    return dateCompare !== 0 ? dateCompare : a.member_id - b.member_id;
+  });
 
 const TreePage: React.FC = () => {
   const { t, i18n } = useTranslation();
@@ -142,6 +153,7 @@ const TreePage: React.FC = () => {
   const [selectedHistory, setSelectedHistory] = useState<HistoryRecord | null>(null);
   const [diffDialogOpen, setDiffDialogOpen] = useState(false);
   const [dialogTab, setDialogTab] = useState(0);
+  const [rollingBackHistoryId, setRollingBackHistoryId] = useState<number | null>(null);
 
   // Ref for intersection observer
   const loadMoreRef = useRef<HTMLDivElement>(null);
@@ -208,10 +220,11 @@ const TreePage: React.FC = () => {
         ? await membersApi.filterMembers(params)
         : await membersApi.searchMembers(params);
 
+      const responseMembers = sortMembersByBirthDate(response.members || []);
       if (loadMore) {
-        setListMembers(prev => [...prev, ...(response.members || [])]);
+        setListMembers(prev => sortMembersByBirthDate([...prev, ...responseMembers]));
       } else {
-        setListMembers(response.members || []);
+        setListMembers(responseMembers);
       }
 
       // Only set cursor if it exists and is not empty
@@ -399,6 +412,34 @@ const TreePage: React.FC = () => {
   const handleCloseDiff = () => {
     setDiffDialogOpen(false);
     setSelectedHistory(null);
+  };
+
+  const canRollbackHistory = (history: HistoryRecord) =>
+    history.change_type === 'UPDATE' && Boolean(history.old_values);
+
+  const handleRollbackHistory = async (history: HistoryRecord) => {
+    if (!editingMember || !canRollbackHistory(history)) return;
+
+    setRollingBackHistoryId(history.history_id);
+    try {
+      await membersApi.rollbackMember(editingMember.member_id, history.history_id);
+      const updatedMember = await membersApi.getMember(editingMember.member_id);
+      const historyResponse = await membersApi.getMemberHistory(editingMember.member_id);
+      setEditingMember(updatedMember);
+      setMemberHistory(historyResponse.history || []);
+      enqueueSnackbar(t('history.rollbackSuccess'), { variant: 'success' });
+
+      if (viewMode === 'list') {
+        loadListView();
+      } else if (viewMode === 'tree') {
+        loadTree();
+      }
+    } catch (error) {
+      console.error('Failed to rollback member:', error);
+      enqueueSnackbar(t('history.rollbackFailed'), { variant: 'error' });
+    } finally {
+      setRollingBackHistoryId(null);
+    }
   };
 
   const handleOpenRelatedMember = async (memberId: number) => {
@@ -1625,6 +1666,7 @@ const TreePage: React.FC = () => {
                             <TableCell>{t('userProfile.changeType')}</TableCell>
                             <TableCell>{t('leaderboard.user')}</TableCell>
                             <TableCell>{t('userProfile.date')}</TableCell>
+                            <TableCell align="right">{t('user.actions')}</TableCell>
                           </TableRow>
                         </TableHead>
                         <TableBody>
@@ -1657,6 +1699,27 @@ const TreePage: React.FC = () => {
                                     {formatRelativeTime(change.changed_at, t)}
                                   </Typography>
                                 </Box>
+                              </TableCell>
+                              <TableCell align="right">
+                                <Tooltip title={canRollbackHistory(change) ? t('history.rollback') : t('history.rollbackUnsupported')}>
+                                  <span>
+                                    <IconButton
+                                      size="small"
+                                      color="warning"
+                                      disabled={!canRollbackHistory(change) || rollingBackHistoryId === change.history_id}
+                                      onClick={(event) => {
+                                        event.stopPropagation();
+                                        handleRollbackHistory(change);
+                                      }}
+                                    >
+                                      {rollingBackHistoryId === change.history_id ? (
+                                        <CircularProgress size={18} />
+                                      ) : (
+                                        <Restore fontSize="small" />
+                                      )}
+                                    </IconButton>
+                                  </span>
+                                </Tooltip>
                               </TableCell>
                             </TableRow>
                           ))}

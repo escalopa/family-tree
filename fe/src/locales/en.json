@@ -350,7 +350,11 @@
     "noChanges": "No field changes to display",
     "field": "Field",
     "oldValue": "Old Value",
-    "newValue": "New Value"
+    "newValue": "New Value",
+    "rollback": "Rollback to this version",
+    "rollbackUnsupported": "Rollback is available for member update records only",
+    "rollbackSuccess": "Member rolled back successfully",
+    "rollbackFailed": "Failed to rollback member"
   },
   "userProfile": {
     "statistics": "Statistics",

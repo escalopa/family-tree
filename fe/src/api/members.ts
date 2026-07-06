@@ -55,6 +55,10 @@ export const membersApi = {
     return response.data.data;
   },
 
+  rollbackMember: async (memberId: number, historyId: number): Promise<void> => {
+    await apiClient.post(`/api/members/${memberId}/rollback`, { history_id: historyId });
+  },
+
   deleteMember: async (memberId: number): Promise<void> => {
     await apiClient.delete(`/api/members/${memberId}`);
   },

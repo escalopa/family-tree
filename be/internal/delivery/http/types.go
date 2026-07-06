@@ -27,6 +27,7 @@ type MemberHandler interface {
 	Update(c *gin.Context)
 	Delete(c *gin.Context)
 	ListHistory(c *gin.Context)
+	Rollback(c *gin.Context)
 	UploadPicture(c *gin.Context)
 	DeletePicture(c *gin.Context)
 	GetPicture(c *gin.Context)

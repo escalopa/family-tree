@@ -53,6 +53,7 @@ type SpouseRepository interface {
 type HistoryRepository interface {
 	Create(ctx context.Context, history *domain.History) error
 	CreateBatch(ctx context.Context, histories ...*domain.History) error
+	Get(ctx context.Context, historyID int) (*domain.HistoryWithUser, error)
 	GetByMemberID(ctx context.Context, memberID int, cursor *string, limit int) ([]*domain.HistoryWithUser, *string, error)
 	GetByUserID(ctx context.Context, userID int, cursor *string, limit int) ([]*domain.HistoryWithUser, *string, error)
 }

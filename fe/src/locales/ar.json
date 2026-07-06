@@ -350,7 +350,11 @@
     "noChanges": "لا توجد تغييرات في الحقول لعرضها",
     "field": "الحقل",
     "oldValue": "القيمة القديمة",
-    "newValue": "القيمة الجديدة"
+    "newValue": "القيمة الجديدة",
+    "rollback": "استرجاع هذا الإصدار",
+    "rollbackUnsupported": "الاسترجاع متاح فقط لسجلات تحديث العضو",
+    "rollbackSuccess": "تم استرجاع العضو بنجاح",
+    "rollbackFailed": "فشل في استرجاع العضو"
   },
   "userProfile": {
     "statistics": "الإحصائيات",
