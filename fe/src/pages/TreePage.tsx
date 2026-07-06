@@ -420,6 +420,8 @@ const TreePage: React.FC = () => {
   const handleRollbackHistory = async (history: HistoryRecord) => {
     if (!editingMember || !canRollbackHistory(history)) return;
 
+    if (!window.confirm(t('history.rollbackConfirm'))) return;
+
     setRollingBackHistoryId(history.history_id);
     try {
       await membersApi.rollbackMember(editingMember.member_id, history.history_id);

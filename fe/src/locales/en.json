@@ -353,6 +353,7 @@
     "newValue": "New Value",
     "rollback": "Rollback to this version",
     "rollbackUnsupported": "Rollback is available for member update records only",
+    "rollbackConfirm": "Rollback this member to the selected version? This will create a new history record.",
     "rollbackSuccess": "Member rolled back successfully",
     "rollbackFailed": "Failed to rollback member"
   },
