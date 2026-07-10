@@ -133,18 +133,18 @@ The repository now includes provider-native deployment automation:
 | Target | Config |
 |--------|--------|
 | Vercel frontend | `vercel.json` |
-| Render backend | `render.yaml` |
+| GCP Cloud Run backend | `cloudbuild.yaml` |
 | Deployment env checklist | `.env.deploy.example` |
 | Full runbook | `_docs/deployment.md` |
 
 Recommended free stack:
 
 - Vercel for the React SPA.
-- Render free web service for the Go API.
+- GCP Cloud Run for the Go API.
 - Supabase free Postgres and Storage for database and uploaded images.
 - Redis is optional; when `REDIS_URI` is empty, the API disables Redis-backed rate limiting and still runs.
 
-The Render Blueprint runs migrations on deploy. When `SEED_TEST_DATA=true`, it also loads active mock users and the 100-member test family tree so preview deployments are usable before real OAuth credentials exist.
+Cloud Build builds the backend image, runs migrations, optionally loads active mock users and the 100-member test family tree, and deploys the API to Cloud Run.
 
 See `_docs/deployment.md` for the required environment variables and one-time provider setup.
 
