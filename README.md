@@ -128,111 +128,53 @@ make testing-down
 
 ## Production Deployment
 
-### 1. Environment Setup
+The repository now includes provider-native deployment automation:
 
-Copy `env.prod.example` → `.env` and configure:
+| Target | Config |
+|--------|--------|
+| Vercel frontend | `vercel.json` |
+| Render backend | `render.yaml` |
+| Deployment env checklist | `.env.deploy.example` |
+| Full runbook | `_docs/deployment.md` |
 
-```bash
-DOMAIN=yourdomain.com
-EMAIL=your-email@example.com
+Recommended free stack:
 
-POSTGRES_PASSWORD=strong-password-here
-REDIS_PASSWORD=redis-password-here
-MINIO_ROOT_PASSWORD=minio-password-here
-```
+- Vercel for the React SPA.
+- Render free web service for the Go API.
+- Supabase free Postgres and Storage for database and uploaded images.
+- Redis is optional; when `REDIS_URI` is empty, the API disables Redis-backed rate limiting and still runs.
 
-### 2. Backend Configuration
+The Render Blueprint runs migrations on deploy. When `SEED_TEST_DATA=true`, it also loads active mock users and the 100-member test family tree so preview deployments are usable before real OAuth credentials exist.
 
-Create `be/config.yaml` for production:
-
-```yaml
-server:
-  mode: "release"
-  allowed_origins:
-    - "https://yourdomain.com"
-  enable_hsts: true
-  cookie:
-    secure: true  # Enable for HTTPS
-
-jwt:
-  secret: "production-secret-key"  # Use strong random key
-
-oauth:
-  providers:
-    google:
-      client_id: "prod-google-client-id"
-      client_secret: "prod-google-client-secret"
-  redirect_base_url: "https://yourdomain.com"
-
-database:
-  dsn: "host=postgres port=5432 user=familytree password=${POSTGRES_PASSWORD} dbname=familytree sslmode=require"
-
-redis:
-  uri: "redis://:${REDIS_PASSWORD}@redis:6379/0"
-
-s3:
-  endpoint: "http://minio:9000"
-  access_key: "${MINIO_ROOT_USER}"
-  secret_key: "${MINIO_ROOT_PASSWORD}"
-```
-
-### 3. Deploy
-
-```bash
-# Initialize SSL certificates
-make prod-init
-
-# Start all services
-make prod-up
-
-# Run migrations
-make migrate-up DB_HOST=localhost DB_PASSWORD=your-db-password
-
-# Create admin user
-make promote-user EMAIL=admin@yourdomain.com
-```
+See `_docs/deployment.md` for the required environment variables and one-time provider setup.
 
 ---
 
 ## Managing OAuth Providers
 
-Edit `be/config.yaml` to enable/disable providers:
+OAuth providers can be enabled with environment variables, so adding or removing providers does not require code changes:
 
-```yaml
-oauth:
-  providers:
-    # Google OAuth
-    google:
-      order: 1  # Display order on login page
-      client_id: "your-client-id"
-      client_secret: "your-client-secret"
-      # Get credentials: https://console.cloud.google.com/apis/credentials
-
-    # GitHub OAuth (uncomment to enable)
-    # github:
-    #   order: 2
-    #   client_id: "github-client-id"
-    #   client_secret: "github-client-secret"
-    #   # Get credentials: https://github.com/settings/developers
-
-    # GitLab OAuth (uncomment to enable)
-    # gitlab:
-    #   order: 3
-    #   client_id: "gitlab-client-id"
-    #   client_secret: "gitlab-client-secret"
-    #   # Get credentials: https://gitlab.com/-/profile/applications
-
-    # Yandex OAuth (uncomment to enable)
-    # yandex:
-    #   order: 4
-    #   client_id: "yandex-client-id"
-    #   client_secret: "yandex-client-secret"
-    #   # Get credentials: https://oauth.yandex.com/
-
-  redirect_base_url: "https://yourdomain.com"  # Your app URL
+```bash
+OAUTH_ENABLED_PROVIDERS=google,github
+OAUTH_REDIRECT_BASE_URL=https://your-frontend-host
+OAUTH_PROVIDER_GOOGLE_CLIENT_ID=...
+OAUTH_PROVIDER_GOOGLE_CLIENT_SECRET=...
+OAUTH_PROVIDER_GOOGLE_SCOPES=openid,email,profile
+OAUTH_PROVIDER_GITHUB_CLIENT_ID=...
+OAUTH_PROVIDER_GITHUB_CLIENT_SECRET=...
 ```
 
-**Note:** Restart backend after changing providers.
+Known providers are `google`, `github`, `gitlab`, `yandex`, and `mock`. Generic OAuth2/OIDC-style providers can also be configured with authorize, token, and user-info URLs; see `_docs/deployment.md`.
+
+Until real OAuth credentials are ready, keep:
+
+```bash
+OAUTH_ENABLED_PROVIDERS=mock
+ENABLE_MOCK_AUTH=true
+SEED_TEST_DATA=true
+```
+
+**Note:** Restart or redeploy the backend after changing provider configuration.
 
 ---
 

@@ -1,0 +1,49 @@
+services:
+  - type: web
+    name: family-tree-api
+    runtime: go
+    plan: free
+    region: oregon
+    rootDir: be
+    buildCommand: go build -o family-tree-api ./cmd/main.go
+    preDeployCommand: sh scripts/deploy-prepare.sh
+    startCommand: ./family-tree-api
+    healthCheckPath: /health
+    autoDeployTrigger: commit
+    envVars:
+      - key: PORT
+        value: 10000
+      - key: GIN_MODE
+        value: release
+      - key: LOG_LEVEL
+        value: info
+      - key: ENABLE_HSTS
+        value: "true"
+      - key: COOKIE_SECURE
+        value: "true"
+      - key: COOKIE_HTTP_ONLY
+        value: "true"
+      - key: JWT_SECRET
+        generateValue: true
+      - key: DATABASE_DSN
+        sync: false
+      - key: ALLOWED_ORIGINS
+        sync: false
+      - key: OAUTH_REDIRECT_BASE_URL
+        sync: false
+      - key: OAUTH_ENABLED_PROVIDERS
+        value: mock
+      - key: ENABLE_MOCK_AUTH
+        value: "true"
+      - key: SEED_TEST_DATA
+        value: "true"
+      - key: S3_ENDPOINT
+        sync: false
+      - key: S3_REGION
+        sync: false
+      - key: S3_BUCKET
+        sync: false
+      - key: S3_ACCESS_KEY
+        sync: false
+      - key: S3_SECRET_KEY
+        sync: false

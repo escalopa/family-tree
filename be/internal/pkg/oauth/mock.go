@@ -42,6 +42,21 @@ func (m *MockProvider) GetProviderName() string {
 }
 
 func (m *MockProvider) GetAuthURL(state string) string {
+	if m.authURL == "" {
+		redirectURL, err := url.Parse(m.redirectURL)
+		if err != nil {
+			slog.Error("MockProvider.GetAuthURL: parse redirect URL", "error", err)
+			return m.redirectURL
+		}
+
+		query := redirectURL.Query()
+		query.Set("code", "mock-superadmin")
+		query.Set("state", state)
+		redirectURL.RawQuery = query.Encode()
+
+		return redirectURL.String()
+	}
+
 	authURL, err := url.Parse(m.authURL)
 	if err != nil {
 		slog.Error("MockProvider.GetAuthURL: parse auth URL", "error", err)
@@ -71,6 +86,20 @@ func (m *MockProvider) Exchange(_ context.Context, code string) (*oauth2.Token, 
 }
 
 func (m *MockProvider) GetUserInfo(ctx context.Context, token *oauth2.Token) (*domain.OAuthUserInfo, error) {
+	if m.userInfoURL == "" {
+		info, ok := internalMockUsers()[token.AccessToken]
+		if !ok {
+			return nil, domain.NewExternalServiceError(fmt.Errorf("unknown mock authorization code %q", token.AccessToken))
+		}
+
+		return &domain.OAuthUserInfo{
+			ID:      info.ID,
+			Email:   info.Email,
+			Name:    info.Name,
+			Picture: info.Picture,
+		}, nil
+	}
+
 	userInfoURL, err := url.Parse(m.userInfoURL)
 	if err != nil {
 		return nil, domain.NewExternalServiceError(err)
@@ -112,4 +141,24 @@ func (m *MockProvider) GetUserInfo(ctx context.Context, token *oauth2.Token) (*d
 		Name:    info.Name,
 		Picture: info.Picture,
 	}, nil
+}
+
+func internalMockUsers() map[string]mockUserInfo {
+	return map[string]mockUserInfo{
+		"mock-superadmin": {
+			ID:    "mock-superadmin",
+			Email: "superadmin.mock@example.test",
+			Name:  "Mock Super Admin",
+		},
+		"mock-admin": {
+			ID:    "mock-admin",
+			Email: "admin.mock@example.test",
+			Name:  "Mock Admin",
+		},
+		"mock-guest": {
+			ID:    "mock-guest",
+			Email: "guest.mock@example.test",
+			Name:  "Mock Guest",
+		},
+	}
 }

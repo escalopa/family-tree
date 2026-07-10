@@ -13,7 +13,7 @@ import (
 	"github.com/escalopa/family-tree/internal/delivery/http/middleware"
 	"github.com/escalopa/family-tree/internal/pkg/oauth"
 	"github.com/escalopa/family-tree/internal/pkg/ratelimit"
-	"github.com/escalopa/family-tree/internal/pkg/redis"
+	redisclient "github.com/escalopa/family-tree/internal/pkg/redis"
 	"github.com/escalopa/family-tree/internal/pkg/s3"
 	"github.com/escalopa/family-tree/internal/pkg/token"
 	"github.com/escalopa/family-tree/internal/repository"
@@ -23,6 +23,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
+	goredis "github.com/redis/go-redis/v9"
 )
 
 type App struct {
@@ -43,12 +44,17 @@ func NewApp(cfg *config.Config) (*App, error) {
 
 	slog.Info("App.NewApp: database connected")
 
-	redisClient, err := redis.NewClient(ctx, cfg.Redis.URI)
-	if err != nil {
-		return nil, err
-	}
+	var redisClient *goredis.Client
+	if cfg.Redis.URI != "" {
+		redisClient, err = redisclient.NewClient(ctx, cfg.Redis.URI)
+		if err != nil {
+			return nil, err
+		}
 
-	slog.Info("App.NewApp: redis connected")
+		slog.Info("App.NewApp: redis connected")
+	} else {
+		slog.Warn("App.NewApp: REDIS_URI not configured; rate limiting is disabled")
+	}
 
 	s3Client, err := s3.NewS3Client(
 		ctx,
@@ -113,18 +119,9 @@ func NewApp(cfg *config.Config) (*App, error) {
 
 	authMiddleware := middleware.NewAuthMiddleware(tokenMgr, authUseCase, userRepo, cookieManager)
 
-	authLimiterMiddleware := middleware.NewRateLimiter(
-		ratelimit.New(redisClient, cfg.RateLimit.Auth),
-		cfg.RateLimit.Auth.Enabled,
-	)
-	apiLimiterMiddleware := middleware.NewRateLimiter(
-		ratelimit.New(redisClient, cfg.RateLimit.API),
-		cfg.RateLimit.API.Enabled,
-	)
-	uploadLimiterMiddleware := middleware.NewRateLimiter(
-		ratelimit.New(redisClient, cfg.RateLimit.Upload),
-		cfg.RateLimit.Upload.Enabled,
-	)
+	authLimiterMiddleware := newRateLimiter(redisClient, cfg.RateLimit.Auth)
+	apiLimiterMiddleware := newRateLimiter(redisClient, cfg.RateLimit.API)
+	uploadLimiterMiddleware := newRateLimiter(redisClient, cfg.RateLimit.Upload)
 
 	router := http.NewRouter(
 		authHandler,
@@ -152,12 +149,14 @@ func NewApp(cfg *config.Config) (*App, error) {
 		cleanupFuncs: make([]func(), 0),
 	}
 
-	app.registerCleanup(func() {
-		slog.Info("Closing Redis connection")
-		if err := redisClient.Close(); err != nil {
-			slog.Error("Close Redis connection", "error", err)
-		}
-	})
+	if redisClient != nil {
+		app.registerCleanup(func() {
+			slog.Info("Closing Redis connection")
+			if err := redisClient.Close(); err != nil {
+				slog.Error("Close Redis connection", "error", err)
+			}
+		})
+	}
 
 	app.registerCleanup(func() {
 		slog.Info("Closing database connection pool")
@@ -173,6 +172,13 @@ func NewApp(cfg *config.Config) (*App, error) {
 	app.registerCleanup(maintenanceWorker.Stop)
 
 	return app, nil
+}
+
+func newRateLimiter(redisClient *goredis.Client, cfg config.RateLimitRule) *middleware.RateLimitMiddleware {
+	if redisClient == nil || !cfg.Enabled {
+		return middleware.NewRateLimiter(nil, false)
+	}
+	return middleware.NewRateLimiter(ratelimit.New(redisClient, cfg), true)
 }
 
 func (a *App) registerCleanup(cleanup func()) {

@@ -2,12 +2,14 @@ package config
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"maps"
 	"math"
 	"os"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -67,6 +69,10 @@ type OAuthProviderConfig struct {
 	TokenURL     string   `mapstructure:"token_url" env:"TOKEN_URL" json:"token_url"`
 	Scopes       []string `mapstructure:"scopes" json:"scopes"`
 	UserInfoURL  string   `mapstructure:"user_info_url" env:"USER_INFO_URL" json:"user_info_url"`
+	IDField      string   `mapstructure:"id_field" env:"ID_FIELD" json:"id_field"`
+	EmailField   string   `mapstructure:"email_field" env:"EMAIL_FIELD" json:"email_field"`
+	NameField    string   `mapstructure:"name_field" env:"NAME_FIELD" json:"name_field"`
+	PictureField string   `mapstructure:"picture_field" env:"PICTURE_FIELD" json:"picture_field"`
 }
 
 type JWTConfig struct {
@@ -189,12 +195,17 @@ func Load() (*Config, error) {
 	viper.SetConfigName("config")
 	viper.SetConfigType("yaml")
 	viper.AddConfigPath(configPath)
+	setDefaults()
 
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	viper.AutomaticEnv()
 
 	if err := viper.ReadInConfig(); err != nil {
-		return nil, fmt.Errorf("read config file: %w", err)
+		var notFound viper.ConfigFileNotFoundError
+		if !errors.As(err, &notFound) || strings.TrimSpace(os.Getenv("DATABASE_DSN")) == "" {
+			return nil, fmt.Errorf("read config file: %w", err)
+		}
+		slog.Info("Config.Load: config file not found; using environment variables")
 	}
 
 	var cfg Config
@@ -202,11 +213,300 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("unmarshal config: %w", err)
 	}
 
+	cfg.applyEnvOverrides()
 	cfg.OAuth.computeProviderOrder()
+	if err := cfg.validate(); err != nil {
+		return nil, err
+	}
 
 	slog.Info("Config", "config", cfg.String())
 
 	return &cfg, nil
+}
+
+func (c *Config) validate() error {
+	if strings.TrimSpace(c.Database.DSN) == "" {
+		return fmt.Errorf("DATABASE_DSN is required")
+	}
+	if strings.TrimSpace(c.JWT.Secret) == "" {
+		return fmt.Errorf("JWT_SECRET is required")
+	}
+	if len(c.OAuth.Providers) > 0 && strings.TrimSpace(c.OAuth.RedirectBaseURL) == "" {
+		return fmt.Errorf("OAUTH_REDIRECT_BASE_URL is required when OAuth providers are enabled")
+	}
+	return nil
+}
+
+func setDefaults() {
+	viper.SetDefault("server.port", "8080")
+	viper.SetDefault("server.mode", "release")
+	viper.SetDefault("server.log_level", "info")
+	viper.SetDefault("server.cookie.access_token_max_age", 3600)
+	viper.SetDefault("server.cookie.refresh_token_max_age", 604800)
+	viper.SetDefault("server.cookie.session_id_max_age", 604800)
+	viper.SetDefault("server.cookie.path", "/")
+	viper.SetDefault("server.cookie.secure", true)
+	viper.SetDefault("server.cookie.http_only", true)
+	viper.SetDefault("jwt.access_expiry", "15m")
+	viper.SetDefault("jwt.refresh_expiry", "168h")
+	viper.SetDefault("upload.max_image_size", 3145728)
+	viper.SetDefault("upload.allowed_image_extensions", []string{".jpg", ".jpeg", ".png", ".gif", ".webp"})
+	viper.SetDefault("maintenance.cleanup_interval", "1h")
+}
+
+func (c *Config) applyEnvOverrides() {
+	if port := firstNonEmptyEnv("PORT", "SERVER_PORT"); port != "" {
+		c.Server.Port = port
+	}
+	if mode := firstNonEmptyEnv("GIN_MODE", "SERVER_MODE"); mode != "" {
+		c.Server.Mode = mode
+	}
+	if logLevel := firstNonEmptyEnv("LOG_LEVEL", "SERVER_LOG_LEVEL"); logLevel != "" {
+		c.Server.LogLevel = logLevel
+	}
+	if origins := splitCSV(os.Getenv("ALLOWED_ORIGINS")); len(origins) > 0 {
+		c.Server.AllowedOrigins = origins
+	}
+	if value, ok := boolEnv("ENABLE_HSTS"); ok {
+		c.Server.EnableHSTS = value
+	}
+	if value, ok := boolEnv("COOKIE_SECURE"); ok {
+		c.Server.Cookie.Secure = value
+	}
+	if value, ok := boolEnv("COOKIE_HTTP_ONLY"); ok {
+		c.Server.Cookie.HttpOnly = value
+	}
+	if domain := os.Getenv("COOKIE_DOMAIN"); domain != "" {
+		c.Server.Cookie.Domain = domain
+	}
+	if path := os.Getenv("COOKIE_PATH"); path != "" {
+		c.Server.Cookie.Path = path
+	}
+	if value, ok := intEnv("COOKIE_ACCESS_TOKEN_MAX_AGE"); ok {
+		c.Server.Cookie.AccessTokenMaxAge = value
+	}
+	if value, ok := intEnv("COOKIE_REFRESH_TOKEN_MAX_AGE"); ok {
+		c.Server.Cookie.RefreshTokenMaxAge = value
+	}
+	if value, ok := intEnv("COOKIE_SESSION_ID_MAX_AGE"); ok {
+		c.Server.Cookie.SessionIDMaxAge = value
+	}
+	if dsn := os.Getenv("DATABASE_DSN"); dsn != "" {
+		c.Database.DSN = dsn
+	}
+	if uri := os.Getenv("REDIS_URI"); uri != "" {
+		c.Redis.URI = uri
+	}
+	if secret := os.Getenv("JWT_SECRET"); secret != "" {
+		c.JWT.Secret = secret
+	}
+	if value, ok := durationEnv("JWT_ACCESS_EXPIRY"); ok {
+		c.JWT.AccessExpiry = value
+	}
+	if value, ok := durationEnv("JWT_REFRESH_EXPIRY"); ok {
+		c.JWT.RefreshExpiry = value
+	}
+	if value, ok := durationEnv("MAINTENANCE_CLEANUP_INTERVAL"); ok {
+		c.Maintenance.CleanupInterval = value
+	}
+
+	c.applyS3Env()
+	c.applyRateLimitEnv()
+	c.applyOAuthEnv()
+}
+
+func (c *Config) applyS3Env() {
+	if endpoint := os.Getenv("S3_ENDPOINT"); endpoint != "" {
+		c.S3.Endpoint = endpoint
+	}
+	if region := os.Getenv("S3_REGION"); region != "" {
+		c.S3.Region = region
+	}
+	if bucket := os.Getenv("S3_BUCKET"); bucket != "" {
+		c.S3.Bucket = bucket
+	}
+	if accessKey := os.Getenv("S3_ACCESS_KEY"); accessKey != "" {
+		c.S3.AccessKey = accessKey
+	}
+	if secretKey := os.Getenv("S3_SECRET_KEY"); secretKey != "" {
+		c.S3.SecretKey = secretKey
+	}
+	if value, ok := int64Env("UPLOAD_MAX_IMAGE_SIZE"); ok {
+		c.Upload.MaxImageSize = value
+	}
+	if extensions := splitCSV(os.Getenv("UPLOAD_ALLOWED_IMAGE_EXTENSIONS")); len(extensions) > 0 {
+		c.Upload.AllowedImageExts = extensions
+	}
+}
+
+func (c *Config) applyRateLimitEnv() {
+	if c.Redis.URI == "" {
+		c.RateLimit.Auth.Enabled = false
+		c.RateLimit.API.Enabled = false
+		c.RateLimit.Upload.Enabled = false
+		return
+	}
+
+	applyRateLimitRuleEnv("AUTH", &c.RateLimit.Auth)
+	applyRateLimitRuleEnv("API", &c.RateLimit.API)
+	applyRateLimitRuleEnv("UPLOAD", &c.RateLimit.Upload)
+}
+
+func applyRateLimitRuleEnv(prefix string, rule *RateLimitRule) {
+	if value, ok := boolEnv("RATE_LIMIT_" + prefix + "_ENABLED"); ok {
+		rule.Enabled = value
+	}
+	if value, ok := intEnv("RATE_LIMIT_" + prefix + "_REQUESTS"); ok {
+		rule.Requests = value
+	}
+	if value, ok := durationEnv("RATE_LIMIT_" + prefix + "_WINDOW"); ok {
+		rule.Window = value
+	}
+	if value := os.Getenv("RATE_LIMIT_" + prefix + "_PREFIX"); value != "" {
+		rule.Prefix = value
+	}
+}
+
+func (c *Config) applyOAuthEnv() {
+	if redirectBaseURL := os.Getenv("OAUTH_REDIRECT_BASE_URL"); redirectBaseURL != "" {
+		c.OAuth.RedirectBaseURL = strings.TrimRight(redirectBaseURL, "/")
+	}
+
+	enabledProviders := splitCSV(os.Getenv("OAUTH_ENABLED_PROVIDERS"))
+	if len(enabledProviders) == 0 {
+		enabledProviders = slices.Collect(maps.Keys(c.OAuth.Providers))
+	}
+	if len(enabledProviders) == 0 && strings.EqualFold(os.Getenv("ENABLE_MOCK_AUTH"), "true") {
+		enabledProviders = []string{"mock"}
+	}
+	if len(enabledProviders) == 0 {
+		return
+	}
+
+	providers := make(map[string]OAuthProviderConfig, len(enabledProviders))
+	for index, provider := range enabledProviders {
+		provider = strings.ToLower(strings.TrimSpace(provider))
+		if provider == "" {
+			continue
+		}
+
+		providerCfg := c.OAuth.Providers[provider]
+		if providerCfg.Order == 0 {
+			providerCfg.Order = index + 1
+		}
+
+		envPrefix := "OAUTH_PROVIDER_" + strings.ToUpper(strings.ReplaceAll(provider, "-", "_")) + "_"
+		if value := os.Getenv(envPrefix + "CLIENT_ID"); value != "" {
+			providerCfg.ClientID = value
+		}
+		if value := os.Getenv(envPrefix + "CLIENT_SECRET"); value != "" {
+			providerCfg.ClientSecret = value
+		}
+		if value := os.Getenv(envPrefix + "AUTH_URL"); value != "" {
+			providerCfg.AuthURL = value
+		}
+		if value := os.Getenv(envPrefix + "TOKEN_URL"); value != "" {
+			providerCfg.TokenURL = value
+		}
+		if value := os.Getenv(envPrefix + "USER_INFO_URL"); value != "" {
+			providerCfg.UserInfoURL = value
+		}
+		if value := os.Getenv(envPrefix + "ID_FIELD"); value != "" {
+			providerCfg.IDField = value
+		}
+		if value := os.Getenv(envPrefix + "EMAIL_FIELD"); value != "" {
+			providerCfg.EmailField = value
+		}
+		if value := os.Getenv(envPrefix + "NAME_FIELD"); value != "" {
+			providerCfg.NameField = value
+		}
+		if value := os.Getenv(envPrefix + "PICTURE_FIELD"); value != "" {
+			providerCfg.PictureField = value
+		}
+		if scopes := splitCSV(os.Getenv(envPrefix + "SCOPES")); len(scopes) > 0 {
+			providerCfg.Scopes = scopes
+		}
+		if value, ok := intEnv(envPrefix + "ORDER"); ok {
+			providerCfg.Order = value
+		}
+
+		providers[provider] = providerCfg
+	}
+
+	c.OAuth.Providers = providers
+}
+
+func firstNonEmptyEnv(keys ...string) string {
+	for _, key := range keys {
+		if value := os.Getenv(key); value != "" {
+			return value
+		}
+	}
+	return ""
+}
+
+func splitCSV(value string) []string {
+	parts := strings.Split(value, ",")
+	result := make([]string, 0, len(parts))
+	for _, part := range parts {
+		part = strings.TrimSpace(part)
+		if part != "" {
+			result = append(result, part)
+		}
+	}
+	return result
+}
+
+func boolEnv(key string) (bool, bool) {
+	raw := os.Getenv(key)
+	if raw == "" {
+		return false, false
+	}
+	value, err := strconv.ParseBool(raw)
+	if err != nil {
+		slog.Warn("Config: invalid bool env; ignoring", "key", key, "value", raw)
+		return false, false
+	}
+	return value, true
+}
+
+func intEnv(key string) (int, bool) {
+	raw := os.Getenv(key)
+	if raw == "" {
+		return 0, false
+	}
+	value, err := strconv.Atoi(raw)
+	if err != nil {
+		slog.Warn("Config: invalid int env; ignoring", "key", key, "value", raw)
+		return 0, false
+	}
+	return value, true
+}
+
+func int64Env(key string) (int64, bool) {
+	raw := os.Getenv(key)
+	if raw == "" {
+		return 0, false
+	}
+	value, err := strconv.ParseInt(raw, 10, 64)
+	if err != nil {
+		slog.Warn("Config: invalid int64 env; ignoring", "key", key, "value", raw)
+		return 0, false
+	}
+	return value, true
+}
+
+func durationEnv(key string) (time.Duration, bool) {
+	raw := os.Getenv(key)
+	if raw == "" {
+		return 0, false
+	}
+	value, err := time.ParseDuration(raw)
+	if err != nil {
+		slog.Warn("Config: invalid duration env; ignoring", "key", key, "value", raw)
+		return 0, false
+	}
+	return value, true
 }
 
 func (c *DatabaseConfig) ConnectionString() string {
