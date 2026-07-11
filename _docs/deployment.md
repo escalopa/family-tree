@@ -46,12 +46,17 @@ The target Yandex Cloud deployment is:
 - `cloud_id=b1g00m03hogrja9p1rb0`
 - `folder_id=b1gkimk9k36atshi4uto`
 
-Before applying Terraform, make sure the local `yc` profile is authenticated to
-an account with access to that cloud and folder:
+Before applying Terraform, make sure the local `yc` profile points to the public
+Yandex Cloud endpoint and is authenticated to an account with access to that
+cloud and folder. If your workstation has internal or alternate Yandex Cloud
+profiles, create a dedicated public profile:
 
 ```bash
+yc config profile create public || yc config profile activate public
+yc config set endpoint api.cloud.yandex.net:443
 yc config set cloud-id b1g00m03hogrja9p1rb0
 yc config set folder-id b1gkimk9k36atshi4uto
+yc init --username=<yandex-account-email>
 yc resource-manager folder get b1gkimk9k36atshi4uto
 ```
 
