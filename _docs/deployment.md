@@ -56,7 +56,7 @@ yc config profile create public || yc config profile activate public
 yc config set endpoint api.cloud.yandex.net:443
 yc config set cloud-id b1g00m03hogrja9p1rb0
 yc config set folder-id b1gkimk9k36atshi4uto
-yc init --username=<yandex-account-email>
+yc init --federation-endpoint auth.yandex.cloud --username=<yandex-account-email>
 yc resource-manager folder get b1gkimk9k36atshi4uto
 ```
 
