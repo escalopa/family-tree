@@ -41,10 +41,19 @@ The next code milestone is to add a YDB repository implementation and YDB/YQL sc
 
 ## One-Time Setup
 
-The local Yandex Cloud CLI is already configured for:
+The target Yandex Cloud deployment is:
 
-- `cloud_id=aku9nvnuimbpunvfl2ie`
-- `folder_id=akubuo7de4n5uu7cu534`
+- `cloud_id=b1g00m03hogrja9p1rb0`
+- `folder_id=b1gkimk9k36atshi4uto`
+
+Before applying Terraform, make sure the local `yc` profile is authenticated to
+an account with access to that cloud and folder:
+
+```bash
+yc config set cloud-id b1g00m03hogrja9p1rb0
+yc config set folder-id b1gkimk9k36atshi4uto
+yc resource-manager folder get b1gkimk9k36atshi4uto
+```
 
 Create a local tfvars file:
 
