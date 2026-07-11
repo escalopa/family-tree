@@ -133,18 +133,21 @@ The repository now includes provider-native deployment automation:
 | Target | Config |
 |--------|--------|
 | Vercel frontend | `vercel.json` |
-| GCP Cloud Run backend | `cloudbuild.yaml` |
+| Yandex Cloud backend | `infra/yandex/` |
 | Deployment env checklist | `.env.deploy.example` |
 | Full runbook | `_docs/deployment.md` |
 
-Recommended free stack:
+Target stack:
 
 - Vercel for the React SPA.
-- GCP Cloud Run for the Go API.
-- Supabase free Postgres and Storage for database and uploaded images.
+- Yandex Serverless Containers for the Go API.
+- Yandex API Gateway for the public API endpoint.
+- Yandex Managed Service for YDB in serverless mode for YQL data storage.
+- Yandex Object Storage for uploaded images.
+- Yandex Lockbox for secrets.
 - Redis is optional; when `REDIS_URI` is empty, the API disables Redis-backed rate limiting and still runs.
 
-Cloud Build builds the backend image, runs migrations, optionally loads active mock users and the 100-member test family tree, and deploys the API to Cloud Run.
+Terraform provisions the Yandex Cloud resources. The current Go backend still needs its PostgreSQL repository layer migrated to YDB/YQL before the YDB-backed container can be fully functional.
 
 See `_docs/deployment.md` for the required environment variables and one-time provider setup.
 

@@ -48,3 +48,9 @@ build/
 
 # Local generated artifacts
 _artifacts/
+
+# Terraform working directories
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
