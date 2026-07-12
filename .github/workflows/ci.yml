@@ -90,20 +90,6 @@ jobs:
       - name: Set up Terraform
         uses: hashicorp/setup-terraform@v3
 
-      - name: Configure Yandex Terraform provider mirror
-        run: |
-          cat > ~/.terraformrc <<'EOF'
-          provider_installation {
-            network_mirror {
-              url = "https://terraform-mirror.yandexcloud.net/"
-              include = ["registry.terraform.io/*/*"]
-            }
-            direct {
-              exclude = ["registry.terraform.io/*/*"]
-            }
-          }
-          EOF
-
       - name: Check formatting
         run: terraform fmt -check -recursive infra/yandex
 
@@ -180,20 +166,6 @@ jobs:
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_wrapper: false
-
-      - name: Configure Yandex Terraform provider mirror
-        run: |
-          cat > ~/.terraformrc <<'EOF'
-          provider_installation {
-            network_mirror {
-              url = "https://terraform-mirror.yandexcloud.net/"
-              include = ["registry.terraform.io/*/*"]
-            }
-            direct {
-              exclude = ["registry.terraform.io/*/*"]
-            }
-          }
-          EOF
 
       - name: Set up Node
         uses: actions/setup-node@v4
