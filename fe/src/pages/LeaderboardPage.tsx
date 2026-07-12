@@ -41,7 +41,7 @@ const LeaderboardPage: React.FC = () => {
       const response = await usersApi.getLeaderboard();
       setLeaderboard(response.users);
     } catch (error) {
-
+      // Keep the empty leaderboard state when loading fails.
     } finally {
       setLoading(false);
     }

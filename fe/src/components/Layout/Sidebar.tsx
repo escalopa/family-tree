@@ -116,7 +116,7 @@ const Sidebar: React.FC<SidebarProps> = ({ open, onToggle }) => {
       setUser(null);
       navigate('/login');
     } catch (error) {
-
+      // Ignore logout failures and continue closing the local menu.
     }
     handleLogoutMenuClose();
   };
@@ -127,7 +127,7 @@ const Sidebar: React.FC<SidebarProps> = ({ open, onToggle }) => {
       setUser(null);
       navigate('/login');
     } catch (error) {
-
+      // Ignore logout failures and continue closing the local menu.
     }
     handleLogoutMenuClose();
   };

@@ -60,6 +60,74 @@ yc init --federation-endpoint auth.yandex.cloud --username=<yandex-account-email
 yc resource-manager folder get b1gkimk9k36atshi4uto
 ```
 
+## Vercel Project And Domain
+
+The Vercel project is `family-tree` under the `escalopa` account. The production
+domain is attached in Vercel:
+
+- `family.escalopa.com`
+
+Vercel currently reports that DNS is not configured. Add this record at the DNS
+provider for `escalopa.com`:
+
+```text
+Type:  A
+Name:  family
+Value: 76.76.21.21
+```
+
+Vercel also accepts the generated CNAME target it recommended:
+
+```text
+Type:  CNAME
+Name:  family
+Value: 154e7ade97ff9174.vercel-dns-017.com.
+```
+
+Use the `A` record unless the DNS provider requires a CNAME for this subdomain.
+After changing DNS, verify with:
+
+```bash
+vercel domains verify family.escalopa.com
+```
+
+## Terraform State Bootstrap
+
+GitHub Actions deploys from `main` only and uses an Object Storage bucket for
+Terraform state. That bucket and the CI service account are also Terraform
+resources, managed by `infra/yandex/bootstrap`.
+
+Run the bootstrap once from an authenticated local `yc` profile:
+
+```bash
+export TF_VAR_cloud_id=b1g00m03hogrja9p1rb0
+export TF_VAR_folder_id=b1gkimk9k36atshi4uto
+export TF_VAR_yc_token="$(yc iam create-token)"
+terraform -chdir=infra/yandex/bootstrap init
+terraform -chdir=infra/yandex/bootstrap apply
+```
+
+Then copy the generated CI credentials to GitHub secrets without printing them:
+
+```bash
+terraform -chdir=infra/yandex/bootstrap output -raw yc_service_account_key_json | gh secret set YC_SERVICE_ACCOUNT_KEY_JSON
+terraform -chdir=infra/yandex/bootstrap output -raw tf_state_access_key_id | gh secret set TF_STATE_ACCESS_KEY_ID
+terraform -chdir=infra/yandex/bootstrap output -raw tf_state_secret_access_key | gh secret set TF_STATE_SECRET_ACCESS_KEY
+```
+
+The remaining production secrets must be supplied by you:
+
+```bash
+printf '%s' '<vercel-token>' | gh secret set VERCEL_TOKEN
+printf '%s' 'team_nKYA059W7ZnhVw72wPcXyky8' | gh secret set VERCEL_ORG_ID
+printf '%s' 'prj_baUersa3B9BrZ7v3Nakpko6iyL35' | gh secret set VERCEL_PROJECT_ID
+printf '%s' '<strong-jwt-secret>' | gh secret set JWT_SECRET
+printf '%s' '<yandex-oauth-client-id>' | gh secret set OAUTH_YANDEX_CLIENT_ID
+printf '%s' '<yandex-oauth-client-secret>' | gh secret set OAUTH_YANDEX_CLIENT_SECRET
+```
+
+Do not add these values to `.env`, tfvars, or committed files.
+
 Create a local tfvars file:
 
 ```bash
@@ -122,25 +190,26 @@ frontend_origin = "https://YOUR_VERCEL_HOST"
 
 This value is used for CORS and OAuth callback URLs.
 
-## Mock Auth
+## Production Auth
 
-Until production OAuth credentials are ready, keep:
-
-```hcl
-oauth_enabled_providers = "mock"
-enable_mock_auth        = true
-seed_test_data          = true
-```
-
-For real production, switch to provider configuration and disable mock/test seed:
+Production deploys use Yandex OAuth and do not enable mock auth or seed data:
 
 ```hcl
-oauth_enabled_providers = "google,github"
+oauth_enabled_providers = "yandex"
 enable_mock_auth        = false
 seed_test_data          = false
 ```
 
-Provider credentials should go into Lockbox and be mapped into the serverless container as environment variables in Terraform.
+Provider credentials are written to Yandex Lockbox by Terraform and exposed to
+the serverless container as environment variables.
+
+## CI/CD Policy
+
+- Pull requests run backend tests/build, frontend lint/build, and Terraform validation.
+- Pushes to `main` run the same checks, then deploy production.
+- No preview/testing deployment is created for non-main branches.
+- The production frontend is deployed through Vercel CLI.
+- Yandex Cloud resources are created or updated through Terraform only.
 
 ## YDB Migration Work
 

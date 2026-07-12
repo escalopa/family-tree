@@ -8,8 +8,11 @@ name_prefix         = "family-tree"
 container_image_tag = "latest"
 frontend_origin     = "https://family-tree.vercel.app"
 
-oauth_enabled_providers = "mock"
-enable_mock_auth        = true
-seed_test_data          = true
+oauth_enabled_providers = "yandex"
+enable_mock_auth        = false
+seed_test_data          = false
 
 jwt_secret = "replace-with-a-strong-secret"
+
+oauth_yandex_client_id     = "replace-with-yandex-oauth-client-id"
+oauth_yandex_client_secret = "replace-with-yandex-oauth-client-secret"

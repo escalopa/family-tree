@@ -10,6 +10,12 @@ variable "yc_token" {
   default     = null
 }
 
+variable "yc_service_account_key_file" {
+  description = "Path to a Yandex Cloud service account key JSON file for CI/CD."
+  type        = string
+  default     = null
+}
+
 variable "folder_id" {
   description = "Yandex Cloud folder ID."
   type        = string
@@ -40,21 +46,32 @@ variable "frontend_origin" {
 }
 
 variable "oauth_enabled_providers" {
-  description = "Comma-separated OAuth providers. Keep mock until production credentials exist."
+  description = "Comma-separated OAuth providers for production."
   type        = string
-  default     = "mock"
+  default     = "yandex"
 }
 
 variable "enable_mock_auth" {
-  description = "Enable mock auth fallback for preview/test deployments."
+  description = "Enable mock auth fallback. Production deploys should keep this false."
   type        = bool
-  default     = true
+  default     = false
 }
 
 variable "seed_test_data" {
-  description = "Run test data seeding. YDB support requires the backend YDB migration first."
+  description = "Run test data seeding. Production deploys should keep this false."
   type        = bool
-  default     = true
+  default     = false
+}
+
+variable "oauth_yandex_client_id" {
+  description = "Yandex OAuth client ID for production login."
+  type        = string
+}
+
+variable "oauth_yandex_client_secret" {
+  description = "Yandex OAuth client secret for production login."
+  type        = string
+  sensitive   = true
 }
 
 variable "jwt_secret" {

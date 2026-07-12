@@ -40,6 +40,7 @@ const MemberPhotoUpload: React.FC<MemberPhotoUploadProps> = ({
   const [uploading, setUploading] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isHovering, setIsHovering] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -188,8 +189,6 @@ const MemberPhotoUpload: React.FC<MemberPhotoUploadProps> = ({
       </Box>
     );
   }
-
-  const [isHovering, setIsHovering] = useState(false);
 
   return (
     <Box sx={{ textAlign: 'center' }}>

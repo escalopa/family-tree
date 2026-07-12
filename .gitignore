@@ -54,3 +54,5 @@ _artifacts/
 *.tfstate
 *.tfstate.*
 *.tfplan
+.vercel
+.env*
