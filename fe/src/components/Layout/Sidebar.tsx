@@ -65,7 +65,7 @@ const Sidebar: React.FC<SidebarProps> = ({ open, onToggle }) => {
     {
       text: t('navigation.tree'),
       icon: <AccountTree />,
-      path: '/tree',
+      path: '/trees',
       show: user && isActive,
     },
     {

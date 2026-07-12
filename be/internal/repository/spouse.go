@@ -153,6 +153,50 @@ func (r *SpouseRepository) GetAllSpouses(ctx context.Context) (map[int][]domain.
 	return spouseMap, nil
 }
 
+func (r *SpouseRepository) GetAllSpousesByTreeID(ctx context.Context, treeID int) (map[int][]domain.SpouseWithMemberInfo, error) {
+	query := `
+		SELECT ms.spouse_id, ms.father_id, ms.mother_id, ms.marriage_date, ms.divorce_date
+		FROM members_spouse ms
+		JOIN members m1 ON m1.member_id = ms.father_id
+		JOIN members m2 ON m2.member_id = ms.mother_id
+		WHERE ms.deleted_at IS NULL
+		  AND m1.deleted_at IS NULL
+		  AND m2.deleted_at IS NULL
+		  AND m1.tree_id = $1
+		  AND m2.tree_id = $1
+		ORDER BY ms.marriage_date ASC NULLS LAST, ms.spouse_id ASC
+	`
+	rows, err := r.db.Query(ctx, query, treeID)
+	if err != nil {
+		return nil, domain.NewDatabaseError(err)
+	}
+	defer rows.Close()
+
+	spouseMap := make(map[int][]domain.SpouseWithMemberInfo)
+	for rows.Next() {
+		var spouse domain.Spouse
+		if err := rows.Scan(&spouse.SpouseID, &spouse.FatherID, &spouse.MotherID, &spouse.MarriageDate, &spouse.DivorceDate); err != nil {
+			return nil, domain.NewDatabaseError(err)
+		}
+		spouseMap[spouse.FatherID] = append(spouseMap[spouse.FatherID], domain.SpouseWithMemberInfo{
+			SpouseID:     spouse.SpouseID,
+			MemberID:     spouse.MotherID,
+			MarriageDate: spouse.MarriageDate,
+			DivorceDate:  spouse.DivorceDate,
+		})
+		spouseMap[spouse.MotherID] = append(spouseMap[spouse.MotherID], domain.SpouseWithMemberInfo{
+			SpouseID:     spouse.SpouseID,
+			MemberID:     spouse.FatherID,
+			MarriageDate: spouse.MarriageDate,
+			DivorceDate:  spouse.DivorceDate,
+		})
+	}
+	if err := rows.Err(); err != nil {
+		return nil, domain.NewDatabaseError(err)
+	}
+	return spouseMap, nil
+}
+
 func (r *SpouseRepository) GetByMemberID(ctx context.Context, memberID int) ([]domain.SpouseWithMemberInfo, error) {
 	query := `
 		SELECT

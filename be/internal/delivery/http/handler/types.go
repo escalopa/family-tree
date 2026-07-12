@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"time"
 
 	"github.com/escalopa/family-tree/internal/domain"
 )
@@ -59,6 +60,22 @@ type MemberUseCase interface {
 	Compute(ctx context.Context, member *domain.Member, userRole int) *domain.MemberWithComputed
 }
 
+type FamilyTreeUseCase interface {
+	Create(ctx context.Context, tree *domain.FamilyTree, userID int) error
+	List(ctx context.Context, userID int) ([]*domain.FamilyTree, error)
+	Get(ctx context.Context, treeID, userID int) (*domain.FamilyTree, error)
+	EnsureAccess(ctx context.Context, treeID, userID int) error
+	Invite(ctx context.Context, treeID, inviterUserID int, inviteeEmail string, message *string, expiresAt *time.Time) (*domain.FamilyTreeInvitation, error)
+	ListTreeInvitations(ctx context.Context, treeID, userID int) ([]*domain.FamilyTreeInvitation, error)
+	ListMyInvitations(ctx context.Context, userID int) ([]*domain.FamilyTreeInvitation, error)
+	AcceptInvitation(ctx context.Context, invitationID, userID int) error
+	DeclineInvitation(ctx context.Context, invitationID, userID int) error
+	CreateShareLink(ctx context.Context, treeID, userID int, expiresAt *time.Time, maxVisits *int) (*domain.FamilyTreeShareLink, error)
+	ListShareLinks(ctx context.Context, treeID, userID int) ([]*domain.FamilyTreeShareLink, error)
+	RevokeShareLink(ctx context.Context, treeID, shareID, userID int) error
+	ConsumeShareLink(ctx context.Context, token string) (*domain.FamilyTreeShareLink, error)
+}
+
 type SpouseUseCase interface {
 	Create(ctx context.Context, spouse *domain.Spouse, userID int) error
 	Update(ctx context.Context, spouse *domain.Spouse, userID int) error
@@ -66,7 +83,7 @@ type SpouseUseCase interface {
 }
 
 type TreeUseCase interface {
-	Get(ctx context.Context, rootID *int, userRole int) (*domain.MemberTreeNode, error)
-	List(ctx context.Context, rootID *int, userRole int) ([]*domain.MemberWithComputed, error)
-	GetRelation(ctx context.Context, member1ID, member2ID int, userRole int) (*domain.MemberTreeNode, error)
+	Get(ctx context.Context, treeID int, rootID *int, userRole int) (*domain.MemberTreeNode, error)
+	List(ctx context.Context, treeID int, rootID *int, userRole int) ([]*domain.MemberWithComputed, error)
+	GetRelation(ctx context.Context, treeID, member1ID, member2ID int, userRole int) (*domain.MemberTreeNode, error)
 }

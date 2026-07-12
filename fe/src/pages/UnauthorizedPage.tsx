@@ -33,7 +33,7 @@ const UnauthorizedPage: React.FC = () => {
             <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
               {t('unauthorized.message')}
             </Typography>
-            <Button variant="contained" onClick={() => navigate('/tree')}>
+            <Button variant="contained" onClick={() => navigate('/trees')}>
               {t('unauthorized.goToHome')}
             </Button>
           </CardContent>

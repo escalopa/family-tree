@@ -44,6 +44,21 @@ type TreeHandler interface {
 	GetRelation(c *gin.Context)
 }
 
+type FamilyTreeHandler interface {
+	Create(c *gin.Context)
+	List(c *gin.Context)
+	Get(c *gin.Context)
+	ListMyInvitations(c *gin.Context)
+	Invite(c *gin.Context)
+	ListInvitations(c *gin.Context)
+	AcceptInvitation(c *gin.Context)
+	DeclineInvitation(c *gin.Context)
+	CreateShareLink(c *gin.Context)
+	ListShareLinks(c *gin.Context)
+	RevokeShareLink(c *gin.Context)
+	GetPublicTree(c *gin.Context)
+}
+
 type LanguageHandler interface {
 	Get(c *gin.Context)
 	List(c *gin.Context)

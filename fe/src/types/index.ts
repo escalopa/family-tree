@@ -48,6 +48,7 @@ export interface MemberInfo {
 // Minimal member data for list views
 export interface MemberListItem {
   member_id: number;
+  tree_id: number;
   name: string; // Name in user's preferred language
   names?: Record<string, string>; // All returned translations
   gender: 'M' | 'F';
@@ -59,6 +60,7 @@ export interface MemberListItem {
 
 export interface Member {
   member_id: number;
+  tree_id: number;
   name: string; // Name in user's preferred language
   names: Record<string, string>; // All language translations (for editing)
   full_name?: string; // Full name in user's preferred language
@@ -86,6 +88,52 @@ export interface TreeNode {
   member: Member;
   children?: TreeNode[];
   is_in_path?: boolean; // For relation path highlighting
+}
+
+export interface FamilyTree {
+  tree_id: number;
+  name: string;
+  description: string | null;
+  owner_user_id: number;
+  owner_name?: string;
+  owner_email?: string;
+  user_role?: 'owner' | 'editor' | 'viewer';
+  member_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface FamilyTreeInvitation {
+  invitation_id: number;
+  tree_id: number;
+  tree_name?: string;
+  inviter_user_id: number;
+  inviter_name?: string;
+  invitee_user_id: number | null;
+  invitee_email: string;
+  status: 'pending' | 'accepted' | 'declined' | 'revoked';
+  message: string | null;
+  created_at: string;
+  expires_at: string | null;
+  responded_at: string | null;
+}
+
+export interface FamilyTreeShareLink {
+  share_id: number;
+  tree_id: number;
+  token: string;
+  url: string;
+  created_by: number;
+  created_at: string;
+  expires_at: string | null;
+  max_visits: number | null;
+  visit_count: number;
+  revoked_at: string | null;
+}
+
+export interface PublicTreeResponse {
+  share: FamilyTreeShareLink;
+  tree: TreeNode | null;
 }
 
 export interface HistoryRecord {
@@ -131,6 +179,22 @@ export interface CreateMemberRequest {
   mother_id?: number;
   nicknames?: string[];
   profession?: string;
+}
+
+export interface CreateFamilyTreeRequest {
+  name: string;
+  description?: string;
+}
+
+export interface InviteToTreeRequest {
+  email: string;
+  message?: string;
+  expires_at?: string;
+}
+
+export interface CreateShareLinkRequest {
+  expires_at?: string;
+  max_visits?: number;
 }
 
 export interface UpdateMemberRequest extends CreateMemberRequest {

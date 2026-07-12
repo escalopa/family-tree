@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Navigate, useParams, useSearchParams } from 'react-router-dom';
 import {
   Box,
   Paper,
@@ -51,6 +51,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { enqueueSnackbar } from 'notistack';
 import { treeApi, membersApi } from '../api';
+import { setActiveTreeId } from '../api/treeScope';
 import { MemberListItem, MemberSearchQuery, CreateMemberRequest, UpdateMemberRequest, HistoryRecord, Language } from '../types';
 import { TreeNode, Member } from '../types';
 import { getGenderColor, formatDate, formatDateOfBirth, getMemberPictureUrl, formatDateTime, formatRelativeTime, getChangeTypeColor, getLocalizedLanguageName } from '../utils/helpers';
@@ -93,6 +94,8 @@ const TreePage: React.FC = () => {
   const { t, i18n } = useTranslation();
   const { hasRole } = useAuth();
   const { getPreferredName, getAllNamesFormatted, languages } = useLanguage();
+  const { treeId: treeIdParam } = useParams<{ treeId: string }>();
+  const treeId = Number(treeIdParam);
   const isSuperAdmin = hasRole(Roles.SUPER_ADMIN);
   const isRTL = i18n.dir() === 'rtl';
   const [searchParams, setSearchParams] = useSearchParams();
@@ -160,6 +163,13 @@ const TreePage: React.FC = () => {
 
   // Update URL params when state changes
   useEffect(() => {
+    if (Number.isFinite(treeId) && treeId > 0) {
+      setActiveTreeId(treeId);
+    }
+  }, [treeId]);
+
+  // Update URL params when state changes
+  useEffect(() => {
     const params = new URLSearchParams();
     params.set('view', viewMode);
     if (rootId !== undefined) {
@@ -177,12 +187,13 @@ const TreePage: React.FC = () => {
 
   // Load data based on view mode
   useEffect(() => {
+    if (!Number.isFinite(treeId) || treeId <= 0) return;
     if (viewMode === 'tree') {
       loadTree();
     } else if (viewMode === 'list') {
       loadListView();
     }
-  }, [rootId, viewMode, searchQuery]);
+  }, [treeId, rootId, viewMode, searchQuery]);
 
   const loadTree = async () => {
     setLoading(true);
@@ -577,6 +588,10 @@ const TreePage: React.FC = () => {
       }
     }
   };
+
+  if (!Number.isFinite(treeId) || treeId <= 0) {
+    return <Navigate to="/trees" replace />;
+  }
 
   return (
     <Layout>

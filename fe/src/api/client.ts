@@ -52,7 +52,7 @@ class ApiClient {
         }
 
         const currentPath = window.location.pathname;
-        const publicPaths = ['/login', '/auth', '/inactive', '/unauthorized'];
+        const publicPaths = ['/login', '/auth', '/inactive', '/unauthorized', '/public'];
         const isPublicPage = publicPaths.some(path => currentPath.startsWith(path));
 
         // Handle 401 - Unauthorized

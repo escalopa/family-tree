@@ -79,6 +79,7 @@ func NewApp(cfg *config.Config) (*App, error) {
 	sessionRepo := repository.NewSessionRepository(pool)
 	oauthStateRepo := repository.NewOAuthStateRepository(pool)
 	langPrefRepo := repository.NewUserLanguagePreferenceRepository(pool)
+	familyTreeRepo := repository.NewFamilyTreeRepository(pool)
 	memberRepo := repository.NewMemberRepository(pool)
 	spouseRepo := repository.NewSpouseRepository(pool)
 	historyRepo := repository.NewHistoryRepository(pool)
@@ -105,6 +106,7 @@ func NewApp(cfg *config.Config) (*App, error) {
 
 	authUseCase := usecase.NewAuthUseCase(userRepo, sessionRepo, oauthStateRepo, oauthManager, tokenMgr)
 	userUseCase := usecase.NewUserUseCase(userRepo, scoreRepo, historyRepo)
+	familyTreeUseCase := usecase.NewFamilyTreeUseCase(familyTreeRepo, userRepo)
 	memberUseCase := usecase.NewMemberUseCase(memberRepo, spouseRepo, historyRepo, scoreRepo, s3Client, txManager, marriageValidator, birthDateValidator, relationshipValidator)
 	spouseUseCase := usecase.NewSpouseUseCase(spouseRepo, memberRepo, historyRepo, scoreRepo, txManager, marriageValidator)
 	treeUseCase := usecase.NewTreeUseCase(memberRepo, spouseRepo)
@@ -112,9 +114,10 @@ func NewApp(cfg *config.Config) (*App, error) {
 
 	authHandler := handler.NewAuthHandler(authUseCase, userUseCase, cookieManager)
 	userHandler := handler.NewUserHandler(userUseCase)
-	memberHandler := handler.NewMemberHandler(memberUseCase, languageUseCase)
+	memberHandler := handler.NewMemberHandler(memberUseCase, languageUseCase, familyTreeUseCase)
 	spouseHandler := handler.NewSpouseHandler(spouseUseCase)
-	treeHandler := handler.NewTreeHandler(treeUseCase)
+	treeHandler := handler.NewTreeHandler(treeUseCase, familyTreeUseCase)
+	familyTreeHandler := handler.NewFamilyTreeHandler(familyTreeUseCase, treeUseCase)
 	languageHandler := handler.NewLanguageHandler(languageUseCase)
 
 	authMiddleware := middleware.NewAuthMiddleware(tokenMgr, authUseCase, userRepo, cookieManager)
@@ -129,6 +132,7 @@ func NewApp(cfg *config.Config) (*App, error) {
 		memberHandler,
 		spouseHandler,
 		treeHandler,
+		familyTreeHandler,
 		languageHandler,
 		authMiddleware,
 		cfg.Server.AllowedOrigins,

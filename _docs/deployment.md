@@ -97,7 +97,23 @@ GitHub Actions deploys from `main` only and uses an Object Storage bucket for
 Terraform state. That bucket and the CI service account are also Terraform
 resources, managed by `infra/yandex/bootstrap`.
 
-Run the bootstrap once from an authenticated local `yc` profile:
+This workstation may have a company-patched `yc` binary earlier on PATH. Use the
+repo-local public CLI container instead:
+
+```bash
+./scripts/yc-public.sh init \
+  --endpoint api.cloud.yandex.net:443 \
+  --federation-endpoint auth.yandex.cloud \
+  --username ahmedhelaly@yandex.ru
+
+./scripts/yc-public.sh resource-manager cloud get b1g00m03hogrja9p1rb0
+./scripts/yc-public.sh resource-manager folder get b1gkimk9k36atshi4uto
+```
+
+The container stores its profile in `.yc-public/`, which is gitignored.
+If browser callback handling is needed, retry with `YC_PUBLIC_HOST_NETWORK=1`.
+
+Run the bootstrap once from an authenticated public `yc` profile:
 
 ```bash
 export TF_VAR_cloud_id=b1g00m03hogrja9p1rb0
@@ -115,6 +131,12 @@ terraform -chdir=infra/yandex/bootstrap output -raw tf_state_access_key_id | gh 
 terraform -chdir=infra/yandex/bootstrap output -raw tf_state_secret_access_key | gh secret set TF_STATE_SECRET_ACCESS_KEY
 ```
 
+For this project, production Terraform state is stored in the shared bucket:
+
+```text
+s3://escalopa-tfstate/family-tree/prod/terraform.tfstate
+```
+
 The remaining production secrets must be supplied by you:
 
 ```bash
@@ -124,6 +146,8 @@ printf '%s' 'prj_baUersa3B9BrZ7v3Nakpko6iyL35' | gh secret set VERCEL_PROJECT_ID
 printf '%s' '<strong-jwt-secret>' | gh secret set JWT_SECRET
 printf '%s' '<google-oauth-client-id>' | gh secret set OAUTH_GOOGLE_CLIENT_ID
 printf '%s' '<google-oauth-client-secret>' | gh secret set OAUTH_GOOGLE_CLIENT_SECRET
+printf '%s' '<yandex-oauth-client-id>' | gh secret set OAUTH_YANDEX_CLIENT_ID
+printf '%s' '<yandex-oauth-client-secret>' | gh secret set OAUTH_YANDEX_CLIENT_SECRET
 ```
 
 Do not add these values to `.env`, tfvars, or committed files.
@@ -192,10 +216,10 @@ This value is used for CORS and OAuth callback URLs.
 
 ## Production Auth
 
-Production deploys use Google OAuth and do not enable mock auth or seed data:
+Production deploys use Google and Yandex OAuth and do not enable mock auth or seed data:
 
 ```hcl
-oauth_enabled_providers = "google"
+oauth_enabled_providers = "google,yandex"
 enable_mock_auth        = false
 seed_test_data          = false
 ```
@@ -212,6 +236,11 @@ the serverless container as environment variables.
 - Yandex Cloud resources are created or updated through Terraform only.
 
 ## YDB Migration Work
+
+Current status: Terraform provisions YDB and injects YDB metadata into the
+serverless container, but the Go backend data layer is still implemented with
+`pgx`/PostgreSQL repositories. Do not merge/deploy production as fully
+functional until this section is complete.
 
 To make the backend fully functional on YDB/YQL:
 

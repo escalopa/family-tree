@@ -14,6 +14,7 @@ type Router struct {
 	memberHandler             MemberHandler
 	spouseHandler             SpouseHandler
 	treeHandler               TreeHandler
+	familyTreeHandler         FamilyTreeHandler
 	languageHandler           LanguageHandler
 	authMiddleware            AuthMiddleware
 	allowedOrigins            []string
@@ -29,6 +30,7 @@ func NewRouter(
 	memberHandler MemberHandler,
 	spouseHandler SpouseHandler,
 	treeHandler TreeHandler,
+	familyTreeHandler FamilyTreeHandler,
 	languageHandler LanguageHandler,
 	authMiddleware AuthMiddleware,
 	allowedOrigins []string,
@@ -43,6 +45,7 @@ func NewRouter(
 		memberHandler:             memberHandler,
 		spouseHandler:             spouseHandler,
 		treeHandler:               treeHandler,
+		familyTreeHandler:         familyTreeHandler,
 		languageHandler:           languageHandler,
 		authMiddleware:            authMiddleware,
 		allowedOrigins:            allowedOrigins,
@@ -63,6 +66,8 @@ func (r *Router) Setup(engine *gin.Engine) {
 	engine.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{"status": "ok"})
 	})
+
+	engine.GET("/public/trees/:token", r.familyTreeHandler.GetPublicTree)
 
 	auth := engine.Group("/auth")
 	auth.Use(r.authRateLimitMiddleware.RateLimit())
@@ -97,29 +102,33 @@ func (r *Router) Setup(engine *gin.Engine) {
 			userGroup.PUT("/:user_id", middleware.RequireRole(domain.RoleSuperAdmin), r.userHandler.Update)
 		}
 
-		treeGroup := api.Group("/tree")
-		treeGroup.Use(middleware.RequireActive())
+		familyTreeGroup := api.Group("/family-trees")
+		familyTreeGroup.Use(middleware.RequireActive())
 		{
-			treeGroup.GET("", r.treeHandler.GetTree)
-			treeGroup.GET("/relation", r.treeHandler.GetRelation)
-		}
-
-		memberGroup := api.Group("/members")
-		memberGroup.Use(middleware.RequireActive())
-		{
-			memberGroup.GET("", r.memberHandler.List)
-			memberGroup.GET("/search", r.memberHandler.List)
-			memberGroup.GET("/history", middleware.RequireRole(domain.RoleSuperAdmin), r.memberHandler.ListHistory)
-			memberGroup.GET("/:member_id", r.memberHandler.Get)
-			memberGroup.GET("/:member_id/picture", middleware.RequireRole(domain.RoleAdmin), r.memberHandler.GetPicture)
-
-			memberGroup.POST("", middleware.RequireRole(domain.RoleAdmin), r.memberHandler.Create)
-			memberGroup.POST("/:member_id/rollback", middleware.RequireRole(domain.RoleSuperAdmin), r.memberHandler.Rollback)
-			memberGroup.PUT("/:member_id", middleware.RequireRole(domain.RoleAdmin), r.memberHandler.Update)
-			memberGroup.DELETE("/:member_id", middleware.RequireRole(domain.RoleSuperAdmin), r.memberHandler.Delete)
-
-			memberGroup.POST("/:member_id/picture", r.uploadRateLimitMiddleware.RateLimit(), middleware.RequireRole(domain.RoleAdmin), r.memberHandler.UploadPicture)
-			memberGroup.DELETE("/:member_id/picture", middleware.RequireRole(domain.RoleAdmin), r.memberHandler.DeletePicture)
+			familyTreeGroup.GET("", r.familyTreeHandler.List)
+			familyTreeGroup.POST("", r.familyTreeHandler.Create)
+			familyTreeGroup.GET("/invitations", r.familyTreeHandler.ListMyInvitations)
+			familyTreeGroup.POST("/invitations/:invitation_id/accept", r.familyTreeHandler.AcceptInvitation)
+			familyTreeGroup.POST("/invitations/:invitation_id/decline", r.familyTreeHandler.DeclineInvitation)
+			familyTreeGroup.GET("/:tree_id", r.familyTreeHandler.Get)
+			familyTreeGroup.GET("/:tree_id/tree", r.treeHandler.GetTree)
+			familyTreeGroup.GET("/:tree_id/tree/relation", r.treeHandler.GetRelation)
+			familyTreeGroup.GET("/:tree_id/members", r.memberHandler.List)
+			familyTreeGroup.GET("/:tree_id/members/search", r.memberHandler.List)
+			familyTreeGroup.GET("/:tree_id/members/history", middleware.RequireRole(domain.RoleSuperAdmin), r.memberHandler.ListHistory)
+			familyTreeGroup.GET("/:tree_id/members/:member_id", r.memberHandler.Get)
+			familyTreeGroup.GET("/:tree_id/members/:member_id/picture", middleware.RequireRole(domain.RoleAdmin), r.memberHandler.GetPicture)
+			familyTreeGroup.POST("/:tree_id/members", middleware.RequireRole(domain.RoleAdmin), r.memberHandler.Create)
+			familyTreeGroup.POST("/:tree_id/members/:member_id/rollback", middleware.RequireRole(domain.RoleSuperAdmin), r.memberHandler.Rollback)
+			familyTreeGroup.PUT("/:tree_id/members/:member_id", middleware.RequireRole(domain.RoleAdmin), r.memberHandler.Update)
+			familyTreeGroup.DELETE("/:tree_id/members/:member_id", middleware.RequireRole(domain.RoleSuperAdmin), r.memberHandler.Delete)
+			familyTreeGroup.POST("/:tree_id/members/:member_id/picture", r.uploadRateLimitMiddleware.RateLimit(), middleware.RequireRole(domain.RoleAdmin), r.memberHandler.UploadPicture)
+			familyTreeGroup.DELETE("/:tree_id/members/:member_id/picture", middleware.RequireRole(domain.RoleAdmin), r.memberHandler.DeletePicture)
+			familyTreeGroup.POST("/:tree_id/invitations", r.familyTreeHandler.Invite)
+			familyTreeGroup.GET("/:tree_id/invitations", r.familyTreeHandler.ListInvitations)
+			familyTreeGroup.POST("/:tree_id/share-links", r.familyTreeHandler.CreateShareLink)
+			familyTreeGroup.GET("/:tree_id/share-links", r.familyTreeHandler.ListShareLinks)
+			familyTreeGroup.DELETE("/:tree_id/share-links/:share_id", r.familyTreeHandler.RevokeShareLink)
 		}
 
 		spouseGroup := api.Group("/spouses")

@@ -1,7 +1,7 @@
 terraform {
   backend "s3" {
-    bucket = "family-tree-b1gkimk9k36atshi4uto-tfstate"
-    key    = "prod/terraform.tfstate"
+    bucket = "escalopa-tfstate"
+    key    = "family-tree/prod/terraform.tfstate"
     region = "ru-central1"
 
     endpoint                    = "https://storage.yandexcloud.net"

@@ -35,6 +35,7 @@ type MemberListQuery struct {
 
 type MemberListItem struct {
 	MemberID    int               `json:"member_id"`
+	TreeID      int               `json:"tree_id"`
 	Name        string            `json:"name"`
 	Names       map[string]string `json:"names,omitempty"`
 	Gender      string            `json:"gender"`
@@ -58,6 +59,7 @@ type MemberInfo struct {
 
 type MemberResponse struct {
 	MemberID        int               `json:"member_id"`
+	TreeID          int               `json:"tree_id"`
 	Name            string            `json:"name"`                 // Name in user's preferred language
 	Names           map[string]string `json:"names"`                // language_code -> name (for editing)
 	FullName        string            `json:"full_name,omitempty"`  // Full name in user's preferred language

@@ -48,6 +48,7 @@ build/
 
 # Local generated artifacts
 _artifacts/
+.yc-public/
 
 # Terraform working directories
 **/.terraform/

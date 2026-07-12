@@ -12,6 +12,7 @@ type AuthTokens struct {
 }
 
 type MemberFilter struct {
+	TreeID      int
 	Name        *string
 	ArabicName  *string
 	EnglishName *string

@@ -9,25 +9,37 @@ import (
 )
 
 type treeHandler struct {
-	treeUseCase TreeUseCase
+	treeUseCase       TreeUseCase
+	familyTreeUseCase FamilyTreeUseCase
 }
 
-func NewTreeHandler(treeUseCase TreeUseCase) *treeHandler {
-	return &treeHandler{treeUseCase: treeUseCase}
+func NewTreeHandler(treeUseCase TreeUseCase, familyTreeUseCase FamilyTreeUseCase) *treeHandler {
+	return &treeHandler{treeUseCase: treeUseCase, familyTreeUseCase: familyTreeUseCase}
 }
 
 func (h *treeHandler) GetTree(c *gin.Context) {
+	var uri dto.TreeIDUri
+	if err := c.ShouldBindUri(&uri); err != nil {
+		delivery.Error(c, err)
+		return
+	}
+
 	var query dto.TreeQuery
 	if err := c.ShouldBindQuery(&query); err != nil {
 		delivery.Error(c, err)
 		return
 	}
 
+	userID := middleware.GetUserID(c)
 	userRole := middleware.GetUserRole(c)
+	if err := h.familyTreeUseCase.EnsureAccess(c.Request.Context(), uri.TreeID, userID); err != nil {
+		delivery.Error(c, err)
+		return
+	}
 
 	// Check style
 	if query.Style == "list" {
-		members, err := h.treeUseCase.List(c.Request.Context(), query.RootID, userRole)
+		members, err := h.treeUseCase.List(c.Request.Context(), uri.TreeID, query.RootID, userRole)
 		if err != nil {
 			delivery.Error(c, err)
 			return
@@ -53,7 +65,7 @@ func (h *treeHandler) GetTree(c *gin.Context) {
 		return
 	}
 
-	tree, err := h.treeUseCase.Get(c.Request.Context(), query.RootID, userRole)
+	tree, err := h.treeUseCase.Get(c.Request.Context(), uri.TreeID, query.RootID, userRole)
 	if err != nil {
 		delivery.Error(c, err)
 		return
@@ -69,15 +81,26 @@ func (h *treeHandler) GetTree(c *gin.Context) {
 }
 
 func (h *treeHandler) GetRelation(c *gin.Context) {
+	var uri dto.TreeIDUri
+	if err := c.ShouldBindUri(&uri); err != nil {
+		delivery.Error(c, err)
+		return
+	}
+
 	var query dto.RelationQuery
 	if err := c.ShouldBindQuery(&query); err != nil {
 		delivery.Error(c, err)
 		return
 	}
 
+	userID := middleware.GetUserID(c)
 	userRole := middleware.GetUserRole(c)
+	if err := h.familyTreeUseCase.EnsureAccess(c.Request.Context(), uri.TreeID, userID); err != nil {
+		delivery.Error(c, err)
+		return
+	}
 
-	tree, err := h.treeUseCase.GetRelation(c.Request.Context(), query.Member1ID, query.Member2ID, userRole)
+	tree, err := h.treeUseCase.GetRelation(c.Request.Context(), uri.TreeID, query.Member1ID, query.Member2ID, userRole)
 	if err != nil {
 		delivery.Error(c, err)
 		return

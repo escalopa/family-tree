@@ -4,6 +4,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"strings"
 
 	"github.com/escalopa/family-tree/internal/delivery"
 	"github.com/escalopa/family-tree/internal/delivery/http/dto"
@@ -13,15 +14,47 @@ import (
 )
 
 type memberHandler struct {
-	memberUseCase   MemberUseCase
-	languageUseCase LanguageUseCase
+	memberUseCase     MemberUseCase
+	languageUseCase   LanguageUseCase
+	familyTreeUseCase FamilyTreeUseCase
 }
 
-func NewMemberHandler(memberUseCase MemberUseCase, languageUseCase LanguageUseCase) *memberHandler {
+func NewMemberHandler(memberUseCase MemberUseCase, languageUseCase LanguageUseCase, familyTreeUseCase FamilyTreeUseCase) *memberHandler {
 	return &memberHandler{
-		memberUseCase:   memberUseCase,
-		languageUseCase: languageUseCase,
+		memberUseCase:     memberUseCase,
+		languageUseCase:   languageUseCase,
+		familyTreeUseCase: familyTreeUseCase,
 	}
+}
+
+func (h *memberHandler) requireTreeAccess(c *gin.Context) (int, bool) {
+	var uri dto.TreeIDUri
+	if err := c.ShouldBindUri(&uri); err != nil {
+		delivery.Error(c, err)
+		return 0, false
+	}
+	if err := h.familyTreeUseCase.EnsureAccess(c.Request.Context(), uri.TreeID, middleware.GetUserID(c)); err != nil {
+		delivery.Error(c, err)
+		return 0, false
+	}
+	return uri.TreeID, true
+}
+
+func (h *memberHandler) requireMemberInTree(c *gin.Context, memberID int) (*domain.Member, int, bool) {
+	treeID, ok := h.requireTreeAccess(c)
+	if !ok {
+		return nil, 0, false
+	}
+	member, err := h.memberUseCase.Get(c.Request.Context(), memberID)
+	if err != nil {
+		delivery.Error(c, err)
+		return nil, 0, false
+	}
+	if member.TreeID != treeID {
+		delivery.Error(c, domain.NewNotFoundError("member"))
+		return nil, 0, false
+	}
+	return member, treeID, true
 }
 
 func (h *memberHandler) validateNames(c *gin.Context, names map[string]string) error {
@@ -60,6 +93,11 @@ func (h *memberHandler) validateNames(c *gin.Context, names map[string]string) e
 // @Failure 500 {object} dto.Response
 // @Router /api/members [post]
 func (h *memberHandler) Create(c *gin.Context) {
+	treeID, ok := h.requireTreeAccess(c)
+	if !ok {
+		return
+	}
+
 	var req dto.CreateMemberRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		delivery.Error(c, err)
@@ -76,6 +114,7 @@ func (h *memberHandler) Create(c *gin.Context) {
 	}
 
 	member := &domain.Member{
+		TreeID:      treeID,
 		Names:       req.Names,
 		Gender:      req.Gender,
 		DateOfBirth: req.DateOfBirth.ToTimePtr(),
@@ -117,9 +156,8 @@ func (h *memberHandler) Update(c *gin.Context) {
 		return
 	}
 
-	existingMember, err := h.memberUseCase.Get(c.Request.Context(), uri.MemberID)
-	if err != nil {
-		delivery.Error(c, err)
+	existingMember, treeID, ok := h.requireMemberInTree(c, uri.MemberID)
+	if !ok {
 		return
 	}
 
@@ -130,6 +168,7 @@ func (h *memberHandler) Update(c *gin.Context) {
 
 	member := &domain.Member{
 		MemberID:    uri.MemberID,
+		TreeID:      treeID,
 		Names:       req.Names,
 		Gender:      req.Gender,
 		Picture:     existingMember.Picture,
@@ -156,6 +195,10 @@ func (h *memberHandler) Delete(c *gin.Context) {
 	var uri dto.MemberIDUri
 	if err := c.ShouldBindUri(&uri); err != nil {
 		delivery.Error(c, err)
+		return
+	}
+
+	if _, _, ok := h.requireMemberInTree(c, uri.MemberID); !ok {
 		return
 	}
 
@@ -188,9 +231,8 @@ func (h *memberHandler) Get(c *gin.Context) {
 		return
 	}
 
-	member, err := h.memberUseCase.Get(c.Request.Context(), uri.MemberID)
-	if err != nil {
-		delivery.Error(c, err)
+	member, _, ok := h.requireMemberInTree(c, uri.MemberID)
+	if !ok {
 		return
 	}
 
@@ -263,6 +305,7 @@ func (h *memberHandler) Get(c *gin.Context) {
 
 	response := dto.MemberResponse{
 		MemberID:        computed.MemberID,
+		TreeID:          computed.TreeID,
 		Name:            extractName(computed.Names, preferredLang),
 		Names:           computed.Names,
 		FullName:        extractName(computed.FullNames, preferredLang),
@@ -308,6 +351,11 @@ func (h *memberHandler) Get(c *gin.Context) {
 // @Failure 500 {object} dto.Response
 // @Router /api/members/search [get]
 func (h *memberHandler) List(c *gin.Context) {
+	treeID, ok := h.requireTreeAccess(c)
+	if !ok {
+		return
+	}
+
 	var query dto.MemberListQuery
 	if err := c.ShouldBindQuery(&query); err != nil {
 		delivery.Error(c, err)
@@ -315,6 +363,7 @@ func (h *memberHandler) List(c *gin.Context) {
 	}
 
 	filter := domain.MemberFilter{
+		TreeID:      treeID,
 		Name:        query.Name,
 		ArabicName:  query.ArabicName,
 		EnglishName: query.EnglishName,
@@ -322,7 +371,7 @@ func (h *memberHandler) List(c *gin.Context) {
 		IsMarried:   query.Married,
 	}
 
-	isSearchEndpoint := c.FullPath() == "/api/members/search"
+	isSearchEndpoint := strings.HasSuffix(c.FullPath(), "/members/search")
 	if isSearchEndpoint {
 		if query.Name == nil && query.ArabicName == nil && query.EnglishName == nil && query.Gender == nil && query.Married == nil {
 			delivery.Error(c, domain.NewValidationError("error.validation.at_least_one_filter_required"))
@@ -346,6 +395,7 @@ func (h *memberHandler) List(c *gin.Context) {
 	for _, m := range members {
 		membersResponse = append(membersResponse, dto.MemberListItem{
 			MemberID:    m.MemberID,
+			TreeID:      m.TreeID,
 			Name:        extractName(m.Names, preferredLang),
 			Names:       m.Names,
 			Gender:      m.Gender,
@@ -365,9 +415,24 @@ func (h *memberHandler) List(c *gin.Context) {
 }
 
 func (h *memberHandler) ListHistory(c *gin.Context) {
+	treeID, ok := h.requireTreeAccess(c)
+	if !ok {
+		return
+	}
+
 	var query dto.MemberHistoryQuery
 	if err := c.ShouldBindQuery(&query); err != nil {
 		delivery.Error(c, err)
+		return
+	}
+
+	member, err := h.memberUseCase.Get(c.Request.Context(), query.MemberID)
+	if err != nil {
+		delivery.Error(c, err)
+		return
+	}
+	if member.TreeID != treeID {
+		delivery.Error(c, domain.NewNotFoundError("member"))
 		return
 	}
 
@@ -410,6 +475,9 @@ func (h *memberHandler) Rollback(c *gin.Context) {
 		delivery.Error(c, err)
 		return
 	}
+	if _, _, ok := h.requireMemberInTree(c, uri.MemberID); !ok {
+		return
+	}
 
 	var req dto.RollbackMemberRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -430,6 +498,9 @@ func (h *memberHandler) UploadPicture(c *gin.Context) {
 	var uri dto.MemberIDUri
 	if err := c.ShouldBindUri(&uri); err != nil {
 		delivery.Error(c, err)
+		return
+	}
+	if _, _, ok := h.requireMemberInTree(c, uri.MemberID); !ok {
 		return
 	}
 
@@ -465,6 +536,9 @@ func (h *memberHandler) DeletePicture(c *gin.Context) {
 		delivery.Error(c, err)
 		return
 	}
+	if _, _, ok := h.requireMemberInTree(c, uri.MemberID); !ok {
+		return
+	}
 
 	userID := middleware.GetUserID(c)
 	if err := h.memberUseCase.DeletePicture(c.Request.Context(), uri.MemberID, userID); err != nil {
@@ -479,6 +553,9 @@ func (h *memberHandler) GetPicture(c *gin.Context) {
 	var uri dto.MemberIDUri
 	if err := c.ShouldBindUri(&uri); err != nil {
 		delivery.Error(c, err)
+		return
+	}
+	if _, _, ok := h.requireMemberInTree(c, uri.MemberID); !ok {
 		return
 	}
 

@@ -116,6 +116,7 @@ const TreeVisualization: React.FC<TreeVisualizationProps> = ({ data, onNodeClick
               y: node.y,
               member: {
                 member_id: spouse.member_id,
+                tree_id: member.tree_id,
                 name: spouse.name,
                 names: spouse.names || {},
                 gender: spouse.gender,

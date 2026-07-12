@@ -87,13 +87,13 @@ func (r *MemberRepository) createTx(ctx context.Context, member *domain.Member) 
 	querier := getQuerier(ctx, r.db)
 
 	query := `
-		INSERT INTO members (gender, picture, date_of_birth, date_of_death,
+		INSERT INTO members (tree_id, gender, picture, date_of_birth, date_of_death,
 		                     father_id, mother_id, nicknames, profession, version)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 1)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 1)
 		RETURNING member_id, version
 	`
 	err := querier.QueryRow(ctx, query,
-		member.Gender, member.Picture,
+		member.TreeID, member.Gender, member.Picture,
 		member.DateOfBirth, member.DateOfDeath, member.FatherID, member.MotherID,
 		member.Nicknames, member.Profession,
 	).Scan(&member.MemberID, &member.Version)
@@ -120,14 +120,14 @@ func (r *MemberRepository) createTx(ctx context.Context, member *domain.Member) 
 
 func (r *MemberRepository) Get(ctx context.Context, memberID int) (*domain.Member, error) {
 	query := `
-		SELECT member_id, gender, picture, date_of_birth, date_of_death,
+		SELECT member_id, tree_id, gender, picture, date_of_birth, date_of_death,
 		       father_id, mother_id, nicknames, profession, version, deleted_at
 		FROM members
 		WHERE member_id = $1 AND deleted_at IS NULL
 	`
 	member := &domain.Member{}
 	err := r.db.QueryRow(ctx, query, memberID).Scan(
-		&member.MemberID, &member.Gender,
+		&member.MemberID, &member.TreeID, &member.Gender,
 		&member.Picture, &member.DateOfBirth, &member.DateOfDeath, &member.FatherID,
 		&member.MotherID, &member.Nicknames, &member.Profession, &member.Version, &member.DeletedAt,
 	)
@@ -273,38 +273,39 @@ func (r *MemberRepository) DeletePicture(ctx context.Context, memberID int) erro
 
 func (r *MemberRepository) List(ctx context.Context, filter domain.MemberFilter, cursor *string, limit int) ([]*domain.Member, *string, error) {
 	query := `
-		SELECT DISTINCT m.member_id, m.gender, m.picture, m.date_of_birth,
+		SELECT DISTINCT m.member_id, m.tree_id, m.gender, m.picture, m.date_of_birth,
 		       m.date_of_death, m.father_id, m.mother_id, m.nicknames, m.profession, m.version, m.deleted_at,
 		       CASE WHEN COUNT(ms.spouse_id) > 0 THEN true ELSE false END as is_married
 		FROM members m
 		LEFT JOIN members_spouse ms ON (m.member_id = ms.father_id OR m.member_id = ms.mother_id) AND ms.deleted_at IS NULL
 		LEFT JOIN member_names mn ON m.member_id = mn.member_id
-		WHERE m.deleted_at IS NULL
-		  AND (($1::text IS NULL) OR m.member_id > $1::int)
-		  AND (($2::text IS NULL) OR (mn.name ILIKE '%' || $2 || '%'))
-		  AND (($3::text IS NULL) OR EXISTS (
+		WHERE m.tree_id = $1
+		  AND m.deleted_at IS NULL
+		  AND (($2::text IS NULL) OR m.member_id > $2::int)
+		  AND (($3::text IS NULL) OR (mn.name ILIKE '%' || $3 || '%'))
+		  AND (($4::text IS NULL) OR EXISTS (
 		    SELECT 1 FROM member_names ar_name
 		    WHERE ar_name.member_id = m.member_id
 		      AND ar_name.language_code = 'ar'
-		      AND ar_name.name ILIKE $3 || '%'
+		      AND ar_name.name ILIKE $4 || '%'
 		  ))
-		  AND (($4::text IS NULL) OR EXISTS (
+		  AND (($5::text IS NULL) OR EXISTS (
 		    SELECT 1 FROM member_names en_name
 		    WHERE en_name.member_id = m.member_id
 		      AND en_name.language_code = 'en'
-		      AND en_name.name ILIKE $4 || '%'
+		      AND en_name.name ILIKE $5 || '%'
 		  ))
-		  AND (($5::text IS NULL) OR m.gender = $5)
-		  AND (($6::boolean IS NULL) OR (
+		  AND (($6::text IS NULL) OR m.gender = $6)
+		  AND (($7::boolean IS NULL) OR (
 		    CASE
-		      WHEN $6 = true THEN (ms.father_id IS NOT NULL OR ms.mother_id IS NOT NULL)
+		      WHEN $7 = true THEN (ms.father_id IS NOT NULL OR ms.mother_id IS NOT NULL)
 		      ELSE (ms.father_id IS NULL AND ms.mother_id IS NULL)
 		    END
 		  ))
-		GROUP BY m.member_id, m.gender, m.picture, m.date_of_birth,
+		GROUP BY m.member_id, m.tree_id, m.gender, m.picture, m.date_of_birth,
 		         m.date_of_death, m.father_id, m.mother_id, m.nicknames, m.profession, m.version, m.deleted_at
 		ORDER BY m.member_id
-		LIMIT $7
+		LIMIT $8
 	`
 
 	var cursorValue *string
@@ -313,6 +314,7 @@ func (r *MemberRepository) List(ctx context.Context, filter domain.MemberFilter,
 	}
 
 	rows, err := r.db.Query(ctx, query,
+		filter.TreeID,
 		cursorValue,
 		filter.Name,
 		filter.ArabicName,
@@ -331,7 +333,7 @@ func (r *MemberRepository) List(ctx context.Context, filter domain.MemberFilter,
 	for rows.Next() {
 		member := &domain.Member{}
 		err := rows.Scan(
-			&member.MemberID, &member.Gender,
+			&member.MemberID, &member.TreeID, &member.Gender,
 			&member.Picture, &member.DateOfBirth, &member.DateOfDeath, &member.FatherID,
 			&member.MotherID, &member.Nicknames, &member.Profession, &member.Version, &member.DeletedAt,
 			&member.IsMarried,
@@ -384,6 +386,50 @@ func (r *MemberRepository) GetAll(ctx context.Context) ([]*domain.Member, error)
 		member := &domain.Member{}
 		err := rows.Scan(
 			&member.MemberID, &member.Gender,
+			&member.Picture, &member.DateOfBirth, &member.DateOfDeath, &member.FatherID,
+			&member.MotherID, &member.Nicknames, &member.Profession, &member.Version, &member.DeletedAt,
+		)
+		if err != nil {
+			return nil, domain.NewDatabaseError(err)
+		}
+		members = append(members, member)
+		memberIDs = append(memberIDs, member.MemberID)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, domain.NewDatabaseError(err)
+	}
+
+	namesMap, err := r.GetMemberNamesByIDs(ctx, memberIDs)
+	if err != nil {
+		return nil, err
+	}
+	for _, member := range members {
+		member.Names = namesMap[member.MemberID]
+	}
+
+	return members, nil
+}
+
+func (r *MemberRepository) GetAllByTreeID(ctx context.Context, treeID int) ([]*domain.Member, error) {
+	query := `
+		SELECT member_id, tree_id, gender, picture, date_of_birth, date_of_death,
+		       father_id, mother_id, nicknames, profession, version, deleted_at
+		FROM members
+		WHERE tree_id = $1 AND deleted_at IS NULL
+		ORDER BY member_id
+	`
+	rows, err := r.db.Query(ctx, query, treeID)
+	if err != nil {
+		return nil, domain.NewDatabaseError(err)
+	}
+	defer rows.Close()
+
+	var members []*domain.Member
+	var memberIDs []int
+	for rows.Next() {
+		member := &domain.Member{}
+		err := rows.Scan(
+			&member.MemberID, &member.TreeID, &member.Gender,
 			&member.Picture, &member.DateOfBirth, &member.DateOfDeath, &member.FatherID,
 			&member.MotherID, &member.Nicknames, &member.Profession, &member.Version, &member.DeletedAt,
 		)

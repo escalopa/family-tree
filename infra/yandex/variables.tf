@@ -48,7 +48,7 @@ variable "frontend_origin" {
 variable "oauth_enabled_providers" {
   description = "Comma-separated OAuth providers for production."
   type        = string
-  default     = "google"
+  default     = "google,yandex"
 }
 
 variable "enable_mock_auth" {
@@ -70,6 +70,17 @@ variable "oauth_google_client_id" {
 
 variable "oauth_google_client_secret" {
   description = "Google OAuth client secret for production login."
+  type        = string
+  sensitive   = true
+}
+
+variable "oauth_yandex_client_id" {
+  description = "Yandex OAuth client ID for production login."
+  type        = string
+}
+
+variable "oauth_yandex_client_secret" {
+  description = "Yandex OAuth client secret for production login."
   type        = string
   sensitive   = true
 }

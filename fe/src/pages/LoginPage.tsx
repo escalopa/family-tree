@@ -49,7 +49,7 @@ const LoginPage: React.FC = () => {
   useEffect(() => {
     // Redirect to home if already logged in
     if (!loading && user) {
-      navigate('/tree', { replace: true });
+      navigate('/trees', { replace: true });
     }
   }, [user, loading, navigate]);
 

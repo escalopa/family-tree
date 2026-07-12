@@ -127,8 +127,11 @@ export const getMemberPictureUrl = (memberId: number, pictureKey: string | null,
 
   // Get the API base URL from environment or default to current origin
   const apiUrl = import.meta.env.VITE_API_URL || window.location.origin;
+  const treeId = localStorage.getItem('active_tree_id');
   const versionParam = version ? `?v=${version}` : '';
-  return `${apiUrl}/api/members/${memberId}/picture${versionParam}`;
+  return treeId
+    ? `${apiUrl}/api/family-trees/${treeId}/members/${memberId}/picture${versionParam}`
+    : `${apiUrl}/api/members/${memberId}/picture${versionParam}`;
 };
 
 export const debounce = <T extends (...args: any[]) => any>(

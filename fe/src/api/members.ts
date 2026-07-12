@@ -6,10 +6,12 @@ import {
   CreateMemberRequest,
   UpdateMemberRequest,
 } from '../types';
+import { getActiveTreeId } from './treeScope';
 
 export const membersApi = {
   getMember: async (memberId: number): Promise<Member> => {
-    const response = await apiClient.get(`/api/members/${memberId}`);
+    const treeId = getActiveTreeId();
+    const response = await apiClient.get(`/api/family-trees/${treeId}/members/${memberId}`);
     return response.data.data;
   },
 
@@ -22,7 +24,8 @@ export const membersApi = {
     cursor?: string;
     limit?: number;
   }): Promise<{ members: MemberListItem[]; next_cursor?: string }> => {
-    const response = await apiClient.get('/api/members', { params });
+    const treeId = getActiveTreeId();
+    const response = await apiClient.get(`/api/family-trees/${treeId}/members`, { params });
     return response.data.data;
   },
 
@@ -34,39 +37,46 @@ export const membersApi = {
     married?: boolean;
     limit?: number;
   }): Promise<{ members: MemberListItem[]; next_cursor?: string }> => {
-    const response = await apiClient.get('/api/members/search', { params });
+    const treeId = getActiveTreeId();
+    const response = await apiClient.get(`/api/family-trees/${treeId}/members/search`, { params });
     return response.data.data;
   },
 
   getMemberHistory: async (memberId: number, cursor?: string): Promise<PaginatedHistoryResponse> => {
-    const response = await apiClient.get('/api/members/history', {
+    const treeId = getActiveTreeId();
+    const response = await apiClient.get(`/api/family-trees/${treeId}/members/history`, {
       params: { member_id: memberId, cursor },
     });
     return response.data.data;
   },
 
   createMember: async (data: CreateMemberRequest): Promise<Member> => {
-    const response = await apiClient.post('/api/members', data);
+    const treeId = getActiveTreeId();
+    const response = await apiClient.post(`/api/family-trees/${treeId}/members`, data);
     return response.data.data;
   },
 
   updateMember: async (memberId: number, data: UpdateMemberRequest): Promise<Member> => {
-    const response = await apiClient.put(`/api/members/${memberId}`, data);
+    const treeId = getActiveTreeId();
+    const response = await apiClient.put(`/api/family-trees/${treeId}/members/${memberId}`, data);
     return response.data.data;
   },
 
   rollbackMember: async (memberId: number, historyId: number): Promise<void> => {
-    await apiClient.post(`/api/members/${memberId}/rollback`, { history_id: historyId });
+    const treeId = getActiveTreeId();
+    await apiClient.post(`/api/family-trees/${treeId}/members/${memberId}/rollback`, { history_id: historyId });
   },
 
   deleteMember: async (memberId: number): Promise<void> => {
-    await apiClient.delete(`/api/members/${memberId}`);
+    const treeId = getActiveTreeId();
+    await apiClient.delete(`/api/family-trees/${treeId}/members/${memberId}`);
   },
 
   uploadPicture: async (memberId: number, file: File): Promise<string> => {
     const formData = new FormData();
     formData.append('picture', file);
-    const response = await apiClient.post(`/api/members/${memberId}/picture`, formData, {
+    const treeId = getActiveTreeId();
+    const response = await apiClient.post(`/api/family-trees/${treeId}/members/${memberId}/picture`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -75,6 +85,7 @@ export const membersApi = {
   },
 
   deletePicture: async (memberId: number): Promise<void> => {
-    await apiClient.delete(`/api/members/${memberId}`);
+    const treeId = getActiveTreeId();
+    await apiClient.delete(`/api/family-trees/${treeId}/members/${memberId}/picture`);
   },
 };

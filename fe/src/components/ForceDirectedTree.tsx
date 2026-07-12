@@ -94,6 +94,7 @@ const ForceDirectedTree: React.FC<ForceDirectedTreeProps> = ({
         treeNode.member.spouses.forEach((spouse) => {
           const spouseMember: Member = {
             member_id: spouse.member_id,
+            tree_id: treeNode.member.tree_id,
             name: spouse.name,
             names: {},
             gender: spouse.gender,
