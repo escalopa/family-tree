@@ -45,6 +45,9 @@ jobs:
       - name: Download dependencies
         run: go mod download
 
+      - name: Generate Swagger docs
+        run: go run github.com/swaggo/swag/cmd/swag@v1.16.6 init -g cmd/main.go -o docs
+
       - name: Test
         run: go test ./...
 
