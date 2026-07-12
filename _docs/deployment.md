@@ -122,8 +122,8 @@ printf '%s' '<vercel-token>' | gh secret set VERCEL_TOKEN
 printf '%s' 'team_nKYA059W7ZnhVw72wPcXyky8' | gh secret set VERCEL_ORG_ID
 printf '%s' 'prj_baUersa3B9BrZ7v3Nakpko6iyL35' | gh secret set VERCEL_PROJECT_ID
 printf '%s' '<strong-jwt-secret>' | gh secret set JWT_SECRET
-printf '%s' '<yandex-oauth-client-id>' | gh secret set OAUTH_YANDEX_CLIENT_ID
-printf '%s' '<yandex-oauth-client-secret>' | gh secret set OAUTH_YANDEX_CLIENT_SECRET
+printf '%s' '<google-oauth-client-id>' | gh secret set OAUTH_GOOGLE_CLIENT_ID
+printf '%s' '<google-oauth-client-secret>' | gh secret set OAUTH_GOOGLE_CLIENT_SECRET
 ```
 
 Do not add these values to `.env`, tfvars, or committed files.
@@ -192,10 +192,10 @@ This value is used for CORS and OAuth callback URLs.
 
 ## Production Auth
 
-Production deploys use Yandex OAuth and do not enable mock auth or seed data:
+Production deploys use Google OAuth and do not enable mock auth or seed data:
 
 ```hcl
-oauth_enabled_providers = "yandex"
+oauth_enabled_providers = "google"
 enable_mock_auth        = false
 seed_test_data          = false
 ```

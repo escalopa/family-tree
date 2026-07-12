@@ -21,7 +21,7 @@ env:
   TF_VAR_zone: ru-central1-a
   TF_VAR_name_prefix: family-tree
   TF_VAR_frontend_origin: https://family.escalopa.com
-  TF_VAR_oauth_enabled_providers: yandex
+  TF_VAR_oauth_enabled_providers: google
   TF_VAR_enable_mock_auth: "false"
   TF_VAR_seed_test_data: "false"
 
@@ -131,8 +131,8 @@ jobs:
     env:
       TF_VAR_container_image_tag: ${{ github.sha }}
       TF_VAR_jwt_secret: ${{ secrets.JWT_SECRET }}
-      TF_VAR_oauth_yandex_client_id: ${{ secrets.OAUTH_YANDEX_CLIENT_ID }}
-      TF_VAR_oauth_yandex_client_secret: ${{ secrets.OAUTH_YANDEX_CLIENT_SECRET }}
+      TF_VAR_oauth_google_client_id: ${{ secrets.OAUTH_GOOGLE_CLIENT_ID }}
+      TF_VAR_oauth_google_client_secret: ${{ secrets.OAUTH_GOOGLE_CLIENT_SECRET }}
       VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
       VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
     steps:
@@ -147,8 +147,8 @@ jobs:
             TF_STATE_ACCESS_KEY_ID \
             TF_STATE_SECRET_ACCESS_KEY \
             JWT_SECRET \
-            OAUTH_YANDEX_CLIENT_ID \
-            OAUTH_YANDEX_CLIENT_SECRET \
+            OAUTH_GOOGLE_CLIENT_ID \
+            OAUTH_GOOGLE_CLIENT_SECRET \
             VERCEL_TOKEN \
             VERCEL_ORG_ID \
             VERCEL_PROJECT_ID
@@ -164,8 +164,8 @@ jobs:
           TF_STATE_ACCESS_KEY_ID: ${{ secrets.TF_STATE_ACCESS_KEY_ID }}
           TF_STATE_SECRET_ACCESS_KEY: ${{ secrets.TF_STATE_SECRET_ACCESS_KEY }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
-          OAUTH_YANDEX_CLIENT_ID: ${{ secrets.OAUTH_YANDEX_CLIENT_ID }}
-          OAUTH_YANDEX_CLIENT_SECRET: ${{ secrets.OAUTH_YANDEX_CLIENT_SECRET }}
+          OAUTH_GOOGLE_CLIENT_ID: ${{ secrets.OAUTH_GOOGLE_CLIENT_ID }}
+          OAUTH_GOOGLE_CLIENT_SECRET: ${{ secrets.OAUTH_GOOGLE_CLIENT_SECRET }}
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}

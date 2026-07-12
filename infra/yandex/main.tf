@@ -5,7 +5,7 @@ locals {
     JWT_SECRET                          = var.jwt_secret
     S3_ACCESS_KEY                       = yandex_iam_service_account_static_access_key.storage.access_key
     S3_SECRET_KEY                       = yandex_iam_service_account_static_access_key.storage.secret_key
-    OAUTH_PROVIDER_YANDEX_CLIENT_SECRET = var.oauth_yandex_client_secret
+    OAUTH_PROVIDER_GOOGLE_CLIENT_SECRET = var.oauth_google_client_secret
   }
   labels = {
     app        = "family-tree"
@@ -132,7 +132,7 @@ resource "yandex_serverless_container" "api" {
       ALLOWED_ORIGINS                 = var.frontend_origin
       OAUTH_REDIRECT_BASE_URL         = var.frontend_origin
       OAUTH_ENABLED_PROVIDERS         = var.oauth_enabled_providers
-      OAUTH_PROVIDER_YANDEX_CLIENT_ID = var.oauth_yandex_client_id
+      OAUTH_PROVIDER_GOOGLE_CLIENT_ID = var.oauth_google_client_id
       ENABLE_MOCK_AUTH                = tostring(var.enable_mock_auth)
       SEED_TEST_DATA                  = tostring(var.seed_test_data)
       DATABASE_BACKEND                = "ydb"
