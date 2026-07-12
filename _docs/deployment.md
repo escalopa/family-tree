@@ -2,7 +2,7 @@
 
 The target production architecture is now Yandex Cloud first:
 
-- Frontend: Vercel, built from `fe/` by the root `vercel.json`.
+- Frontend: Vercel Git integration, built from `fe/` by the root `vercel.json`.
 - Backend: Yandex Serverless Containers.
 - Public backend entrypoint: Yandex API Gateway.
 - Database: Yandex Managed Service for YDB, serverless mode, using YQL.
@@ -63,7 +63,8 @@ yc resource-manager folder get b1gkimk9k36atshi4uto
 ## Vercel Project And Domain
 
 The Vercel project is `family-tree` under the `escalopa` account. The production
-domain is attached in Vercel:
+domain is attached in Vercel and deployed by the Vercel Git integration on
+pushes to `main`:
 
 - `family.escalopa.com`
 
@@ -90,6 +91,48 @@ After changing DNS, verify with:
 ```bash
 vercel domains verify family.escalopa.com
 ```
+
+Set the production frontend environment variable in Vercel:
+
+```text
+VITE_API_URL=https://api.family.escalopa.com
+```
+
+GitHub Actions does not deploy the frontend and does not need a Vercel token.
+
+## API Gateway Domain
+
+The public API should use:
+
+```text
+api.family.escalopa.com
+```
+
+Do not point this subdomain at a fixed IP address. Yandex API Gateway custom
+domains are configured with DNS CNAME records that point to the API Gateway
+service/default domain.
+
+After Terraform creates the gateway, read the target:
+
+```bash
+terraform -chdir=infra/yandex output -raw api_gateway_domain
+```
+
+Then create this DNS record at the DNS provider for `escalopa.com`:
+
+```text
+Type:  CNAME
+Name:  api
+Value: <api_gateway_domain>.
+```
+
+Keep the trailing dot when your DNS provider accepts it. If it does not, enter
+the same gateway domain without the trailing dot.
+
+The gateway also needs the custom domain attached in Yandex API Gateway with a
+valid certificate for `api.family.escalopa.com`. This can be managed after the
+gateway exists; until then the default gateway domain from Terraform is the
+source of truth for the CNAME target.
 
 ## Terraform State Bootstrap
 
@@ -140,9 +183,6 @@ s3://escalopa-tfstate/family-tree/prod/terraform.tfstate
 The remaining production secrets must be supplied by you:
 
 ```bash
-printf '%s' '<vercel-token>' | gh secret set VERCEL_TOKEN
-printf '%s' 'team_nKYA059W7ZnhVw72wPcXyky8' | gh secret set VERCEL_ORG_ID
-printf '%s' 'prj_baUersa3B9BrZ7v3Nakpko6iyL35' | gh secret set VERCEL_PROJECT_ID
 printf '%s' '<strong-jwt-secret>' | gh secret set JWT_SECRET
 printf '%s' '<google-oauth-client-id>' | gh secret set OAUTH_GOOGLE_CLIENT_ID
 printf '%s' '<google-oauth-client-secret>' | gh secret set OAUTH_GOOGLE_CLIENT_SECRET
@@ -198,21 +238,14 @@ docker push "$(terraform -chdir=infra/yandex output -raw container_image_url)"
 
 For a new release, update `container_image_tag`, push that tag, and run `terraform apply`.
 
-## Vercel
+## Frontend Origin
 
-Set the frontend environment variable after Terraform outputs the API Gateway URL:
-
-```bash
-VITE_API_URL=https://API_GATEWAY_DOMAIN
-```
-
-Then update Terraform:
+Terraform needs to know the production frontend origin for CORS and OAuth
+redirect generation:
 
 ```hcl
-frontend_origin = "https://YOUR_VERCEL_HOST"
+frontend_origin = "https://family.escalopa.com"
 ```
-
-This value is used for CORS and OAuth callback URLs.
 
 ## Production Auth
 
@@ -232,7 +265,7 @@ the serverless container as environment variables.
 - Pull requests run backend tests/build, frontend lint/build, and Terraform validation.
 - Pushes to `main` run the same checks, then deploy production.
 - No preview/testing deployment is created for non-main branches.
-- The production frontend is deployed through Vercel CLI.
+- The production frontend is deployed by Vercel Git integration.
 - Yandex Cloud resources are created or updated through Terraform only.
 
 ## YDB Migration Work
@@ -258,7 +291,8 @@ To make the backend fully functional on YDB/YQL:
 
 ## Manual Steps That Remain
 
-- Push the backend image to Yandex Container Registry.
 - Complete the backend YDB persistence migration.
 - Configure production OAuth credentials in Lockbox when available.
-- Set `VITE_API_URL` in Vercel to the Terraform output `api_gateway_url`.
+- Set `VITE_API_URL=https://api.family.escalopa.com` in Vercel production env.
+- Create the DNS CNAME for `api.family.escalopa.com` after the API Gateway
+  default domain is known.
