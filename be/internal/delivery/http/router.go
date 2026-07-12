@@ -124,19 +124,14 @@ func (r *Router) Setup(engine *gin.Engine) {
 			familyTreeGroup.DELETE("/:tree_id/members/:member_id", middleware.RequireRole(domain.RoleSuperAdmin), r.memberHandler.Delete)
 			familyTreeGroup.POST("/:tree_id/members/:member_id/picture", r.uploadRateLimitMiddleware.RateLimit(), middleware.RequireRole(domain.RoleAdmin), r.memberHandler.UploadPicture)
 			familyTreeGroup.DELETE("/:tree_id/members/:member_id/picture", middleware.RequireRole(domain.RoleAdmin), r.memberHandler.DeletePicture)
+			familyTreeGroup.POST("/:tree_id/spouses", middleware.RequireRole(domain.RoleAdmin), r.spouseHandler.Create)
+			familyTreeGroup.PUT("/:tree_id/spouses/:spouse_id", middleware.RequireRole(domain.RoleAdmin), r.spouseHandler.Update)
+			familyTreeGroup.DELETE("/:tree_id/spouses/:spouse_id", middleware.RequireRole(domain.RoleAdmin), r.spouseHandler.Delete)
 			familyTreeGroup.POST("/:tree_id/invitations", r.familyTreeHandler.Invite)
 			familyTreeGroup.GET("/:tree_id/invitations", r.familyTreeHandler.ListInvitations)
 			familyTreeGroup.POST("/:tree_id/share-links", r.familyTreeHandler.CreateShareLink)
 			familyTreeGroup.GET("/:tree_id/share-links", r.familyTreeHandler.ListShareLinks)
 			familyTreeGroup.DELETE("/:tree_id/share-links/:share_id", r.familyTreeHandler.RevokeShareLink)
-		}
-
-		spouseGroup := api.Group("/spouses")
-		spouseGroup.Use(middleware.RequireActive(), middleware.RequireRole(domain.RoleAdmin))
-		{
-			spouseGroup.POST("", r.spouseHandler.Create)
-			spouseGroup.PUT("", r.spouseHandler.Update)
-			spouseGroup.DELETE("", r.spouseHandler.Delete)
 		}
 
 		languageGroup := api.Group("/languages")

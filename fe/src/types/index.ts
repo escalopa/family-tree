@@ -209,7 +209,6 @@ export interface CreateSpouseRequest {
 }
 
 export interface UpdateSpouseRequest {
-  spouse_id: number;
   marriage_date?: string;
   divorce_date?: string;
 }

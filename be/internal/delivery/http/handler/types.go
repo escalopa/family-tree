@@ -77,6 +77,7 @@ type FamilyTreeUseCase interface {
 }
 
 type SpouseUseCase interface {
+	Get(ctx context.Context, spouseID int) (*domain.Spouse, error)
 	Create(ctx context.Context, spouse *domain.Spouse, userID int) error
 	Update(ctx context.Context, spouse *domain.Spouse, userID int) error
 	Delete(ctx context.Context, spouseID, userID int) error

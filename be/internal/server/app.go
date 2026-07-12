@@ -115,7 +115,7 @@ func NewApp(cfg *config.Config) (*App, error) {
 	authHandler := handler.NewAuthHandler(authUseCase, userUseCase, cookieManager)
 	userHandler := handler.NewUserHandler(userUseCase)
 	memberHandler := handler.NewMemberHandler(memberUseCase, languageUseCase, familyTreeUseCase)
-	spouseHandler := handler.NewSpouseHandler(spouseUseCase)
+	spouseHandler := handler.NewSpouseHandler(spouseUseCase, memberUseCase, familyTreeUseCase)
 	treeHandler := handler.NewTreeHandler(treeUseCase, familyTreeUseCase)
 	familyTreeHandler := handler.NewFamilyTreeHandler(familyTreeUseCase, treeUseCase)
 	languageHandler := handler.NewLanguageHandler(languageUseCase)
