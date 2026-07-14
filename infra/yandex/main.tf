@@ -79,12 +79,16 @@ resource "yandex_ydb_database_serverless" "app" {
 resource "yandex_iam_service_account_static_access_key" "storage" {
   service_account_id = yandex_iam_service_account.storage.id
   description        = "Family Tree Object Storage access key."
+
+  depends_on = [yandex_resourcemanager_folder_iam_member.storage_editor]
 }
 
 resource "yandex_storage_bucket" "uploads" {
   access_key = yandex_iam_service_account_static_access_key.storage.access_key
   secret_key = yandex_iam_service_account_static_access_key.storage.secret_key
   bucket     = local.bucket_name
+
+  depends_on = [yandex_resourcemanager_folder_iam_member.storage_editor]
 }
 
 resource "yandex_lockbox_secret" "runtime" {
