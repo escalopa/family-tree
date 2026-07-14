@@ -1,0 +1,208 @@
+name: CI/CD
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  YC_CLOUD_ID: b1g00m03hogrja9p1rb0
+  YC_FOLDER_ID: b1gkimk9k36atshi4uto
+  TF_VAR_cloud_id: b1g00m03hogrja9p1rb0
+  TF_VAR_folder_id: b1gkimk9k36atshi4uto
+  TF_VAR_zone: ru-central1-a
+  TF_VAR_name_prefix: family-tree
+  TF_VAR_frontend_origin: https://family.escalopa.com
+  TF_VAR_oauth_enabled_providers: google,yandex
+  TF_VAR_enable_mock_auth: "false"
+  TF_VAR_seed_test_data: "false"
+
+jobs:
+  backend:
+    name: Backend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: be
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: be/go.mod
+          cache-dependency-path: be/go.sum
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Generate Swagger docs
+        run: go run github.com/swaggo/swag/cmd/swag@v1.16.6 init -g cmd/main.go -o docs
+
+      - name: Test
+        run: go test ./...
+
+      - name: Build API
+        run: go build -o /tmp/family-tree-api ./cmd/main.go
+
+      - name: Build seed tool
+        run: go build -o /tmp/family-tree-seed ./cmd/seed-testing
+
+  frontend:
+    name: Frontend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: fe
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: fe/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npx eslint . --ext ts,tsx --report-unused-disable-directives
+
+      - name: Build
+        run: npm run build
+
+  terraform:
+    name: Terraform
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Check formatting
+        run: terraform fmt -check -recursive infra/yandex
+
+      - name: Validate bootstrap module
+        working-directory: infra/yandex/bootstrap
+        run: |
+          terraform init -backend=false
+          terraform validate
+
+      - name: Validate production module
+        working-directory: infra/yandex
+        run: |
+          terraform init -backend=false
+          terraform validate
+
+  deploy-production:
+    name: Deploy Production
+    runs-on: ubuntu-latest
+    needs:
+      - backend
+      - frontend
+      - terraform
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    environment: production
+    env:
+      TF_VAR_container_image_tag: ${{ github.sha }}
+      TF_VAR_jwt_secret: ${{ secrets.JWT_SECRET }}
+      TF_VAR_oauth_google_client_id: ${{ secrets.OAUTH_GOOGLE_CLIENT_ID }}
+      TF_VAR_oauth_google_client_secret: ${{ secrets.OAUTH_GOOGLE_CLIENT_SECRET }}
+      TF_VAR_oauth_yandex_client_id: ${{ secrets.OAUTH_YANDEX_CLIENT_ID }}
+      TF_VAR_oauth_yandex_client_secret: ${{ secrets.OAUTH_YANDEX_CLIENT_SECRET }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check required secrets
+        run: |
+          missing=0
+          for name in \
+            YC_SERVICE_ACCOUNT_KEY_JSON \
+            TF_STATE_ACCESS_KEY_ID \
+            TF_STATE_SECRET_ACCESS_KEY \
+            JWT_SECRET \
+            OAUTH_GOOGLE_CLIENT_ID \
+            OAUTH_GOOGLE_CLIENT_SECRET \
+            OAUTH_YANDEX_CLIENT_ID \
+            OAUTH_YANDEX_CLIENT_SECRET
+          do
+            if [ -z "${!name:-}" ]; then
+              echo "::error::Missing required secret: $name"
+              missing=1
+            fi
+          done
+          exit "$missing"
+        env:
+          YC_SERVICE_ACCOUNT_KEY_JSON: ${{ secrets.YC_SERVICE_ACCOUNT_KEY_JSON }}
+          TF_STATE_ACCESS_KEY_ID: ${{ secrets.TF_STATE_ACCESS_KEY_ID }}
+          TF_STATE_SECRET_ACCESS_KEY: ${{ secrets.TF_STATE_SECRET_ACCESS_KEY }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          OAUTH_GOOGLE_CLIENT_ID: ${{ secrets.OAUTH_GOOGLE_CLIENT_ID }}
+          OAUTH_GOOGLE_CLIENT_SECRET: ${{ secrets.OAUTH_GOOGLE_CLIENT_SECRET }}
+          OAUTH_YANDEX_CLIENT_ID: ${{ secrets.OAUTH_YANDEX_CLIENT_ID }}
+          OAUTH_YANDEX_CLIENT_SECRET: ${{ secrets.OAUTH_YANDEX_CLIENT_SECRET }}
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+
+      - name: Write Yandex service account key
+        run: |
+          key_file="$RUNNER_TEMP/yc-service-account-key.json"
+          printf '%s' "$YC_SERVICE_ACCOUNT_KEY_JSON" > "$key_file"
+          chmod 600 "$key_file"
+          echo "TF_VAR_yc_service_account_key_file=$key_file" >> "$GITHUB_ENV"
+          echo "YC_SERVICE_ACCOUNT_KEY_FILE=$key_file" >> "$GITHUB_ENV"
+        env:
+          YC_SERVICE_ACCOUNT_KEY_JSON: ${{ secrets.YC_SERVICE_ACCOUNT_KEY_JSON }}
+
+      - name: Initialize Terraform
+        working-directory: infra/yandex
+        run: terraform init
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.TF_STATE_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.TF_STATE_SECRET_ACCESS_KEY }}
+
+      - name: Create container registry
+        working-directory: infra/yandex
+        run: |
+          terraform apply -auto-approve \
+            -target=yandex_container_registry.app \
+            -target=yandex_container_repository.api
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.TF_STATE_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.TF_STATE_SECRET_ACCESS_KEY }}
+
+      - name: Build and push backend image
+        run: |
+          image_url="$(terraform -chdir=infra/yandex output -raw container_image_url)"
+          printf '%s' "$YC_SERVICE_ACCOUNT_KEY_JSON" | docker login --username json_key --password-stdin cr.yandex
+          docker build -f be/Dockerfile --target production -t "$image_url" be
+          docker push "$image_url"
+        env:
+          YC_SERVICE_ACCOUNT_KEY_JSON: ${{ secrets.YC_SERVICE_ACCOUNT_KEY_JSON }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.TF_STATE_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.TF_STATE_SECRET_ACCESS_KEY }}
+
+      - name: Apply production infrastructure
+        working-directory: infra/yandex
+        run: terraform apply -auto-approve
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.TF_STATE_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.TF_STATE_SECRET_ACCESS_KEY }}

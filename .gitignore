@@ -3,6 +3,7 @@
 .env.local
 .env.production
 *.local
+.vercel/
 
 # Backend config with secrets
 be/config.yaml
@@ -44,3 +45,15 @@ node_modules/
 # Build outputs
 dist/
 build/
+
+# Local generated artifacts
+_artifacts/
+.yc-public/
+
+# Terraform working directories
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+.vercel
+.env*

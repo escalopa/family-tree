@@ -134,7 +134,7 @@ const UserProfilePage: React.FC = () => {
       const userResponse = await usersApi.getUser(Number(userId));
       setUser(userResponse);
     } catch (error) {
-
+      // Keep the profile page in a safe empty state when loading fails.
     } finally {
       setLoading(false);
     }
@@ -164,7 +164,7 @@ const UserProfilePage: React.FC = () => {
       setScoreHistory(allScores);
       setDisplayedScoreCount(10); // Reset pagination
     } catch (error) {
-
+      // Keep score history empty when loading fails.
     } finally {
       setLoadingScoreHistory(false);
     }
@@ -194,7 +194,7 @@ const UserProfilePage: React.FC = () => {
       setUserChanges(allChanges);
       setDisplayedChangesCount(10); // Reset pagination
     } catch (error) {
-
+      // Keep user changes empty when loading fails.
     } finally {
       setLoadingUserChanges(false);
     }

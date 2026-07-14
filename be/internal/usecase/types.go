@@ -34,10 +34,26 @@ type MemberRepository interface {
 	DeletePicture(ctx context.Context, memberID int) error
 	List(ctx context.Context, filter domain.MemberFilter, cursor *string, limit int) ([]*domain.Member, *string, error)
 	GetAll(ctx context.Context) ([]*domain.Member, error)
+	GetAllByTreeID(ctx context.Context, treeID int) ([]*domain.Member, error)
 	GetChildrenByParentID(ctx context.Context, parentID int) ([]*domain.Member, error)
 	GetChildrenByParents(ctx context.Context, fatherID, motherID int) ([]*domain.Member, error)
 	GetSiblingsByMemberID(ctx context.Context, memberID int) ([]*domain.Member, error)
 	HasChildrenWithParents(ctx context.Context, fatherID, motherID int) (bool, error)
+}
+
+type FamilyTreeRepository interface {
+	Create(ctx context.Context, tree *domain.FamilyTree) error
+	ListForUser(ctx context.Context, userID int) ([]*domain.FamilyTree, error)
+	GetForUser(ctx context.Context, treeID, userID int) (*domain.FamilyTree, error)
+	HasAccess(ctx context.Context, treeID, userID int) (bool, error)
+	CreateInvitation(ctx context.Context, invitation *domain.FamilyTreeInvitation) error
+	ListTreeInvitations(ctx context.Context, treeID, userID int) ([]*domain.FamilyTreeInvitation, error)
+	ListPendingInvitationsForUser(ctx context.Context, userID int) ([]*domain.FamilyTreeInvitation, error)
+	RespondToInvitation(ctx context.Context, invitationID, userID int, accept bool) error
+	CreateShareLink(ctx context.Context, link *domain.FamilyTreeShareLink) error
+	ListShareLinks(ctx context.Context, treeID, userID int) ([]*domain.FamilyTreeShareLink, error)
+	RevokeShareLink(ctx context.Context, treeID, shareID, userID int) error
+	ConsumeShareLink(ctx context.Context, token string) (*domain.FamilyTreeShareLink, error)
 }
 
 type SpouseRepository interface {
@@ -46,13 +62,15 @@ type SpouseRepository interface {
 	GetByParents(ctx context.Context, fatherID, motherID int) (*domain.Spouse, error)
 	Update(ctx context.Context, spouse *domain.Spouse) error
 	Delete(ctx context.Context, spouseID int) error
-	GetAllSpouses(ctx context.Context) (map[int][]int, error)
+	GetAllSpouses(ctx context.Context) (map[int][]domain.SpouseWithMemberInfo, error)
+	GetAllSpousesByTreeID(ctx context.Context, treeID int) (map[int][]domain.SpouseWithMemberInfo, error)
 	GetByMemberID(ctx context.Context, memberID int) ([]domain.SpouseWithMemberInfo, error)
 }
 
 type HistoryRepository interface {
 	Create(ctx context.Context, history *domain.History) error
 	CreateBatch(ctx context.Context, histories ...*domain.History) error
+	Get(ctx context.Context, historyID int) (*domain.HistoryWithUser, error)
 	GetByMemberID(ctx context.Context, memberID int, cursor *string, limit int) ([]*domain.HistoryWithUser, *string, error)
 	GetByUserID(ctx context.Context, userID int, cursor *string, limit int) ([]*domain.HistoryWithUser, *string, error)
 }

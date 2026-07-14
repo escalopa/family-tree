@@ -35,7 +35,7 @@ type githubEmailInfo struct {
 	Visibility string `json:"visibility"`
 }
 
-func NewGitHubProvider(clientID, clientSecret, redirectURL, userInfoURL string, scopes []string) OAuthProvider {
+func NewGitHubProvider(clientID, clientSecret, redirectURL, _ string, _ string, userInfoURL string, scopes []string) OAuthProvider {
 	oauthConfig := &oauth2.Config{
 		ClientID:     clientID,
 		ClientSecret: clientSecret,

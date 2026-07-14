@@ -14,6 +14,8 @@ import CallbackPage from './pages/CallbackPage';
 import InactivePage from './pages/InactivePage';
 import UnauthorizedPage from './pages/UnauthorizedPage';
 import TreePage from './pages/TreePage';
+import TreesPage from './pages/TreesPage';
+import PublicTreePage from './pages/PublicTreePage';
 import LeaderboardPage from './pages/LeaderboardPage';
 import UsersPage from './pages/UsersPage';
 import UserProfilePage from './pages/UserProfilePage';
@@ -53,12 +55,21 @@ const App: React.FC = () => {
                 {/* Public Routes */}
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/auth/:provider/callback" element={<CallbackPage />} />
+                <Route path="/public/trees/:token" element={<PublicTreePage />} />
                 <Route path="/inactive" element={<InactivePage />} />
                 <Route path="/unauthorized" element={<UnauthorizedPage />} />
 
                 {/* Protected Routes - Require Authentication */}
                 <Route
-                  path="/tree"
+                  path="/trees"
+                  element={
+                    <ProtectedRoute requireActive>
+                      <TreesPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/trees/:treeId/tree"
                   element={
                     <ProtectedRoute requireActive>
                       <TreePage />
@@ -101,8 +112,9 @@ const App: React.FC = () => {
                 />
 
                 {/* Default Route */}
-                <Route path="/" element={<Navigate to="/tree" replace />} />
-                <Route path="*" element={<Navigate to="/tree" replace />} />
+                <Route path="/tree" element={<Navigate to="/trees" replace />} />
+                <Route path="/" element={<Navigate to="/trees" replace />} />
+                <Route path="*" element={<Navigate to="/trees" replace />} />
               </Routes>
               </Router>
             </LanguageProvider>

@@ -30,7 +30,7 @@ type yandexUserInfo struct {
 	IsAvatarEmpty   bool     `json:"is_avatar_empty"`
 }
 
-func NewYandexProvider(clientID, clientSecret, redirectURL, userInfoURL string, scopes []string) OAuthProvider {
+func NewYandexProvider(clientID, clientSecret, redirectURL, _ string, _ string, userInfoURL string, scopes []string) OAuthProvider {
 	oauthConfig := &oauth2.Config{
 		ClientID:     clientID,
 		ClientSecret: clientSecret,

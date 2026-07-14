@@ -1,0 +1,20 @@
+cloud_id  = "b1g00m03hogrja9p1rb0"
+folder_id = "b1gkimk9k36atshi4uto"
+zone      = "ru-central1-a"
+
+# Prefer TF_VAR_yc_token=$(yc iam create-token) instead of writing a token here.
+
+name_prefix         = "family-tree"
+container_image_tag = "latest"
+frontend_origin     = "https://family-tree.vercel.app"
+
+oauth_enabled_providers = "google,yandex"
+enable_mock_auth        = false
+seed_test_data          = false
+
+jwt_secret = "replace-with-a-strong-secret"
+
+oauth_google_client_id     = "replace-with-google-oauth-client-id"
+oauth_google_client_secret = "replace-with-google-oauth-client-secret"
+oauth_yandex_client_id     = "replace-with-yandex-oauth-client-id"
+oauth_yandex_client_secret = "replace-with-yandex-oauth-client-secret"

@@ -90,6 +90,10 @@
     "viewMember": "View Member",
     "memberDetails": "Member Details",
     "name": "Name",
+    "arabicName": "Arabic Name",
+    "englishName": "English Name",
+    "arabicNamePlaceholder": "Starts with Arabic name",
+    "englishNamePlaceholder": "Starts with English name",
     "gender": "Gender",
     "dateOfBirth": "Date of Birth",
     "dateOfDeath": "Date of Death",
@@ -346,7 +350,12 @@
     "noChanges": "No field changes to display",
     "field": "Field",
     "oldValue": "Old Value",
-    "newValue": "New Value"
+    "newValue": "New Value",
+    "rollback": "Rollback to this version",
+    "rollbackUnsupported": "Rollback is available for member update records only",
+    "rollbackConfirm": "Rollback this member to the selected version? This will create a new history record.",
+    "rollbackSuccess": "Member rolled back successfully",
+    "rollbackFailed": "Failed to rollback member"
   },
   "userProfile": {
     "statistics": "Statistics",

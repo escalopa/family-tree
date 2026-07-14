@@ -50,6 +50,10 @@ func NewSpouseUseCase(
 	}
 }
 
+func (uc *spouseUseCase) Get(ctx context.Context, spouseID int) (*domain.Spouse, error) {
+	return uc.repo.spouse.Get(ctx, spouseID)
+}
+
 func (uc *spouseUseCase) recordSpouseHistory(
 	ctx context.Context,
 	fatherID, motherID int,

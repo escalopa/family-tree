@@ -123,11 +123,13 @@ func (r *LanguageRepository) InitializeLanguages(ctx context.Context) error {
 	query := `
 		INSERT INTO languages (language_code, is_active, display_order)
 		VALUES ($1, $2, $3)
-		ON CONFLICT (language_code) DO NOTHING
+		ON CONFLICT (language_code) DO UPDATE SET
+			is_active = EXCLUDED.is_active,
+			display_order = EXCLUDED.display_order
 	`
 
 	for i, langCode := range supportedLangs {
-		isActive := langCode == i18n.DefaultLanguage
+		isActive := langCode == i18n.DefaultLanguage || langCode == "ar"
 		displayOrder := i + 1
 		batch.Queue(query, langCode, isActive, displayOrder)
 	}

@@ -3,6 +3,7 @@ package oauth
 import (
 	"context"
 	"log/slog"
+	"strings"
 
 	"github.com/escalopa/family-tree/internal/config"
 	"github.com/escalopa/family-tree/internal/domain"
@@ -16,21 +17,26 @@ type OAuthManager struct {
 func NewOAuthManager(cfg *config.OAuthConfig) *OAuthManager {
 	manager := &OAuthManager{
 		providers:     make(map[string]OAuthProvider),
-		providerOrder: cfg.GetProviderOrder(),
+		providerOrder: make([]string, 0, len(cfg.GetProviderOrder())),
 	}
 
-	for _, providerName := range manager.providerOrder {
+	for _, providerName := range cfg.GetProviderOrder() {
 		providerCfg := cfg.Providers[providerName]
+		redirectURL := cfg.GetRedirectURL(providerName)
 
 		factory, exists := ProviderFactories[providerName]
-		if !exists {
-			slog.Warn("OAuthManager.NewOAuthManager: provider factory not found", "provider", providerName)
+		var provider OAuthProvider
+		if exists {
+			provider = factory(providerCfg.ClientID, providerCfg.ClientSecret, redirectURL, providerCfg.AuthURL, providerCfg.TokenURL, providerCfg.UserInfoURL, providerCfg.Scopes)
+		} else if canUseGenericProvider(providerCfg) {
+			provider = NewGenericProvider(providerName, providerCfg, redirectURL)
+		} else {
+			slog.Warn("OAuthManager.NewOAuthManager: provider factory not found and generic endpoints are incomplete", "provider", providerName)
 			continue
 		}
 
-		redirectURL := cfg.GetRedirectURL(providerName)
-		provider := factory(providerCfg.ClientID, providerCfg.ClientSecret, redirectURL, providerCfg.UserInfoURL, providerCfg.Scopes)
 		manager.providers[providerName] = provider
+		manager.providerOrder = append(manager.providerOrder, providerName)
 
 		slog.Info("OAuthManager.NewOAuthManager: initialized provider", "provider", providerName, "order", providerCfg.Order)
 	}
@@ -80,4 +86,10 @@ func (m *OAuthManager) GetUserInfo(ctx context.Context, providerName, code strin
 
 func (m *OAuthManager) GetSupportedProviders() []string {
 	return m.providerOrder
+}
+
+func canUseGenericProvider(cfg config.OAuthProviderConfig) bool {
+	return strings.TrimSpace(cfg.AuthURL) != "" &&
+		strings.TrimSpace(cfg.TokenURL) != "" &&
+		strings.TrimSpace(cfg.UserInfoURL) != ""
 }

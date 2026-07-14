@@ -38,7 +38,7 @@ const Header: React.FC = () => {
             <Button
               color="inherit"
               startIcon={<AccountTree />}
-              onClick={() => navigate('/tree')}
+              onClick={() => navigate('/trees')}
             >
               {t('navigation.tree')}
             </Button>

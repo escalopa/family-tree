@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"time"
 
 	"github.com/escalopa/family-tree/internal/domain"
 )
@@ -52,20 +53,38 @@ type MemberUseCase interface {
 	ListSiblings(ctx context.Context, memberID int) ([]*domain.Member, error)
 	List(ctx context.Context, filter domain.MemberFilter, cursor *string, limit int) ([]*domain.Member, *string, error)
 	ListHistory(ctx context.Context, memberID int, cursor *string, limit int) ([]*domain.HistoryWithUser, *string, error)
+	Rollback(ctx context.Context, memberID, historyID, userID int) error
 	UploadPicture(ctx context.Context, memberID int, data []byte, filename string, userID int) (string, error)
 	DeletePicture(ctx context.Context, memberID int, userID int) error
 	GetPicture(ctx context.Context, memberID int) ([]byte, string, error)
 	Compute(ctx context.Context, member *domain.Member, userRole int) *domain.MemberWithComputed
 }
 
+type FamilyTreeUseCase interface {
+	Create(ctx context.Context, tree *domain.FamilyTree, userID int) error
+	List(ctx context.Context, userID int) ([]*domain.FamilyTree, error)
+	Get(ctx context.Context, treeID, userID int) (*domain.FamilyTree, error)
+	EnsureAccess(ctx context.Context, treeID, userID int) error
+	Invite(ctx context.Context, treeID, inviterUserID int, inviteeEmail string, message *string, expiresAt *time.Time) (*domain.FamilyTreeInvitation, error)
+	ListTreeInvitations(ctx context.Context, treeID, userID int) ([]*domain.FamilyTreeInvitation, error)
+	ListMyInvitations(ctx context.Context, userID int) ([]*domain.FamilyTreeInvitation, error)
+	AcceptInvitation(ctx context.Context, invitationID, userID int) error
+	DeclineInvitation(ctx context.Context, invitationID, userID int) error
+	CreateShareLink(ctx context.Context, treeID, userID int, expiresAt *time.Time, maxVisits *int) (*domain.FamilyTreeShareLink, error)
+	ListShareLinks(ctx context.Context, treeID, userID int) ([]*domain.FamilyTreeShareLink, error)
+	RevokeShareLink(ctx context.Context, treeID, shareID, userID int) error
+	ConsumeShareLink(ctx context.Context, token string) (*domain.FamilyTreeShareLink, error)
+}
+
 type SpouseUseCase interface {
+	Get(ctx context.Context, spouseID int) (*domain.Spouse, error)
 	Create(ctx context.Context, spouse *domain.Spouse, userID int) error
 	Update(ctx context.Context, spouse *domain.Spouse, userID int) error
 	Delete(ctx context.Context, spouseID, userID int) error
 }
 
 type TreeUseCase interface {
-	Get(ctx context.Context, rootID *int, userRole int) (*domain.MemberTreeNode, error)
-	List(ctx context.Context, rootID *int, userRole int) ([]*domain.MemberWithComputed, error)
-	GetRelation(ctx context.Context, member1ID, member2ID int, userRole int) (*domain.MemberTreeNode, error)
+	Get(ctx context.Context, treeID int, rootID *int, userRole int) (*domain.MemberTreeNode, error)
+	List(ctx context.Context, treeID int, rootID *int, userRole int) ([]*domain.MemberWithComputed, error)
+	GetRelation(ctx context.Context, treeID, member1ID, member2ID int, userRole int) (*domain.MemberTreeNode, error)
 }

@@ -35,7 +35,7 @@ const CallbackPage: React.FC = () => {
         setUser(response.user);
 
         if (response.user.is_active) {
-          navigate('/tree');
+          navigate('/trees');
         } else {
           navigate('/inactive');
         }

@@ -90,6 +90,10 @@
     "viewMember": "عرض عضو",
     "memberDetails": "تفاصيل العضو",
     "name": "الاسم",
+    "arabicName": "الاسم العربي",
+    "englishName": "الاسم الإنجليزي",
+    "arabicNamePlaceholder": "يبدأ بالاسم العربي",
+    "englishNamePlaceholder": "يبدأ بالاسم الإنجليزي",
     "gender": "الجنس",
     "dateOfBirth": "تاريخ الميلاد",
     "dateOfDeath": "تاريخ الوفاة",
@@ -346,7 +350,12 @@
     "noChanges": "لا توجد تغييرات في الحقول لعرضها",
     "field": "الحقل",
     "oldValue": "القيمة القديمة",
-    "newValue": "القيمة الجديدة"
+    "newValue": "القيمة الجديدة",
+    "rollback": "استرجاع هذا الإصدار",
+    "rollbackUnsupported": "الاسترجاع متاح فقط لسجلات تحديث العضو",
+    "rollbackConfirm": "هل تريد استرجاع هذا العضو إلى الإصدار المحدد؟ سيتم إنشاء سجل تاريخ جديد.",
+    "rollbackSuccess": "تم استرجاع العضو بنجاح",
+    "rollbackFailed": "فشل في استرجاع العضو"
   },
   "userProfile": {
     "statistics": "الإحصائيات",

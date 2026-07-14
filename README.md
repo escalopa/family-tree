@@ -2,6 +2,70 @@
 
 A full-stack family tree management system with OAuth authentication, multi-language support, and interactive visualizations.
 
+## Project overview
+
+| Layer | Stack |
+|-------|--------|
+| Backend | Go, Gin, PostgreSQL, Redis, MinIO |
+| Frontend | React, Vite, MUI, D3, i18next |
+| Auth | OAuth (Google, etc.), JWT + refresh rotation |
+
+## Repository layout
+
+| Path | Purpose |
+|------|---------|
+| `be/` | Go API, migrations, seed CLI |
+| `fe/` | React SPA (`fe/src/features/tree/` — tree UI module) |
+| `_docs/req.md` | Product requirements |
+| `.claude/` | Claude Code rules, skills, hooks |
+| `scripts/` | `dev-cycle.sh`, `seed-and-test.sh` |
+
+## Development workflow
+
+```bash
+make testing-up          # Docker stack (API, FE, Postgres, Redis, MinIO)
+make check               # Backend + frontend validation
+make check-be            # go build, vet, test ./...
+make check-fe            # eslint, vitest, production build
+make seed-testdata       # Seed + integration tests (SCALE=medium)
+make seed-only SCALE=large CLEAN=1   # Seed only
+make test-integration    # BE integration tests (INTEGRATION_TEST=1)
+make dev-cycle PHASE=fe  # Focused dev loop script
+```
+
+Copy `CLAUDE.local.md.example` → `CLAUDE.local.md` for machine-specific paths. See `CLAUDE.md` for architecture, skills (`/dev-cycle`, `/seed-and-verify`), and MCP setup.
+
+The testing stack enables a local-only Mock SSO provider at
+`http://localhost:8090`. Use it from the login page to sign in as one of the
+pre-seeded active test users:
+
+| User | Email | Role |
+|------|-------|------|
+| Mock Super Admin | `superadmin.mock@example.test` | Super Admin |
+| Mock Admin | `admin.mock@example.test` | Admin |
+| Mock Guest | `guest.mock@example.test` | Guest |
+
+### Frontend development
+
+```bash
+cd fe
+cp .env.example .env    # if present
+npm install
+npm run dev             # http://localhost:3000
+npm run lint
+npm run test            # Vitest (table-driven unit/component tests)
+npm run build
+```
+
+Environment: `VITE_API_URL` points at the backend (empty = same origin in production).
+
+### Testing
+
+- **Backend unit:** `cd be && go test ./...`
+- **Backend integration:** `make test-integration` (requires `INTEGRATION_TEST=1`, running Postgres)
+- **Frontend:** `cd fe && npm run test`
+- **Full gate:** `make check`
+
 ## Quick Start (Local Development)
 
 ### Prerequisites
@@ -64,111 +128,56 @@ make testing-down
 
 ## Production Deployment
 
-### 1. Environment Setup
+The repository now includes provider-native deployment automation:
 
-Copy `env.prod.example` → `.env` and configure:
+| Target | Config |
+|--------|--------|
+| Vercel frontend | `vercel.json` |
+| Yandex Cloud backend | `infra/yandex/` |
+| Deployment env checklist | `.env.deploy.example` |
+| Full runbook | `_docs/deployment.md` |
 
-```bash
-DOMAIN=yourdomain.com
-EMAIL=your-email@example.com
+Target stack:
 
-POSTGRES_PASSWORD=strong-password-here
-REDIS_PASSWORD=redis-password-here
-MINIO_ROOT_PASSWORD=minio-password-here
-```
+- Vercel for the React SPA.
+- Yandex Serverless Containers for the Go API.
+- Yandex API Gateway for the public API endpoint.
+- Yandex Managed Service for YDB in serverless mode for YQL data storage.
+- Yandex Object Storage for uploaded images.
+- Yandex Lockbox for secrets.
+- Redis is optional; when `REDIS_URI` is empty, the API disables Redis-backed rate limiting and still runs.
 
-### 2. Backend Configuration
+Terraform provisions the Yandex Cloud resources. The current Go backend still needs its PostgreSQL repository layer migrated to YDB/YQL before the YDB-backed container can be fully functional.
 
-Create `be/config.yaml` for production:
-
-```yaml
-server:
-  mode: "release"
-  allowed_origins:
-    - "https://yourdomain.com"
-  enable_hsts: true
-  cookie:
-    secure: true  # Enable for HTTPS
-
-jwt:
-  secret: "production-secret-key"  # Use strong random key
-
-oauth:
-  providers:
-    google:
-      client_id: "prod-google-client-id"
-      client_secret: "prod-google-client-secret"
-  redirect_base_url: "https://yourdomain.com"
-
-database:
-  dsn: "host=postgres port=5432 user=familytree password=${POSTGRES_PASSWORD} dbname=familytree sslmode=require"
-
-redis:
-  uri: "redis://:${REDIS_PASSWORD}@redis:6379/0"
-
-s3:
-  endpoint: "http://minio:9000"
-  access_key: "${MINIO_ROOT_USER}"
-  secret_key: "${MINIO_ROOT_PASSWORD}"
-```
-
-### 3. Deploy
-
-```bash
-# Initialize SSL certificates
-make prod-init
-
-# Start all services
-make prod-up
-
-# Run migrations
-make migrate-up DB_HOST=localhost DB_PASSWORD=your-db-password
-
-# Create admin user
-make promote-user EMAIL=admin@yourdomain.com
-```
+See `_docs/deployment.md` for the required environment variables and one-time provider setup.
 
 ---
 
 ## Managing OAuth Providers
 
-Edit `be/config.yaml` to enable/disable providers:
+OAuth providers can be enabled with environment variables, so adding or removing providers does not require code changes:
 
-```yaml
-oauth:
-  providers:
-    # Google OAuth
-    google:
-      order: 1  # Display order on login page
-      client_id: "your-client-id"
-      client_secret: "your-client-secret"
-      # Get credentials: https://console.cloud.google.com/apis/credentials
-
-    # GitHub OAuth (uncomment to enable)
-    # github:
-    #   order: 2
-    #   client_id: "github-client-id"
-    #   client_secret: "github-client-secret"
-    #   # Get credentials: https://github.com/settings/developers
-
-    # GitLab OAuth (uncomment to enable)
-    # gitlab:
-    #   order: 3
-    #   client_id: "gitlab-client-id"
-    #   client_secret: "gitlab-client-secret"
-    #   # Get credentials: https://gitlab.com/-/profile/applications
-
-    # Yandex OAuth (uncomment to enable)
-    # yandex:
-    #   order: 4
-    #   client_id: "yandex-client-id"
-    #   client_secret: "yandex-client-secret"
-    #   # Get credentials: https://oauth.yandex.com/
-
-  redirect_base_url: "https://yourdomain.com"  # Your app URL
+```bash
+OAUTH_ENABLED_PROVIDERS=google,github
+OAUTH_REDIRECT_BASE_URL=https://your-frontend-host
+OAUTH_PROVIDER_GOOGLE_CLIENT_ID=...
+OAUTH_PROVIDER_GOOGLE_CLIENT_SECRET=...
+OAUTH_PROVIDER_GOOGLE_SCOPES=openid,email,profile
+OAUTH_PROVIDER_GITHUB_CLIENT_ID=...
+OAUTH_PROVIDER_GITHUB_CLIENT_SECRET=...
 ```
 
-**Note:** Restart backend after changing providers.
+Known providers are `google`, `github`, `gitlab`, `yandex`, and `mock`. Generic OAuth2/OIDC-style providers can also be configured with authorize, token, and user-info URLs; see `_docs/deployment.md`.
+
+Until real OAuth credentials are ready, keep:
+
+```bash
+OAUTH_ENABLED_PROVIDERS=mock
+ENABLE_MOCK_AUTH=true
+SEED_TEST_DATA=true
+```
+
+**Note:** Restart or redeploy the backend after changing provider configuration.
 
 ---
 

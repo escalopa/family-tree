@@ -24,7 +24,7 @@ type googleUserInfo struct {
 	Picture string `json:"picture"`
 }
 
-func NewGoogleProvider(clientID, clientSecret, redirectURL, userInfoURL string, scopes []string) OAuthProvider {
+func NewGoogleProvider(clientID, clientSecret, redirectURL, _ string, _ string, userInfoURL string, scopes []string) OAuthProvider {
 	oauthConfig := &oauth2.Config{
 		ClientID:     clientID,
 		ClientSecret: clientSecret,

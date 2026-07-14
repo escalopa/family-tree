@@ -12,7 +12,10 @@ type AuthTokens struct {
 }
 
 type MemberFilter struct {
-	Name      *string
-	Gender    *string
-	IsMarried *bool
+	TreeID      int
+	Name        *string
+	ArabicName  *string
+	EnglishName *string
+	Gender      *string
+	IsMarried   *bool
 }

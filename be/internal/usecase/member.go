@@ -249,6 +249,38 @@ func (uc *memberUseCase) ListHistory(ctx context.Context, memberID int, cursor *
 	return uc.repo.history.GetByMemberID(ctx, memberID, cursor, limit)
 }
 
+func (uc *memberUseCase) Rollback(ctx context.Context, memberID, historyID, userID int) error {
+	history, err := uc.repo.history.Get(ctx, historyID)
+	if err != nil {
+		return err
+	}
+	if history.MemberID != memberID {
+		return domain.NewValidationError("error.history.member_mismatch")
+	}
+	if history.ChangeType != domain.ChangeTypeUpdate {
+		return domain.NewValidationError("error.history.rollback_unsupported")
+	}
+	if len(history.OldValues) == 0 {
+		return domain.NewValidationError("error.history.rollback_missing_snapshot")
+	}
+
+	currentMember, err := uc.repo.member.Get(ctx, memberID)
+	if err != nil {
+		return err
+	}
+
+	var rollbackMember domain.Member
+	if err := json.Unmarshal(history.OldValues, &rollbackMember); err != nil {
+		return domain.NewValidationError("error.history.rollback_invalid_snapshot")
+	}
+	rollbackMember.MemberID = memberID
+	if rollbackMember.Nicknames == nil {
+		rollbackMember.Nicknames = []string{}
+	}
+
+	return uc.Update(ctx, &rollbackMember, currentMember.Version, userID)
+}
+
 func (uc *memberUseCase) UploadPicture(ctx context.Context, memberID int, data []byte, filename string, userID int) (string, error) {
 	oldMember, err := uc.repo.member.Get(ctx, memberID)
 	if err != nil {

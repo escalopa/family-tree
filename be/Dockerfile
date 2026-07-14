@@ -21,6 +21,7 @@ RUN swag init -g cmd/main.go -o docs
 
 # Build application
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main ./cmd/main.go
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o mock-sso ./cmd/mock-sso
 
 # Development stage - for hot reload with air
 FROM golang:1.25-alpine AS development
@@ -58,3 +59,14 @@ COPY --from=builder /app/main .
 
 # Config will be mounted as volume
 CMD ["./main"]
+
+# Mock SSO stage - testing stack only
+FROM alpine:latest AS mock-sso
+
+RUN apk --no-cache add ca-certificates
+
+WORKDIR /root/
+
+COPY --from=builder /app/mock-sso .
+
+CMD ["./mock-sso"]

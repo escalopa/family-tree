@@ -107,7 +107,7 @@ const UsersPage: React.FC = () => {
 
       setNextCursor(response.next_cursor);
     } catch (error) {
-
+      // Keep the current users list when loading fails.
     } finally {
       setLoading(false);
       setLoadingMore(false);
@@ -156,7 +156,7 @@ const UsersPage: React.FC = () => {
       handleCloseDialog();
       loadUsers(); // Refresh list
     } catch (error) {
-
+      // Leave the dialog open so the admin can retry.
     }
   };
 

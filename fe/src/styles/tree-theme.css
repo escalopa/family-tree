@@ -123,7 +123,6 @@
 
 .tree-node-organic:hover {
   filter: drop-shadow(0 8px 24px rgba(0, 0, 0, 0.15));
-  transform: translateY(-2px);
 }
 
 /* Removed gentleFloat animation - too distracting */

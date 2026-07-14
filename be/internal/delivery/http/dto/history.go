@@ -15,6 +15,10 @@ type MemberHistoryQuery struct {
 	PaginationQuery
 }
 
+type RollbackMemberRequest struct {
+	HistoryID int `json:"history_id" binding:"required,min=1"`
+}
+
 type HistoryResponse struct {
 	HistoryID     int             `json:"history_id"`
 	MemberID      int             `json:"member_id"`

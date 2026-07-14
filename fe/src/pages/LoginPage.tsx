@@ -31,6 +31,10 @@ const providerConfig: Record<string, { icon: React.ReactElement; name: string }>
     icon: <img src={yandexIcon} alt="Yandex" style={{ width: '1.8rem', height: '1.8rem' }} />,
     name: 'Yandex'
   },
+  mock: {
+    icon: <Language style={{ width: '1.8rem', height: '1.8rem' }} />,
+    name: 'Mock SSO'
+  },
 };
 
 const LoginPage: React.FC = () => {
@@ -45,7 +49,7 @@ const LoginPage: React.FC = () => {
   useEffect(() => {
     // Redirect to home if already logged in
     if (!loading && user) {
-      navigate('/tree', { replace: true });
+      navigate('/trees', { replace: true });
     }
   }, [user, loading, navigate]);
 
@@ -72,7 +76,9 @@ const LoginPage: React.FC = () => {
       const { url } = await authApi.getAuthURL(provider);
       window.location.href = url;
     } catch (error) {
-
+      if (import.meta.env.DEV) {
+        console.error('Failed to start provider login:', error);
+      }
     }
   };
 

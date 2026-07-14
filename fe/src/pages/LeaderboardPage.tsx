@@ -41,7 +41,7 @@ const LeaderboardPage: React.FC = () => {
       const response = await usersApi.getLeaderboard();
       setLeaderboard(response.users);
     } catch (error) {
-
+      // Keep the empty leaderboard state when loading fails.
     } finally {
       setLoading(false);
     }
@@ -167,33 +167,33 @@ const LeaderboardPage: React.FC = () => {
                         </Box>
                       </TableCell>
                       <TableCell className="mixed-content-cell">
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                          <Avatar
-                            src={user.avatar || undefined}
-                            className={
-                              user.rank === 1 ? 'avatar-ring-admin' :
-                              isDarkMode ? 'enhanced-avatar-dark' : 'enhanced-avatar'
-                            }
-                            sx={{
-                              width: user.rank <= 3 ? 50 : 40,
-                              height: user.rank <= 3 ? 50 : 40,
-                              transition: 'all 0.3s ease',
-                              ...(user.rank === 1 && {
-                                boxShadow: '0 0 0 4px rgba(255, 215, 0, 0.2), 0 4px 12px rgba(255, 215, 0, 0.4)',
-                                border: '3px solid #FFD700'
-                              }),
-                              ...(user.rank === 2 && {
-                                boxShadow: '0 0 0 4px rgba(192, 192, 192, 0.2), 0 4px 12px rgba(192, 192, 192, 0.4)',
-                                border: '3px solid #C0C0C0'
-                              }),
-                              ...(user.rank === 3 && {
-                                boxShadow: '0 0 0 4px rgba(205, 127, 50, 0.2), 0 4px 12px rgba(205, 127, 50, 0.4)',
-                                border: '3px solid #CD7F32'
-                              })
-                            }}
-                          >
-                            {user.full_name[0]}
-                          </Avatar>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: user.avatar ? 2 : 0 }}>
+                          {user.avatar && (
+                            <Avatar
+                              src={user.avatar}
+                              className={
+                                user.rank === 1 ? 'avatar-ring-admin' :
+                                isDarkMode ? 'enhanced-avatar-dark' : 'enhanced-avatar'
+                              }
+                              sx={{
+                                width: user.rank <= 3 ? 50 : 40,
+                                height: user.rank <= 3 ? 50 : 40,
+                                transition: 'all 0.3s ease',
+                                ...(user.rank === 1 && {
+                                  boxShadow: '0 0 0 4px rgba(255, 215, 0, 0.2), 0 4px 12px rgba(255, 215, 0, 0.4)',
+                                  border: '3px solid #FFD700'
+                                }),
+                                ...(user.rank === 2 && {
+                                  boxShadow: '0 0 0 4px rgba(192, 192, 192, 0.2), 0 4px 12px rgba(192, 192, 192, 0.4)',
+                                  border: '3px solid #C0C0C0'
+                                }),
+                                ...(user.rank === 3 && {
+                                  boxShadow: '0 0 0 4px rgba(205, 127, 50, 0.2), 0 4px 12px rgba(205, 127, 50, 0.4)',
+                                  border: '3px solid #CD7F32'
+                                })
+                              }}
+                            />
+                          )}
                           <Box>
                             <Typography
                               variant="body1"

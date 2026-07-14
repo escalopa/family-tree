@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/escalopa/family-tree/internal/domain"
@@ -65,6 +66,37 @@ func (r *HistoryRepository) CreateBatch(ctx context.Context, histories ...*domai
 	}
 
 	return nil
+}
+
+func (r *HistoryRepository) Get(ctx context.Context, historyID int) (*domain.HistoryWithUser, error) {
+	query := `
+		SELECT h.history_id, h.member_id, h.user_id, h.changed_at, h.change_type,
+		       h.old_values, h.new_values, h.member_version, u.full_name, u.email,
+		       COALESCE(
+			       (SELECT jsonb_object_agg(mn.language_code, mn.name)
+			        FROM member_names mn
+			        WHERE mn.member_id = h.member_id),
+			       '{}'::jsonb
+		       ) as member_names
+		FROM members_history h
+		JOIN users u ON h.user_id = u.user_id
+		WHERE h.history_id = $1
+	`
+
+	history := &domain.HistoryWithUser{}
+	err := r.db.QueryRow(ctx, query, historyID).Scan(
+		&history.HistoryID, &history.MemberID, &history.UserID, &history.ChangedAt, &history.ChangeType,
+		&history.OldValues, &history.NewValues, &history.MemberVersion, &history.UserFullName, &history.UserEmail,
+		&history.MemberNames,
+	)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, domain.NewNotFoundError("history")
+	}
+	if err != nil {
+		return nil, domain.NewDatabaseError(err)
+	}
+
+	return history, nil
 }
 
 func (r *HistoryRepository) GetByMemberID(ctx context.Context, memberID int, cursor *string, limit int) ([]*domain.HistoryWithUser, *string, error) {

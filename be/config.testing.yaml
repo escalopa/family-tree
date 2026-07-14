@@ -1,0 +1,76 @@
+server:
+  port: "8080"
+  mode: "debug"
+  log_level: "info"
+  allowed_origins:
+    - "http://localhost:3000"
+    - "http://localhost:5173"
+  enable_hsts: false
+  cookie:
+    access_token_max_age: 3600
+    refresh_token_max_age: 604800
+    session_id_max_age: 604800
+    path: "/"
+    domain: ""
+    secure: false
+    http_only: true
+
+database:
+  dsn: "host=postgres port=5432 user=familytree password=secret dbname=familytree sslmode=disable"
+
+redis:
+  uri: "redis://redis:6379/0"
+
+jwt:
+  secret: "testing-only-jwt-secret-change-before-any-real-deploy"
+  access_expiry: "15m"
+  refresh_expiry: "168h"
+
+oauth:
+  providers:
+    mock:
+      order: 1
+      client_id: "mock-family-tree-client"
+      client_secret: "mock-family-tree-secret"
+      auth_url: "http://localhost:8090/authorize"
+      user_info_url: "http://mock-sso:8090/userinfo"
+      scopes:
+        - "profile"
+        - "email"
+  redirect_base_url: "http://localhost:3000"
+
+s3:
+  endpoint: "http://minio:9000"
+  region: "us-east-1"
+  bucket: "family-tree-images"
+  access_key: "minioadmin"
+  secret_key: "minioadmin"
+
+rate_limit:
+  auth:
+    enabled: true
+    requests: 30
+    window: 1m
+    prefix: "auth"
+  api:
+    enabled: true
+    requests: 100
+    window: 1m
+    prefix: "api"
+  upload:
+    enabled: true
+    requests: 10
+    window: 1h
+    prefix: "upload"
+
+upload:
+  max_image_size: 3145728
+  allowed_image_extensions:
+    - ".jpg"
+    - ".jpeg"
+    - ".png"
+    - ".gif"
+    - ".webp"
+
+maintenance:
+  cleanup_interval: 1h

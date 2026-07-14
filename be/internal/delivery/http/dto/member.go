@@ -24,21 +24,25 @@ type UpdateMemberRequest struct {
 }
 
 type MemberListQuery struct {
-	Name    *string `form:"name" binding:"omitempty,max=100"`
-	Gender  *string `form:"gender" binding:"omitempty,oneof=M F"`
-	Married *bool   `form:"married" binding:"omitempty"`
-	Cursor  *string `form:"cursor" binding:"omitempty"`
-	Limit   int     `form:"limit,default=20" binding:"omitempty,min=1,max=100"`
+	Name        *string `form:"name" binding:"omitempty,max=100"`
+	ArabicName  *string `form:"arabic_name" binding:"omitempty,max=100"`
+	EnglishName *string `form:"english_name" binding:"omitempty,max=100"`
+	Gender      *string `form:"gender" binding:"omitempty,oneof=M F"`
+	Married     *bool   `form:"married" binding:"omitempty"`
+	Cursor      *string `form:"cursor" binding:"omitempty"`
+	Limit       int     `form:"limit,default=20" binding:"omitempty,min=1,max=1000"`
 }
 
 type MemberListItem struct {
-	MemberID    int     `json:"member_id"`
-	Name        string  `json:"name"`
-	Gender      string  `json:"gender"`
-	Picture     *string `json:"picture"`
-	DateOfBirth *Date   `json:"date_of_birth"`
-	DateOfDeath *Date   `json:"date_of_death"`
-	IsMarried   bool    `json:"is_married"`
+	MemberID    int               `json:"member_id"`
+	TreeID      int               `json:"tree_id"`
+	Name        string            `json:"name"`
+	Names       map[string]string `json:"names,omitempty"`
+	Gender      string            `json:"gender"`
+	Picture     *string           `json:"picture"`
+	DateOfBirth *Date             `json:"date_of_birth"`
+	DateOfDeath *Date             `json:"date_of_death"`
+	IsMarried   bool              `json:"is_married"`
 }
 
 type PaginatedMembersResponse struct {
@@ -55,6 +59,7 @@ type MemberInfo struct {
 
 type MemberResponse struct {
 	MemberID        int               `json:"member_id"`
+	TreeID          int               `json:"tree_id"`
 	Name            string            `json:"name"`                 // Name in user's preferred language
 	Names           map[string]string `json:"names"`                // language_code -> name (for editing)
 	FullName        string            `json:"full_name,omitempty"`  // Full name in user's preferred language

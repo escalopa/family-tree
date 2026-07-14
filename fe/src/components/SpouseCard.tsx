@@ -57,8 +57,7 @@ const SpouseCard: React.FC<SpouseCardProps> = ({
   const handleSave = async () => {
     setSaving(true);
     try {
-      await spousesApi.updateSpouse({
-        spouse_id: spouse.spouse_id,
+      await spousesApi.updateSpouse(spouse.spouse_id, {
         marriage_date: marriageDate || undefined,
         divorce_date: divorceDate || undefined,
       });

@@ -6,6 +6,7 @@ import (
 
 type Member struct {
 	MemberID    int               `json:"member_id"`
+	TreeID      int               `json:"tree_id"`
 	Names       map[string]string `json:"names"` // language_code -> name
 	Gender      string            `json:"gender"`
 	Picture     *string           `json:"picture"`
