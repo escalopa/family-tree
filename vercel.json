@@ -4,6 +4,13 @@
   "installCommand": "cd fe && npm ci",
   "buildCommand": "cd fe && npm run build",
   "outputDirectory": "fe/dist",
+  "redirects": [
+    {
+      "source": "/tree",
+      "destination": "/trees",
+      "permanent": false
+    }
+  ],
   "rewrites": [
     {
       "source": "/((?!assets/|favicon.ico|robots.txt).*)",
