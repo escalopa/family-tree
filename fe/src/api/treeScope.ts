@@ -4,6 +4,10 @@ export const setActiveTreeId = (treeId: number) => {
   localStorage.setItem(ACTIVE_TREE_ID_KEY, String(treeId));
 };
 
+export const clearActiveTreeId = () => {
+  localStorage.removeItem(ACTIVE_TREE_ID_KEY);
+};
+
 export const getActiveTreeId = (): number => {
   const value = localStorage.getItem(ACTIVE_TREE_ID_KEY);
   const treeId = value ? Number(value) : 0;

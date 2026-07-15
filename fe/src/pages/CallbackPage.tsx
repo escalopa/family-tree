@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Box, CircularProgress, Typography } from '@mui/material';
 import { useTranslation } from 'react-i18next';
-import { authApi } from '../api';
+import { authApi, clearActiveTreeId } from '../api';
 import { useAuth } from '../contexts/AuthContext';
 
 const CallbackPage: React.FC = () => {
@@ -35,6 +35,7 @@ const CallbackPage: React.FC = () => {
         setUser(response.user);
 
         if (response.user.is_active) {
+          clearActiveTreeId();
           navigate('/trees');
         } else {
           navigate('/inactive');

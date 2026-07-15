@@ -22,9 +22,55 @@ DECLARE
   person record;
   new_member_id int;
   actor_user_id int;
+  super_admin_user_id int;
+  test_tree_id int;
   field_points int;
   history_version int;
 BEGIN
+  SELECT user_id INTO super_admin_user_id
+  FROM users
+  WHERE email = 'superadmin.mock@example.test';
+
+  SELECT tree_id INTO test_tree_id
+  FROM family_trees
+  WHERE name = 'Test Family Tree'
+  ORDER BY tree_id
+  LIMIT 1;
+
+  IF test_tree_id IS NULL THEN
+    INSERT INTO family_trees (name, description, owner_user_id)
+    VALUES (
+      'Test Family Tree',
+      'Seeded local testing tree with multi-generational spouses and children.',
+      super_admin_user_id
+    )
+    RETURNING tree_id INTO test_tree_id;
+  ELSE
+    UPDATE family_trees
+    SET description = 'Seeded local testing tree with multi-generational spouses and children.',
+        owner_user_id = super_admin_user_id,
+        updated_at = CURRENT_TIMESTAMP
+    WHERE tree_id = test_tree_id;
+  END IF;
+
+  INSERT INTO family_tree_memberships (tree_id, user_id, role)
+  SELECT test_tree_id,
+         user_id,
+         CASE
+           WHEN email = 'superadmin.mock@example.test' THEN 'owner'
+           WHEN email = 'admin.mock@example.test' THEN 'editor'
+           ELSE 'viewer'
+         END
+  FROM users
+  WHERE email IN (
+    'superadmin.mock@example.test',
+    'admin.mock@example.test',
+    'guest.mock@example.test'
+  )
+  ON CONFLICT (tree_id, user_id) DO UPDATE SET
+    role = EXCLUDED.role,
+    joined_at = CURRENT_TIMESTAMP;
+
   CREATE TEMP TABLE seed_existing_members (
     member_id int PRIMARY KEY
   ) ON COMMIT DROP;
@@ -115,6 +161,7 @@ BEGIN
   LOOP
     INSERT INTO members (
       gender,
+      tree_id,
       date_of_birth,
       father_id,
       mother_id,
@@ -124,6 +171,7 @@ BEGIN
     )
     VALUES (
       person.gender,
+      test_tree_id,
       make_date(person.born_year, ((person.seq - 1) % 12) + 1, ((person.seq - 1) % 27) + 1),
       (SELECT member_id FROM seed_member_map WHERE seq = person.father_seq),
       (SELECT member_id FROM seed_member_map WHERE seq = person.mother_seq),

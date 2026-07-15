@@ -6,7 +6,7 @@ import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
-import { authApi } from '../api';
+import { authApi, clearActiveTreeId } from '../api';
 
 import googleIcon from '../assets/icons/google.svg';
 import githubIcon from '../assets/icons/github.svg';
@@ -49,6 +49,7 @@ const LoginPage: React.FC = () => {
   useEffect(() => {
     // Redirect to home if already logged in
     if (!loading && user) {
+      clearActiveTreeId();
       navigate('/trees', { replace: true });
     }
   }, [user, loading, navigate]);
