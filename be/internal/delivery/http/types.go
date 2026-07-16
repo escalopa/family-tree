@@ -42,6 +42,8 @@ type SpouseHandler interface {
 type TreeHandler interface {
 	GetTree(c *gin.Context)
 	GetRelation(c *gin.Context)
+	GetGraph(c *gin.Context)
+	GetRelationGraph(c *gin.Context)
 }
 
 type FamilyTreeHandler interface {

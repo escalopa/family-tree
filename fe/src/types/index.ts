@@ -90,6 +90,51 @@ export interface TreeNode {
   is_in_path?: boolean; // For relation path highlighting
 }
 
+export interface FamilyGraphPerson {
+  member: Member;
+  parent_family_unit_ids?: number[];
+  partner_family_unit_ids?: number[];
+  is_reference_candidate: boolean;
+  is_in_path: boolean;
+}
+
+export interface FamilyGraphUnit {
+  family_unit_id: number;
+  tree_id: number;
+  relationship_type: 'marriage' | 'partnership' | 'unknown';
+  status: 'active' | 'divorced' | 'separated' | 'widowed' | 'unknown';
+  start_date: string | null;
+  end_date: string | null;
+  partner_ids: number[];
+  child_ids: number[];
+}
+
+export interface FamilyGraphEdge {
+  edge_id: string;
+  source_id: string;
+  target_id: string;
+  type: 'partner' | 'child';
+  relation_type?: 'biological' | 'adopted' | 'step' | 'foster' | 'unknown';
+  status?: string;
+  is_in_path: boolean;
+}
+
+export interface FamilyGraphReference {
+  reference_id: string;
+  person_id: number;
+  family_unit_id: number;
+  reason: string;
+}
+
+export interface FamilyGraph {
+  people: FamilyGraphPerson[];
+  family_units: FamilyGraphUnit[];
+  edges: FamilyGraphEdge[];
+  references: FamilyGraphReference[];
+  path_person_ids?: number[];
+  path_family_unit_ids?: number[];
+}
+
 export interface FamilyTree {
   tree_id: number;
   name: string;

@@ -87,4 +87,6 @@ type TreeUseCase interface {
 	Get(ctx context.Context, treeID int, rootID *int, userRole int) (*domain.MemberTreeNode, error)
 	List(ctx context.Context, treeID int, rootID *int, userRole int) ([]*domain.MemberWithComputed, error)
 	GetRelation(ctx context.Context, treeID, member1ID, member2ID int, userRole int) (*domain.MemberTreeNode, error)
+	GetGraph(ctx context.Context, treeID int, userRole int) (*domain.FamilyGraph, error)
+	GetRelationGraph(ctx context.Context, treeID, member1ID, member2ID int, userRole int) (*domain.FamilyGraph, error)
 }

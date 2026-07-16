@@ -80,6 +80,7 @@ func NewApp(cfg *config.Config) (*App, error) {
 	oauthStateRepo := repository.NewOAuthStateRepository(pool)
 	langPrefRepo := repository.NewUserLanguagePreferenceRepository(pool)
 	familyTreeRepo := repository.NewFamilyTreeRepository(pool)
+	familyGraphRepo := repository.NewFamilyGraphRepository(pool)
 	memberRepo := repository.NewMemberRepository(pool)
 	spouseRepo := repository.NewSpouseRepository(pool)
 	historyRepo := repository.NewHistoryRepository(pool)
@@ -109,7 +110,7 @@ func NewApp(cfg *config.Config) (*App, error) {
 	familyTreeUseCase := usecase.NewFamilyTreeUseCase(familyTreeRepo, userRepo)
 	memberUseCase := usecase.NewMemberUseCase(memberRepo, spouseRepo, historyRepo, scoreRepo, s3Client, txManager, marriageValidator, birthDateValidator, relationshipValidator)
 	spouseUseCase := usecase.NewSpouseUseCase(spouseRepo, memberRepo, historyRepo, scoreRepo, txManager, marriageValidator)
-	treeUseCase := usecase.NewTreeUseCase(memberRepo, spouseRepo)
+	treeUseCase := usecase.NewTreeUseCase(memberRepo, spouseRepo, familyGraphRepo)
 	languageUseCase := usecase.NewLanguageUseCase(langRepo, langPrefRepo)
 
 	authHandler := handler.NewAuthHandler(authUseCase, userUseCase, cookieManager)

@@ -67,6 +67,10 @@ type SpouseRepository interface {
 	GetByMemberID(ctx context.Context, memberID int) ([]domain.SpouseWithMemberInfo, error)
 }
 
+type FamilyGraphRepository interface {
+	ListFamilyUnitsByTreeID(ctx context.Context, treeID int) ([]*domain.FamilyUnit, error)
+}
+
 type HistoryRepository interface {
 	Create(ctx context.Context, history *domain.History) error
 	CreateBatch(ctx context.Context, histories ...*domain.History) error

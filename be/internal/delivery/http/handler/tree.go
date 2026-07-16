@@ -115,6 +115,60 @@ func (h *treeHandler) GetRelation(c *gin.Context) {
 	delivery.SuccessWithData(c, h.convertToTreeResponse(tree, preferredLang))
 }
 
+func (h *treeHandler) GetGraph(c *gin.Context) {
+	var uri dto.TreeIDUri
+	if err := c.ShouldBindUri(&uri); err != nil {
+		delivery.Error(c, err)
+		return
+	}
+
+	userID := middleware.GetUserID(c)
+	userRole := middleware.GetUserRole(c)
+	if err := h.familyTreeUseCase.EnsureAccess(c.Request.Context(), uri.TreeID, userID); err != nil {
+		delivery.Error(c, err)
+		return
+	}
+
+	graph, err := h.treeUseCase.GetGraph(c.Request.Context(), uri.TreeID, userRole)
+	if err != nil {
+		delivery.Error(c, err)
+		return
+	}
+
+	preferredLang := middleware.GetPreferredLanguage(c)
+	delivery.SuccessWithData(c, h.convertToGraphResponse(graph, preferredLang))
+}
+
+func (h *treeHandler) GetRelationGraph(c *gin.Context) {
+	var uri dto.TreeIDUri
+	if err := c.ShouldBindUri(&uri); err != nil {
+		delivery.Error(c, err)
+		return
+	}
+
+	var query dto.RelationQuery
+	if err := c.ShouldBindQuery(&query); err != nil {
+		delivery.Error(c, err)
+		return
+	}
+
+	userID := middleware.GetUserID(c)
+	userRole := middleware.GetUserRole(c)
+	if err := h.familyTreeUseCase.EnsureAccess(c.Request.Context(), uri.TreeID, userID); err != nil {
+		delivery.Error(c, err)
+		return
+	}
+
+	graph, err := h.treeUseCase.GetRelationGraph(c.Request.Context(), uri.TreeID, query.Member1ID, query.Member2ID, userRole)
+	if err != nil {
+		delivery.Error(c, err)
+		return
+	}
+
+	preferredLang := middleware.GetPreferredLanguage(c)
+	delivery.SuccessWithData(c, h.convertToGraphResponse(graph, preferredLang))
+}
+
 func (h *treeHandler) convertToTreeResponse(node *domain.MemberTreeNode, preferredLang string) *dto.TreeNodeResponse {
 	if node == nil {
 		return nil
@@ -161,6 +215,86 @@ func (h *treeHandler) convertToTreeResponse(node *domain.MemberTreeNode, preferr
 
 	for _, child := range node.Children {
 		response.Children = append(response.Children, h.convertToTreeResponse(child, preferredLang))
+	}
+
+	return response
+}
+
+func (h *treeHandler) convertToGraphResponse(graph *domain.FamilyGraph, preferredLang string) dto.FamilyGraphResponse {
+	if graph == nil {
+		return dto.FamilyGraphResponse{}
+	}
+
+	response := dto.FamilyGraphResponse{
+		People:            make([]dto.FamilyGraphPersonResponse, 0, len(graph.People)),
+		FamilyUnits:       make([]dto.FamilyGraphUnitResponse, 0, len(graph.FamilyUnits)),
+		Edges:             make([]dto.FamilyGraphEdgeResponse, 0, len(graph.Edges)),
+		References:        make([]dto.FamilyGraphReferenceResponse, 0, len(graph.References)),
+		PathPersonIDs:     graph.PathPersonIDs,
+		PathFamilyUnitIDs: graph.PathFamilyUnitIDs,
+	}
+
+	for _, person := range graph.People {
+		response.People = append(response.People, dto.FamilyGraphPersonResponse{
+			Member: dto.MemberResponse{
+				MemberID:        person.MemberID,
+				TreeID:          person.TreeID,
+				Name:            extractName(person.Names, preferredLang),
+				Names:           person.Names,
+				FullName:        extractName(person.FullNames, preferredLang),
+				FullNames:       person.FullNames,
+				Gender:          person.Gender,
+				Picture:         person.Picture,
+				DateOfBirth:     dto.FromTimePtr(person.DateOfBirth),
+				DateOfDeath:     dto.FromTimePtr(person.DateOfDeath),
+				FatherID:        person.FatherID,
+				MotherID:        person.MotherID,
+				Nicknames:       person.Nicknames,
+				Profession:      person.Profession,
+				Version:         person.Version,
+				Age:             person.Age,
+				GenerationLevel: person.GenerationLevel,
+				IsMarried:       person.IsMarried,
+			},
+			ParentFamilyUnitIDs:  person.ParentFamilyUnitIDs,
+			PartnerFamilyUnitIDs: person.PartnerFamilyUnitIDs,
+			IsReferenceCandidate: person.IsReferenceCandidate,
+			IsInPath:             person.IsInPath,
+		})
+	}
+
+	for _, unit := range graph.FamilyUnits {
+		response.FamilyUnits = append(response.FamilyUnits, dto.FamilyGraphUnitResponse{
+			FamilyUnitID:     unit.FamilyUnitID,
+			TreeID:           unit.TreeID,
+			RelationshipType: unit.RelationshipType,
+			Status:           unit.Status,
+			StartDate:        dto.FromTimePtr(unit.StartDate),
+			EndDate:          dto.FromTimePtr(unit.EndDate),
+			PartnerIDs:       unit.PartnerIDs,
+			ChildIDs:         unit.ChildIDs,
+		})
+	}
+
+	for _, edge := range graph.Edges {
+		response.Edges = append(response.Edges, dto.FamilyGraphEdgeResponse{
+			EdgeID:       edge.EdgeID,
+			SourceID:     edge.SourceID,
+			TargetID:     edge.TargetID,
+			Type:         edge.Type,
+			RelationType: edge.RelationType,
+			Status:       edge.Status,
+			IsInPath:     edge.IsInPath,
+		})
+	}
+
+	for _, ref := range graph.References {
+		response.References = append(response.References, dto.FamilyGraphReferenceResponse{
+			ReferenceID:  ref.ReferenceID,
+			PersonID:     ref.PersonID,
+			FamilyUnitID: ref.FamilyUnitID,
+			Reason:       ref.Reason,
+		})
 	}
 
 	return response

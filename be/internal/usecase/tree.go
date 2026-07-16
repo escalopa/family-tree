@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"fmt"
 	"sort"
 
 	"github.com/escalopa/family-tree/internal/domain"
@@ -11,6 +12,7 @@ type (
 	treeUseCaseRepo struct {
 		member MemberRepository
 		spouse SpouseRepository
+		graph  FamilyGraphRepository
 	}
 
 	treeUseCase struct {
@@ -21,11 +23,13 @@ type (
 func NewTreeUseCase(
 	memberRepo MemberRepository,
 	spouseRepo SpouseRepository,
+	graphRepo FamilyGraphRepository,
 ) *treeUseCase {
 	return &treeUseCase{
 		repo: treeUseCaseRepo{
 			member: memberRepo,
 			spouse: spouseRepo,
+			graph:  graphRepo,
 		},
 	}
 }
@@ -167,6 +171,70 @@ func (uc *treeUseCase) GetRelation(ctx context.Context, treeID, member1ID, membe
 	visited := make(map[int]bool)
 	tree := uc.buildRelationTree(memberMap, spouseMap, root.MemberID, userRole, visited, pathMembers, 1)
 	return tree, nil
+}
+
+func (uc *treeUseCase) GetGraph(ctx context.Context, treeID int, userRole int) (*domain.FamilyGraph, error) {
+	members, err := uc.repo.member.GetAllByTreeID(ctx, treeID)
+	if err != nil {
+		return nil, err
+	}
+	if len(members) == 0 {
+		return &domain.FamilyGraph{}, nil
+	}
+
+	units, err := uc.repo.graph.ListFamilyUnitsByTreeID(ctx, treeID)
+	if err != nil {
+		return nil, err
+	}
+
+	return uc.buildGraph(members, units, userRole, nil), nil
+}
+
+func (uc *treeUseCase) GetRelationGraph(ctx context.Context, treeID, member1ID, member2ID int, userRole int) (*domain.FamilyGraph, error) {
+	members, err := uc.repo.member.GetAllByTreeID(ctx, treeID)
+	if err != nil {
+		return nil, err
+	}
+	if len(members) == 0 {
+		return &domain.FamilyGraph{}, nil
+	}
+
+	memberMap := make(map[int]*domain.Member, len(members))
+	for _, member := range members {
+		memberMap[member.MemberID] = member
+	}
+	if _, exists := memberMap[member1ID]; !exists {
+		return nil, domain.NewNotFoundError("member")
+	}
+	if _, exists := memberMap[member2ID]; !exists {
+		return nil, domain.NewNotFoundError("member")
+	}
+
+	units, err := uc.repo.graph.ListFamilyUnitsByTreeID(ctx, treeID)
+	if err != nil {
+		return nil, err
+	}
+
+	pathPeople, pathUnits := uc.findGraphPath(units, member1ID, member2ID)
+	if pathPeople == nil {
+		return nil, domain.NewValidationError("error.member.no_relation")
+	}
+
+	path := &familyGraphPath{
+		people: make(map[int]bool),
+		units:  make(map[int]bool),
+	}
+	for _, personID := range pathPeople {
+		path.people[personID] = true
+	}
+	for _, unitID := range pathUnits {
+		path.units[unitID] = true
+	}
+
+	graph := uc.buildGraph(members, units, userRole, path)
+	graph.PathPersonIDs = pathPeople
+	graph.PathFamilyUnitIDs = pathUnits
+	return graph, nil
 }
 
 func (uc *treeUseCase) findCommonRoot(memberMap map[int]*domain.Member, member1ID, member2ID int) *domain.Member {
@@ -514,4 +582,194 @@ func (uc *treeUseCase) hydrateSpouseInfo(spouseInfos []domain.SpouseWithMemberIn
 		}
 	}
 	return spouses
+}
+
+type familyGraphPath struct {
+	people map[int]bool
+	units  map[int]bool
+}
+
+func (uc *treeUseCase) buildGraph(members []*domain.Member, units []*domain.FamilyUnit, userRole int, path *familyGraphPath) *domain.FamilyGraph {
+	graph := &domain.FamilyGraph{
+		People:      make([]*domain.FamilyGraphPerson, 0, len(members)),
+		FamilyUnits: units,
+		Edges:       make([]domain.FamilyGraphEdge, 0),
+		References:  make([]domain.FamilyGraphReference, 0),
+	}
+
+	personByID := make(map[int]*domain.FamilyGraphPerson, len(members))
+	for _, member := range members {
+		person := &domain.FamilyGraphPerson{
+			MemberWithComputed: domain.MemberWithComputed{
+				Member:    *member,
+				IsMarried: false,
+			},
+			IsInPath: path != nil && path.people[member.MemberID],
+		}
+
+		if member.Gender == "F" && userRole < domain.RoleSuperAdmin {
+			person.DateOfBirth = nil
+			person.DateOfDeath = nil
+		}
+		if member.Gender == "F" && userRole < domain.RoleAdmin {
+			person.Picture = nil
+		}
+
+		personByID[member.MemberID] = person
+		graph.People = append(graph.People, person)
+	}
+
+	for _, unit := range units {
+		unitInPath := path != nil && path.units[unit.FamilyUnitID]
+		unitID := familyUnitNodeID(unit.FamilyUnitID)
+
+		for _, partnerID := range unit.PartnerIDs {
+			if person := personByID[partnerID]; person != nil {
+				person.IsMarried = true
+				person.PartnerFamilyUnitIDs = append(person.PartnerFamilyUnitIDs, unit.FamilyUnitID)
+				person.IsReferenceCandidate = len(person.ParentFamilyUnitIDs) > 0 || len(person.PartnerFamilyUnitIDs) > 1
+			}
+
+			personInPath := path != nil && path.people[partnerID]
+			graph.Edges = append(graph.Edges, domain.FamilyGraphEdge{
+				EdgeID:   fmt.Sprintf("partner:%d:%d", unit.FamilyUnitID, partnerID),
+				SourceID: personNodeID(partnerID),
+				TargetID: unitID,
+				Type:     "partner",
+				Status:   unit.Status,
+				IsInPath: unitInPath && personInPath,
+			})
+		}
+
+		for _, childID := range unit.ChildIDs {
+			if person := personByID[childID]; person != nil {
+				person.ParentFamilyUnitIDs = append(person.ParentFamilyUnitIDs, unit.FamilyUnitID)
+				person.IsReferenceCandidate = len(person.ParentFamilyUnitIDs) > 1 || len(person.PartnerFamilyUnitIDs) > 0
+			}
+
+			relationType := unit.ChildRelations[childID]
+			if relationType == "" {
+				relationType = "biological"
+			}
+
+			personInPath := path != nil && path.people[childID]
+			graph.Edges = append(graph.Edges, domain.FamilyGraphEdge{
+				EdgeID:       fmt.Sprintf("child:%d:%d", unit.FamilyUnitID, childID),
+				SourceID:     unitID,
+				TargetID:     personNodeID(childID),
+				Type:         "child",
+				RelationType: relationType,
+				IsInPath:     unitInPath && personInPath,
+			})
+		}
+	}
+
+	for _, person := range graph.People {
+		if len(person.PartnerFamilyUnitIDs) == 0 || len(person.ParentFamilyUnitIDs) == 0 {
+			continue
+		}
+		for _, unitID := range person.PartnerFamilyUnitIDs {
+			graph.References = append(graph.References, domain.FamilyGraphReference{
+				ReferenceID:  fmt.Sprintf("ref:%d:%d", person.MemberID, unitID),
+				PersonID:     person.MemberID,
+				FamilyUnitID: unitID,
+				Reason:       "appears_as_partner_in_another_family_unit",
+			})
+		}
+	}
+
+	sort.Slice(graph.People, func(i, j int) bool {
+		left := graph.People[i]
+		right := graph.People[j]
+		if left.DateOfBirth == nil && right.DateOfBirth == nil {
+			return left.MemberID < right.MemberID
+		}
+		if left.DateOfBirth == nil {
+			return false
+		}
+		if right.DateOfBirth == nil {
+			return true
+		}
+		if left.DateOfBirth.Equal(*right.DateOfBirth) {
+			return left.MemberID < right.MemberID
+		}
+		return left.DateOfBirth.Before(*right.DateOfBirth)
+	})
+
+	return graph
+}
+
+func (uc *treeUseCase) findGraphPath(units []*domain.FamilyUnit, startPersonID, endPersonID int) ([]int, []int) {
+	startNode := personNodeID(startPersonID)
+	endNode := personNodeID(endPersonID)
+
+	neighbors := make(map[string][]string)
+	for _, unit := range units {
+		unitNode := familyUnitNodeID(unit.FamilyUnitID)
+		for _, partnerID := range unit.PartnerIDs {
+			personNode := personNodeID(partnerID)
+			neighbors[personNode] = append(neighbors[personNode], unitNode)
+			neighbors[unitNode] = append(neighbors[unitNode], personNode)
+		}
+		for _, childID := range unit.ChildIDs {
+			personNode := personNodeID(childID)
+			neighbors[personNode] = append(neighbors[personNode], unitNode)
+			neighbors[unitNode] = append(neighbors[unitNode], personNode)
+		}
+	}
+
+	queue := []string{startNode}
+	visited := map[string]bool{startNode: true}
+	previous := make(map[string]string)
+
+	for len(queue) > 0 {
+		current := queue[0]
+		queue = queue[1:]
+		if current == endNode {
+			break
+		}
+		for _, neighbor := range neighbors[current] {
+			if visited[neighbor] {
+				continue
+			}
+			visited[neighbor] = true
+			previous[neighbor] = current
+			queue = append(queue, neighbor)
+		}
+	}
+
+	if !visited[endNode] {
+		return nil, nil
+	}
+
+	nodes := []string{}
+	for node := endNode; node != ""; node = previous[node] {
+		nodes = append([]string{node}, nodes...)
+		if node == startNode {
+			break
+		}
+	}
+
+	pathPeople := make([]int, 0)
+	pathUnits := make([]int, 0)
+	for _, node := range nodes {
+		var id int
+		if _, err := fmt.Sscanf(node, "person:%d", &id); err == nil {
+			pathPeople = append(pathPeople, id)
+			continue
+		}
+		if _, err := fmt.Sscanf(node, "family:%d", &id); err == nil {
+			pathUnits = append(pathUnits, id)
+		}
+	}
+
+	return pathPeople, pathUnits
+}
+
+func personNodeID(personID int) string {
+	return fmt.Sprintf("person:%d", personID)
+}
+
+func familyUnitNodeID(familyUnitID int) string {
+	return fmt.Sprintf("family:%d", familyUnitID)
 }

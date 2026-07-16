@@ -53,10 +53,10 @@ import { enqueueSnackbar } from 'notistack';
 import { treeApi, membersApi } from '../api';
 import { setActiveTreeId } from '../api/treeScope';
 import { MemberListItem, MemberSearchQuery, CreateMemberRequest, UpdateMemberRequest, HistoryRecord, Language } from '../types';
-import { TreeNode, Member } from '../types';
+import { FamilyGraph, Member } from '../types';
 import { getGenderColor, formatDate, formatDateOfBirth, getMemberPictureUrl, formatDateTime, formatRelativeTime, getChangeTypeColor, getLocalizedLanguageName } from '../utils/helpers';
 import Layout from '../components/Layout/Layout';
-import TreeVisualization from '../components/TreeVisualization';
+import FamilyGraphVisualization from '../components/FamilyGraphVisualization';
 import RelationFinder from '../components/RelationFinder';
 import MemberPhotoUpload from '../components/MemberPhotoUpload';
 import ParentAutocomplete from '../components/ParentAutocomplete';
@@ -109,9 +109,9 @@ const TreePage: React.FC = () => {
   const [rootId, setRootId] = useState<number | undefined>(initialRootId);
 
   // Data state
-  const [treeData, setTreeData] = useState<TreeNode | null>(null);
+  const [treeData, setTreeData] = useState<FamilyGraph | null>(null);
   const [listMembers, setListMembers] = useState<MemberListItem[]>([]);
-  const [relationTree, setRelationTree] = useState<TreeNode | null>(null);
+  const [relationTree, setRelationTree] = useState<FamilyGraph | null>(null);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(false);
 
@@ -199,7 +199,7 @@ const TreePage: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const data = await treeApi.getTree({ root: rootId, style: 'tree' });
+      const data = await treeApi.getGraph();
       setTreeData(data);
     } catch (error) {
 
@@ -297,7 +297,7 @@ const TreePage: React.FC = () => {
     setError(null);
     setRelationTree(null);
     try {
-      const data = await treeApi.getRelation({ member1: member1Id, member2: member2Id });
+      const data = await treeApi.getRelationGraph({ member1: member1Id, member2: member2Id });
       setRelationTree(data);
       setViewMode('relation');
     } catch (error) {
@@ -723,7 +723,7 @@ const TreePage: React.FC = () => {
                   <Typography variant="h6" gutterBottom>
                     {t('tree.hierarchicalTreeView')}
                   </Typography>
-                  <TreeVisualization
+                  <FamilyGraphVisualization
                     data={treeData}
                     onNodeClick={handleMemberClick}
                     onSetRoot={handleSetRoot}
@@ -1024,17 +1024,17 @@ const TreePage: React.FC = () => {
 
             {/* Relation View */}
             {viewMode === 'relation' && relationTree && (
-                <Box>
-                  <Typography variant="h6" gutterBottom>
-                    {t('tree.relationPath')} {t('tree.relationPathDescription')}
-                  </Typography>
-                  <TreeVisualization
-                    data={relationTree}
-                    onNodeClick={handleMemberClick}
-                    onSetRoot={handleSetRoot}
-                    currentRootId={rootId}
-                  />
-                </Box>
+              <Box>
+                <Typography variant="h6" gutterBottom>
+                  {t('tree.relationPath')} {t('tree.relationPathDescription')}
+                </Typography>
+                <FamilyGraphVisualization
+                  data={relationTree}
+                  onNodeClick={handleMemberClick}
+                  onSetRoot={handleSetRoot}
+                  currentRootId={rootId}
+                />
+              </Box>
             )}
 
             {/* Empty State */}
